@@ -1,7 +1,13 @@
 const express = require("express");
-const { connectDB } = require("./utils/Database");
+const { connectDB } = require("./config/Database");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 3000;
+app.use(express.json());
+app.use(cookieParser());
+
+const { authRouter } = require("./router/auth");
+app.use("/", authRouter);
 
 connectDB()
   .then(() => {

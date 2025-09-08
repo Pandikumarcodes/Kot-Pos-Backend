@@ -1,14 +1,11 @@
 const mongoose = require("mongoose");
 
-import mongoose from "mongoose";
-
 const userSchema = new mongoose.Schema(
   {
     username: {
       type: String,
       unique: true,
       required: true,
-      trim: true,
       minlength: 3,
     },
     password: {
