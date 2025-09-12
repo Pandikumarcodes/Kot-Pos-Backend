@@ -10,7 +10,9 @@ const validateSignupData = ({ username, password }) => {
 };
 
 const validateRole = ({ role }) => {
-  return ["admin", "waiter", "chef"].includes(role) ? role : "waiter";
+  return ["admin", "waiter", "chef", "cashier,manager"].includes(role)
+    ? role
+    : "waiter";
 };
 
 const validateStatus = ({ status }) => {

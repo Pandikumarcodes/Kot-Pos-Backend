@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const authRouter = express.Router();
 const User = require("../models/users");
+
 const {
   validateSignupData,
   validateStatus,
@@ -11,7 +12,6 @@ const {
 authRouter.post("/signup", async (req, res) => {
   try {
     console.log("📥 BODY RECEIVED:", req.body);
-
     // Validate incoming data
     validateSignupData(req.body);
 

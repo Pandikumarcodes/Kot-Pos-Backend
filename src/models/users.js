@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "waiter", "chef"],
+      enum: ["admin", "waiter", "chef", "cashier", "manager"],
       default: "waiter",
     },
     status: {
@@ -65,9 +65,5 @@ userSchema.methods.validatePassword = async function (passwordInputByUser) {
   );
   return isPasswordValid;
 };
-
-// userSchema.methods.isValidPassword = async function (inputPassword) {
-//   return await bcrypt.compare(inputPassword, this.password);
-// };
 
 module.exports = mongoose.model("User", userSchema);
