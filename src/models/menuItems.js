@@ -55,7 +55,7 @@ const ALLOWED_CATEGORIES = [
 
 const menuItemSchema = new mongoose.Schema(
   {
-    name: {
+    ItemName: {
       type: String,
       required: true,
       unique: true,

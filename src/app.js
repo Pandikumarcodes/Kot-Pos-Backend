@@ -12,16 +12,42 @@ app.use(cookieParser());
 // ✅ Routes
 const { authRouter } = require("./router/auth");
 const { adminRouter } = require("./protected/adminRouter");
-const { chefRouter } = require("./protected/chefRouter");
-const { waiterRouter } = require("./protected/waiterRouter");
-const { cashierRouter } = require("./protected/cashierRouter.js");
 
-// Import Roueter Middleware
+// admin Routes
+const { adminUserRouter } = require("./adminRouter/adminUser.js");
+const { adminMenuRouter } = require("./adminRouter/adminMenu.js");
+
+// cashier Router
+const { cashierbillingRouter } = require("./cashierRouter/cashierBilling.js");
+const { cashierOnlineRouter } = require("./cashierRouter/cashierOnline.js");
+const { cashierKotRouter } = require("./cashierRouter/cashierKotOrder.js");
+const { cashierReportsRouter } = require("./cashierRouter/cashierReports.js");
+
+// waiter Router
+const { waiterRouter } = require("./waiterRouter/waiterRouter.js");
+
+// chef Router
+const { chefRouter } = require("./chefRouter/chefRouter.js");
+
+// Auth Router  Middleware
 app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
-app.use("/chef", chefRouter);
+
+//Admin Router
+app.use("/admin", adminUserRouter);
+app.use("/admin", adminMenuRouter);
+
+//cashier Router
+app.use("/cashier", cashierbillingRouter);
+app.use("/cashier", cashierOnlineRouter);
+app.use("/cashier", cashierKotRouter);
+app.use("/cashier", cashierReportsRouter);
+
+// waiter Router
 app.use("/waiter", waiterRouter);
-app.use("/cashier", cashierRouter);
+
+// chef Router
+app.use("/chef", chefRouter);
 
 //global error handler
 app.use((err, req, res, next) => {
