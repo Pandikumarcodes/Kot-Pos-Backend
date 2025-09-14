@@ -12,6 +12,7 @@ const billSchema = new mongoose.Schema(
       required: true,
       match: [/^\d{10}$/, "Enter a valid 10-digit phone number"],
     },
+    billNumber: { type: String, required: true, unique: true },
     items: [
       {
         itemId: {
@@ -39,6 +40,8 @@ const billSchema = new mongoose.Schema(
       enum: ["cash", "card", "upi", "none"],
       default: "none",
     },
+    // shopName: { type: String, required: true },
+    // shopAddress: { type: String, required: true },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // cashier user id
@@ -48,4 +51,4 @@ const billSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Bill", billSchema);
+module.exports = mongoose.model("Billing", billSchema);

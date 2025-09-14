@@ -43,10 +43,20 @@ const validateMenuData = (data) => {
     throw new Error("Available must be true or false");
   }
 };
+const validateBillingData = (data) => {
+  const allowedStatuses = ["paid", "pending", "due"];
+  const allowedMethods = ["cash", "card", "upi"];
+
+  if (!allowedStatuses.includes(paymentStatus))
+    return res.status(400).json({ error: "Invalid paymentStatus" });
+  if (!allowedMethods.includes(paymentMethod))
+    return res.status(400).json({ error: "Invalid paymentMethod" });
+};
 
 module.exports = {
   validateSignupData,
   validateStatus,
   validateRole,
   validateMenuData,
+  validateBillingData,
 };

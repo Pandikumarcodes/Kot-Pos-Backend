@@ -1,5 +1,5 @@
 const express = require("express");
-const { userAuth, allowRoles } = require("../middlewares/auth");
+const { userAuth, allowRoles } = require("../../middlewares/auth");
 const chefRouter = express.Router();
 chefRouter.use(userAuth, allowRoles(["chef"]));
 

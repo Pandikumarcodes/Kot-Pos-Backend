@@ -1,9 +1,11 @@
 const express = require("express");
-const { userAuth, allowRoles } = require("../middlewares/auth");
+const { userAuth, allowRoles } = require("../../middlewares/auth");
 const cashierKotRouter = express.Router();
 cashierKotRouter.use(userAuth, allowRoles(["cashier"]));
 
 cashierKotRouter.post("/send-to-kitchen/:orderId", (req, res) => {
+  const { orderId } = req.params;
+  console.log(orderId);
   res.json({ message: "Order sent to kitchen" });
 });
 

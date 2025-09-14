@@ -1,32 +1,24 @@
 const mongoose = require("mongoose");
 
-const kotChefSchema = new mongoose.Schema(
-  {
-    orderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
-      required: true,
+const kotSchema = new mongoose.Schema({
+  kotNumber: String,
+  tableNumber: String,
+  orderType: { type: String, enum: ["dine-in", "take-away", "delivery"] },
+  items: [
+    {
+      itemId: mongoose.Schema.Types.ObjectId,
+      quantity: Number,
+      notes: String,
     },
-    items: [
-      {
-        name: { type: String, required: true },
-        quantity: { type: Number, required: true },
-      },
-    ],
-    status: {
-      type: String,
-      enum: ["pending", "cooking", "ready", "done"],
-      default: "pending",
-    },
-    assignedChefId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: false,
-    },
+  ],
+  status: {
+    type: String,
+    enum: ["pending", "in-progress", "ready", "served", "billed"],
+    default: "pending",
   },
-  { timestamps: true }
-);
-
-const KOT = mongoose.model("KOT", kotChefSchema);
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  createdAt: { type: Date, default: Date.now },
+});
+const KOT = mongoose.model("KOT", kotSchema);
 
 module.exports = KOT;

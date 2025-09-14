@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const { userAuth, allowRoles } = require("../middlewares/auth");
-const User = require("../models/users");
+const { userAuth, allowRoles } = require("../../middlewares/auth");
+const User = require("../../models/users");
 const {
   validateSignupData,
   validateStatus,
   validateRole,
-} = require("../utils/validation");
+} = require("../../utils/validation");
 const adminUserRouter = express.Router();
 
 const ALLOWED_ROLES = ["admin", "chef", "waiter", "cashier", "manager"];

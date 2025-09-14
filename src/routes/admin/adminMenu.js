@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const { userAuth, allowRoles } = require("../middlewares/auth");
-const MenuItem = require("../models/menuItems");
-const { validateMenuData } = require("../utils/validation");
+const { userAuth, allowRoles } = require("../../middlewares/auth");
+const MenuItem = require("../../models/menuItems");
+const { validateMenuData } = require("../../utils/validation");
 
 const adminMenuRouter = express.Router();
 

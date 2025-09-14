@@ -1,5 +1,5 @@
 const express = require("express");
-const { connectDB } = require("./config/Database");
+const { connectDB } = require("./config/Database.js");
 const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 3000;
@@ -10,41 +10,45 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ✅ Routes
-const { authRouter } = require("./router/auth");
-const { adminRouter } = require("./protected/adminRouter");
+const { authRouter } = require("./routes/auth.js");
 
 // admin Routes
-const { adminUserRouter } = require("./adminRouter/adminUser.js");
-const { adminMenuRouter } = require("./adminRouter/adminMenu.js");
+const { adminUserRouter } = require("./routes/admin/adminUser.js");
+const { adminMenuRouter } = require("./routes/admin/adminMenu.js");
+const { adminTableRouter } = require("./routes/admin/adminTable.js");
+// const { adminReportRouter } = require("./routes/admin/adminReportRouter.js");
 
 // cashier Router
-const { cashierbillingRouter } = require("./cashierRouter/cashierBilling.js");
-const { cashierOnlineRouter } = require("./cashierRouter/cashierOnline.js");
-const { cashierKotRouter } = require("./cashierRouter/cashierKotOrder.js");
-const { cashierReportsRouter } = require("./cashierRouter/cashierReports.js");
+const { cashierbillingRouter } = require("./routes/cashier/cashierBilling.js");
+const { cashierKotRouter } = require("./routes/cashier/cashierKotOrder.js");
+const { cashierReportsRouter } = require("./routes/cashier/cashierReports.js");
+// const { cashierOnlineRouter } = require("./routes/cashier/cashierOnline.js");
 
 // waiter Router
-const { waiterRouter } = require("./waiterRouter/waiterRouter.js");
+const { waiterOrderRouter } = require("./routes/waiter/waiterOrderRouter.js");
+const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter.js");
 
 // chef Router
-const { chefRouter } = require("./chefRouter/chefRouter.js");
+const { chefRouter } = require("./routes/chef/chefRouter.js");
 
 // Auth Router  Middleware
 app.use("/auth", authRouter);
-app.use("/admin", adminRouter);
 
 //Admin Router
 app.use("/admin", adminUserRouter);
 app.use("/admin", adminMenuRouter);
+app.use("/admin", adminTableRouter);
+// app.use("/admin", adminReportRouter);
 
 //cashier Router
 app.use("/cashier", cashierbillingRouter);
-app.use("/cashier", cashierOnlineRouter);
 app.use("/cashier", cashierKotRouter);
 app.use("/cashier", cashierReportsRouter);
+// app.use("/cashier", cashierOnlineRouter);
 
 // waiter Router
-app.use("/waiter", waiterRouter);
+app.use("/waiter", waiterOrderRouter);
+app.use("/waiter", waiterTableRouter);
 
 // chef Router
 app.use("/chef", chefRouter);
