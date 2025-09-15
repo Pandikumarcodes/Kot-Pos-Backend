@@ -3,7 +3,7 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const chefRouter = express.Router();
 chefRouter.use(userAuth, allowRoles(["chef"]));
 
-chefRouter.get("/orders", (req, res) => {
+chefRouter.get("/orders", async (req, res) => {
   res.json({ message: "View all pending KOT orders" });
 });
 

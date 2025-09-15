@@ -8,6 +8,8 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+const bodyParser = require("body-parser");
+app.use(bodyParser.json());
 
 // ✅ Routes
 const { authRouter } = require("./routes/auth.js");

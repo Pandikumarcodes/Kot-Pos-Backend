@@ -1,18 +1,15 @@
 const mongoose = require("mongoose");
-
-const tableOrderSchema = new mongoose.Schema(
+const takeAwaySchema = new mongoose.Schema(
   {
-    tableNumber: { type: Number, required: true },
-    customerName: { type: String, trim: true },
-    tableId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Table",
+    customerName: {
+      type: String,
       required: true,
+      trim: true,
     },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    customerPhone: {
+      type: String,
       required: true,
+      match: [/^\d{10}$/, "Enter a valid 10-digit phone number"],
     },
     items: [
       {
@@ -26,18 +23,18 @@ const tableOrderSchema = new mongoose.Schema(
         price: { type: Number, required: true, min: 0 },
       },
     ],
-    totalAmount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
     status: {
       type: String,
-      enum: ["pending", "sent_to_kitchen", "served", "cancelled"],
+      enum: ["pending", "sent_to_kitchen", "received", "cancelled"],
       default: "pending",
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // cashier user id
+      required: true,
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("TableOrder", tableOrderSchema);
+module.exports = mongoose.model("TakeAway", takeAwaySchema);
