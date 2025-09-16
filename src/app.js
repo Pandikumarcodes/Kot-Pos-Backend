@@ -13,6 +13,7 @@ app.use(bodyParser.json());
 
 // ✅ Routes
 const { authRouter } = require("./routes/auth.js");
+const { router } = require("./routes/testRouter.js");
 
 // admin Routes
 const { adminUserRouter } = require("./routes/admin/adminUser.js");
@@ -35,6 +36,9 @@ const { chefRouter } = require("./routes/chef/chefRouter.js");
 
 // Auth Router  Middleware
 app.use("/auth", authRouter);
+
+// Test Router
+app.use("/test", router);
 
 //Admin Router
 app.use("/admin", adminUserRouter);

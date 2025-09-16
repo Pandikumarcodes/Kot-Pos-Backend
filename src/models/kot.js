@@ -1,24 +1,61 @@
 const mongoose = require("mongoose");
 
-const kotSchema = new mongoose.Schema({
-  kotNumber: String,
-  tableNumber: String,
-  orderType: { type: String, enum: ["dine-in", "take-away", "delivery"] },
-  items: [
-    {
-      itemId: mongoose.Schema.Types.ObjectId,
-      quantity: Number,
-      notes: String,
+const kotSchema = new mongoose.Schema(
+  {
+    orderType: {
+      type: String,
+      enum: ["dine-in", "takeaway"],
+      required: true,
     },
-  ],
-  status: {
-    type: String,
-    enum: ["pending", "in-progress", "ready", "served", "billed"],
-    default: "pending",
+    tableNumber: {
+      type: Number,
+      required: function () {
+        return this.orderType === "dine-in";
+      },
+    },
+    tableId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Table",
+      required: function () {
+        return this.orderType === "dine-in";
+      },
+    },
+    customerName: {
+      type: String,
+      trim: true,
+    },
+    customerPhone: {
+      type: String,
+      trim: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    items: [
+      {
+        itemId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "MenuItem",
+          required: true,
+        },
+        name: { type: String, required: true },
+        quantity: { type: Number, required: true, min: 1 },
+        price: { type: Number, required: true, min: 0 },
+      },
+    ],
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "preparing", "ready", "served", "cancelled"],
+      default: "pending",
+    },
   },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  createdAt: { type: Date, default: Date.now },
-});
-const KOT = mongoose.model("KOT", kotSchema);
+  { timestamps: true }
+);
 
-module.exports = KOT;
+module.exports = mongoose.model("Kot", kotSchema);
