@@ -10,7 +10,7 @@ const validateSignupData = ({ username, password }) => {
 };
 
 const validateRole = ({ role }) => {
-  return ["admin", "waiter", "chef", "cashier,manager"].includes(role)
+  return ["admin", "waiter", "chef", "cashier", "manager"].includes(role)
     ? role
     : "waiter";
 };
@@ -22,35 +22,50 @@ const validateStatus = ({ status }) => {
 const validateMenuData = (data) => {
   const { ItemName, category, price, available } = data;
 
-  // Validate name
   if (!ItemName || typeof ItemName !== "string" || ItemName.trim().length < 2) {
     throw new Error("Item name must be at least 2 characters long");
   }
 
-  // Validate category
-  const allowedCategories = ["starter", "main", "dessert", "beverage"];
+  // ✅ Matches model enum keys exactly
+  const allowedCategories = [
+    "starter",
+    "main_course",
+    "dessert",
+    "beverage",
+    "snacks",
+    "side_dish",
+    "bread",
+    "rice",
+    "combo",
+    "special",
+  ];
+
   if (!allowedCategories.includes(category)) {
     throw new Error(`Category must be one of: ${allowedCategories.join(", ")}`);
   }
 
-  // Validate price
   if (typeof price !== "number" || price <= 0) {
     throw new Error("Price must be a positive number");
   }
 
-  // Validate available
   if (available !== undefined && typeof available !== "boolean") {
     throw new Error("Available must be true or false");
   }
 };
+
+// ✅ Fixed: throws Error instead of using res
 const validateBillingData = (data) => {
+  const { paymentStatus, paymentMethod } = data;
+
   const allowedStatuses = ["paid", "pending", "due"];
   const allowedMethods = ["cash", "card", "upi"];
 
-  if (!allowedStatuses.includes(paymentStatus))
-    return res.status(400).json({ error: "Invalid paymentStatus" });
-  if (!allowedMethods.includes(paymentMethod))
-    return res.status(400).json({ error: "Invalid paymentMethod" });
+  if (paymentStatus && !allowedStatuses.includes(paymentStatus)) {
+    throw new Error("Invalid paymentStatus");
+  }
+  if (paymentMethod && !allowedMethods.includes(paymentMethod)) {
+    throw new Error("Invalid paymentMethod");
+  }
 };
 
 module.exports = {

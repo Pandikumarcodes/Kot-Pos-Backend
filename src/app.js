@@ -8,8 +8,17 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 const bodyParser = require("body-parser");
 app.use(bodyParser.json());
+
+const cors = require("cors");
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 // ✅ Routes
 const { authRouter } = require("./routes/auth.js");
@@ -29,7 +38,11 @@ const { cashierReportsRouter } = require("./routes/cashier/cashierReports.js");
 
 // waiter Router
 const { waiterOrderRouter } = require("./routes/waiter/waiterOrderRouter.js");
-const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter.js");
+const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter");
+
+app.use("/admin", adminTableRouter); // → /admin/tables
+app.use("/waiter", waiterTableRouter); // → /waiter/allocate/:tableId
+// → /waiter/free/:tableId
 
 // chef Router
 const { chefRouter } = require("./routes/chef/chefRouter.js");

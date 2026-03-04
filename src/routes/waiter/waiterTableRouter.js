@@ -3,7 +3,8 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const Table = require("../../models/tables");
 const waiterTableRouter = express.Router();
 
-waiterTableRouter.use(userAuth, allowRoles(["waiter"]));
+// ✅ Allow both
+waiterTableRouter.use(userAuth, allowRoles(["waiter", "admin"]));
 
 waiterTableRouter.post("/allocate/:tableId", async (req, res) => {
   try {
