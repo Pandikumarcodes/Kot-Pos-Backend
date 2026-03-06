@@ -3,8 +3,8 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const Table = require("../../models/tables");
 const waiterTableRouter = express.Router();
 
-// ✅ Allow both
-waiterTableRouter.use(userAuth, allowRoles(["waiter", "admin"]));
+// ✅ waiter + manager + admin
+waiterTableRouter.use(userAuth, allowRoles(["waiter", "manager", "admin"]));
 
 waiterTableRouter.post("/allocate/:tableId", async (req, res) => {
   try {
@@ -21,15 +21,14 @@ waiterTableRouter.post("/allocate/:tableId", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 waiterTableRouter.put("/free/:tableId", async (req, res) => {
   try {
     const table = await Table.findById(req.params.tableId);
     if (!table) return res.status(404).json({ error: "Table not found" });
-
     table.status = "available";
     table.currentCustomer = null;
     await table.save();
-
     res.status(200).json({ message: "Table is now available", table });
   } catch (err) {
     res.status(500).json({ error: err.message });

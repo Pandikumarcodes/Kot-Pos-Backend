@@ -2,17 +2,23 @@ const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const chefRouter = express.Router();
 const Kot = require("../../models/kot");
-chefRouter.use(userAuth, allowRoles(["chef"]));
 
+chefRouter.use(userAuth, allowRoles(["chef", "admin", "manager"]));
+
+// ── GET ALL ACTIVE ORDERS ─────────────────────────────────────
+// ✅ Returns pending + preparing + ready (not just pending)
 chefRouter.get("/kot", async (req, res) => {
   try {
-    const KotOrders = await Kot.find({ status: "pending" });
+    const KotOrders = await Kot.find({
+      status: { $in: ["pending", "preparing", "ready"] },
+    }).sort({ createdAt: 1 }); // oldest first
     res.json({ KotOrders });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// ── GET SINGLE ORDER ──────────────────────────────────────────
 chefRouter.get("/kot/:orderId", async (req, res) => {
   try {
     const order = await Kot.findById(req.params.orderId);
@@ -23,12 +29,13 @@ chefRouter.get("/kot/:orderId", async (req, res) => {
   }
 });
 
+// ── START COOKING ─────────────────────────────────────────────
 chefRouter.put("/kot/:orderId/start", async (req, res) => {
   try {
     const order = await Kot.findByIdAndUpdate(
       req.params.orderId,
       { status: "preparing" },
-      { new: true }
+      { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
     res.json({ message: "Order marked as preparing", order });
@@ -37,12 +44,13 @@ chefRouter.put("/kot/:orderId/start", async (req, res) => {
   }
 });
 
+// ── MARK READY ────────────────────────────────────────────────
 chefRouter.put("/kot/:orderId/ready", async (req, res) => {
   try {
     const order = await Kot.findByIdAndUpdate(
       req.params.orderId,
       { status: "ready" },
-      { new: true }
+      { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
     res.json({ message: "Order marked as ready", order });
@@ -50,12 +58,14 @@ chefRouter.put("/kot/:orderId/ready", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+// ── CANCEL ORDER ──────────────────────────────────────────────
 chefRouter.put("/kot/:orderId/cancel", async (req, res) => {
   try {
     const order = await Kot.findByIdAndUpdate(
       req.params.orderId,
       { status: "cancelled" },
-      { new: true }
+      { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
     res.json({ message: "Order cancelled", order });

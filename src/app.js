@@ -1,18 +1,15 @@
 const express = require("express");
 const { connectDB } = require("./config/Database.js");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
+
 const app = express();
 const PORT = 3000;
 
-// ✅ Middlewares — must come before routes
+// ── Middlewares ───────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-const bodyParser = require("body-parser");
-app.use(bodyParser.json());
-
-const cors = require("cors");
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -20,72 +17,68 @@ app.use(
   }),
 );
 
-// ✅ Routes
+// ── Import Routers ────────────────────────────────────────────
 const { authRouter } = require("./routes/auth.js");
 const { router } = require("./routes/testRouter.js");
 
-// admin Routes
+// Admin
 const { adminUserRouter } = require("./routes/admin/adminUser.js");
 const { adminMenuRouter } = require("./routes/admin/adminMenu.js");
 const { adminTableRouter } = require("./routes/admin/adminTable.js");
-// const { adminReportRouter } = require("./routes/admin/adminReportRouter.js");
-
-// cashier Router
+const { adminReportRouter } = require("./routes/admin/adminReportRouter");
+const {
+  adminCustomerRouter,
+} = require("./routes/admin/adminCustomerRouter.js");
+const {
+  adminSettingsRouter,
+} = require("./routes/admin/adminSettingsRouter.js");
+// Cashier
 const { cashierbillingRouter } = require("./routes/cashier/cashierBilling.js");
 const { cashierKotRouter } = require("./routes/cashier/cashierKotOrder.js");
 const { cashierReportsRouter } = require("./routes/cashier/cashierReports.js");
-// const { cashierOnlineRouter } = require("./routes/cashier/cashierOnline.js");
 
-// waiter Router
+// Waiter
 const { waiterOrderRouter } = require("./routes/waiter/waiterOrderRouter.js");
-const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter");
+const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter.js");
 
-app.use("/admin", adminTableRouter); // → /admin/tables
-app.use("/waiter", waiterTableRouter); // → /waiter/allocate/:tableId
-// → /waiter/free/:tableId
-
-// chef Router
+// Chef
 const { chefRouter } = require("./routes/chef/chefRouter.js");
 
-// Auth Router  Middleware
+// ── Mount Routes ──────────────────────────────────────────────
 app.use("/auth", authRouter);
-
-// Test Router
 app.use("/test", router);
 
-//Admin Router
-app.use("/admin", adminUserRouter);
+// ✅ Admin — each router mounted ONCE
 app.use("/admin", adminMenuRouter);
 app.use("/admin", adminTableRouter);
-// app.use("/admin", adminReportRouter);
+app.use("/admin", adminUserRouter);
+app.use("/admin", adminReportRouter);
+app.use("/admin", adminCustomerRouter);
+app.use("/admin", adminSettingsRouter);
 
-//cashier Router
+// ✅ Cashier — each router mounted ONCE
 app.use("/cashier", cashierbillingRouter);
 app.use("/cashier", cashierKotRouter);
 app.use("/cashier", cashierReportsRouter);
-// app.use("/cashier", cashierOnlineRouter);
 
-// waiter Router
+// ✅ Waiter — each router mounted ONCE
 app.use("/waiter", waiterOrderRouter);
 app.use("/waiter", waiterTableRouter);
 
-// chef Router
+// ✅ Chef
 app.use("/chef", chefRouter);
 
-//global error handler
+// ── Global Error Handler ──────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-// const cors = require("cors");
-// app.use(cors({ origin: "http://localhost:5173", credentials: true }))
-
-// ✅ DB + Server Start
+// ── Start Server ──────────────────────────────────────────────
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server is successfully listening on ${PORT}`);
+      console.log(`✅ Server listening on port ${PORT}`);
     });
   })
   .catch((err) => {

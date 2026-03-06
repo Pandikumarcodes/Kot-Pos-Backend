@@ -4,8 +4,11 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const cashierKotRouter = express.Router();
 const TakeAway = require("../../models/takeAway");
 const MenuItem = require("../../models/menuItems");
-cashierKotRouter.use(userAuth, allowRoles(["cashier"]));
+const Kot = require("../../models/kot"); // ✅ import Kot model
 
+cashierKotRouter.use(userAuth, allowRoles(["cashier", "admin", "manager"]));
+
+// ── CREATE TAKEAWAY ORDER ─────────────────────────────────────
 cashierKotRouter.post("/takeaway-orders", async (req, res) => {
   try {
     const { customerName, customerPhone, items } = req.body;
@@ -26,7 +29,7 @@ cashierKotRouter.post("/takeaway-orders", async (req, res) => {
     });
     const totalAmount = orderItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
-      0
+      0,
     );
     const newOrder = new TakeAway({
       customerName,
@@ -45,90 +48,92 @@ cashierKotRouter.post("/takeaway-orders", async (req, res) => {
   }
 });
 
+// ── GET ALL TAKEAWAY ORDERS ───────────────────────────────────
 cashierKotRouter.get("/takeaway-orders", async (req, res) => {
   try {
-    const myOrders = await TakeAway.find();
-    if (!myOrders.length) {
-      return res.status(404).json({ error: "No orders found" });
-    }
-    res.status(200).json({ myOrders });
+    const myOrders = await TakeAway.find().sort({ createdAt: -1 });
+    res.status(200).json({ myOrders: myOrders || [] });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// ── GET SINGLE TAKEAWAY ORDER ─────────────────────────────────
 cashierKotRouter.get("/takeaway/:orderId", async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findById(orderId)
       .populate("createdBy", "username")
       .populate("items.itemId", "ItemName price");
-
     if (!order) {
       return res.status(404).json({ error: "This order Id not found" });
     }
-    res.status(200).json({
-      message: "This is singleorder Bill",
-      order,
-    });
+    res.status(200).json({ message: "Single order", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// ── SEND TO KITCHEN ───────────────────────────────────────────
 cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findByIdAndUpdate(
       orderId,
       { status: "sent_to_kitchen" },
-      { new: true }
+      { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
-    res.status(200).json({
-      message: "Order sent to kitchen (KOT)",
-      order,
+
+    // ✅ Create KOT entry so chef can see it
+    const totalAmount = order.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    await Kot.create({
+      orderType: "takeaway",
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      createdBy: order.createdBy,
+      items: order.items,
+      totalAmount,
+      status: "pending",
     });
+
+    res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// ── MARK RECEIVED ─────────────────────────────────────────────
 cashierKotRouter.put("/takeAway/:orderId/received", async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findByIdAndUpdate(
       orderId,
       { status: "received" },
-      { new: true }
+      { new: true },
     );
-
     if (!order) return res.status(404).json({ error: "Order not found" });
-
-    res.status(200).json({
-      message: "Order received successfully",
-      order,
-    });
+    res.status(200).json({ message: "Order received successfully", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
+// ── CANCEL ORDER ──────────────────────────────────────────────
 cashierKotRouter.put("/takeAway/:orderId/cancel", async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findByIdAndUpdate(
       orderId,
       { status: "cancelled" },
-      { new: true }
+      { new: true },
     );
-
     if (!order) return res.status(404).json({ error: "Order not found" });
-
-    res.status(200).json({
-      message: "Order has been cancelled",
-      order,
-    });
+    res.status(200).json({ message: "Order has been cancelled", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
