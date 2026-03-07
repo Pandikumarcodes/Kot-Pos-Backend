@@ -12,7 +12,6 @@ const {
 
 authRouter.post("/signup", async (req, res) => {
   try {
-    console.log("📥 BODY RECEIVED:", req.body);
     validateSignupData(req.body);
 
     const { username, role, password, status } = req.body;

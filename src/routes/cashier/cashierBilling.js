@@ -9,7 +9,6 @@ cashierbillingRouter.use(userAuth, allowRoles(["cashier"]));
 
 cashierbillingRouter.post("/billing", async (req, res) => {
   try {
-    console.log("📥 Received Body:", req.body);
     const {
       customerName,
       customerPhone,
@@ -65,7 +64,7 @@ cashierbillingRouter.post("/billing", async (req, res) => {
     }
     const totalAmount = detailedItems.reduce(
       (sum, item) => sum + item.quantity * item.price,
-      0
+      0,
     );
     const newBill = new Billing({
       billNumber,
