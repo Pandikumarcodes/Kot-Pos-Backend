@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/users");
-const secretKey = "Pandi";
 
 const userAuth = async (req, res, next) => {
   try {
@@ -11,7 +10,7 @@ const userAuth = async (req, res, next) => {
       throw new Error("Token is missing");
     }
 
-    const decodedObj = jwt.verify(token, secretKey);
+    const decodedObj = jwt.verify(token, process.env.JWT_SECRET);
     const { _id } = decodedObj;
 
     const user = await User.findById(_id);

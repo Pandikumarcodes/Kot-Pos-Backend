@@ -4,7 +4,6 @@ const Settings = require("../../models/settings.js");
 const adminSettingsRouter = express.Router();
 
 adminSettingsRouter.use(userAuth, allowRoles(["admin", "manager"]));
-
 // ── GET SETTINGS ──────────────────────────────────────────────
 // GET /admin/settings
 adminSettingsRouter.get("/settings", async (req, res) => {
