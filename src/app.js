@@ -13,9 +13,26 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// ✅ Dynamic CORS — allows all vercel subdomains
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        process.env.FRONTEND_URL,
+      ];
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
@@ -72,18 +89,18 @@ app.use("/waiter", waiterTableRouter);
 // ✅ Chef
 app.use("/chef", chefRouter);
 
-// ── Health Check
+// ── Health Check ──────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "KOT POS API is running!" });
 });
 
-// ── Global Error Handler
+// ── Global Error Handler ──────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-// ─ Server
+// ── Start Server ──────────────────────────────────────────────
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
