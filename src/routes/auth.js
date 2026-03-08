@@ -10,6 +10,17 @@ const {
   validateRole,
 } = require("../utils/validation");
 
+const isProduction = process.env.NODE_ENV === "production";
+
+// ── Cookie options ────────────────────────────────────────────
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction, // ✅ HTTPS only in production
+  sameSite: isProduction ? "none" : "lax", // ✅ cross-origin in production
+  maxAge: 8 * 60 * 60 * 1000, // 8 hours
+};
+
+// ── SIGNUP ───────────────────────────────────────────────────
 authRouter.post("/signup", async (req, res) => {
   try {
     validateSignupData(req.body);
@@ -46,7 +57,7 @@ authRouter.post("/signup", async (req, res) => {
   }
 });
 
-// ── LOGIN ───────────────────────────────────────────────────
+// ── LOGIN ────────────────────────────────────────────────────
 authRouter.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -60,7 +71,6 @@ authRouter.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    // ✅ Block inactive users
     if (user.status !== "active") {
       return res
         .status(403)
@@ -68,15 +78,13 @@ authRouter.post("/login", async (req, res) => {
     }
 
     const token = await user.getJWT();
-    res.cookie("token", token, {
-      httpOnly: true,
-      expires: new Date(Date.now() + 8 * 60 * 60 * 1000), // 8 hours
-    });
+
+    // ✅ Fixed cookie — works cross-origin in production
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       message: `${username} Login successful`,
       token,
-      // ✅ Return user object so frontend doesn't need to decode JWT
       user: {
         id: user._id,
         username: user.username,
@@ -90,13 +98,16 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
+// ── ME ───────────────────────────────────────────────────────
 authRouter.get("/me", async (req, res) => {
   try {
     const token = req.cookies.token;
     if (!token) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    const payload = jwt.verify(token, "Pandi");
+
+    // ✅ Use JWT_SECRET from env not hardcoded "Pandi"
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findById(payload._id);
     if (!user) {
@@ -116,18 +127,19 @@ authRouter.get("/me", async (req, res) => {
   }
 });
 
-// ── LOGOUT ──────────────────────────────────────────────────
+// ── LOGOUT ───────────────────────────────────────────────────
 authRouter.post("/logout", async (req, res) => {
-  const { username } = req.body;
   try {
-    res.cookie("token", null, {
-      expires: new Date(Date.now()),
+    // ✅ Clear cookie properly with same options
+    res.cookie("token", "", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 0, // expire immediately
     });
-    res.status(200).json({
-      message: `${username} logout successful`,
-    });
+    res.status(200).json({ message: "Logout successful" });
   } catch (err) {
-    res.status(400).send({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 });
 
