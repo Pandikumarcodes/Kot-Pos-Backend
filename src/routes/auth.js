@@ -1,5 +1,4 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const authRouter = express.Router();
 const User = require("../models/users");
@@ -13,11 +12,18 @@ const {
 const isProduction = process.env.NODE_ENV === "production";
 
 // ── Cookie options ────────────────────────────────────────────
-const cookieOptions = {
+const accessCookieOptions = {
   httpOnly: true,
-  secure: isProduction, // ✅ HTTPS only in production
-  sameSite: isProduction ? "none" : "lax", // ✅ cross-origin in production
-  maxAge: 8 * 60 * 60 * 1000, // 8 hours
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 15 * 60 * 1000, // 15 minutes
+};
+
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 // ── SIGNUP ───────────────────────────────────────────────────
@@ -77,14 +83,17 @@ authRouter.post("/login", async (req, res) => {
         .json({ error: "Your account is inactive. Contact admin." });
     }
 
-    const token = await user.getJWT();
+    // ✅ Generate both tokens
+    const accessToken = await user.getJWT();
+    const refreshToken = user.getRefreshToken();
 
-    // ✅ Fixed cookie — works cross-origin in production
-    res.cookie("token", token, cookieOptions);
+    // ✅ Set both cookies
+    res.cookie("token", accessToken, accessCookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
     res.status(200).json({
       message: `${username} Login successful`,
-      token,
+      token: accessToken,
       user: {
         id: user._id,
         username: user.username,
@@ -101,14 +110,14 @@ authRouter.post("/login", async (req, res) => {
 // ── ME ───────────────────────────────────────────────────────
 authRouter.get("/me", async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const token =
+      req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
+
     if (!token) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // ✅ Use JWT_SECRET from env not hardcoded "Pandi"
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-
     const user = await User.findById(payload._id);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
@@ -127,16 +136,48 @@ authRouter.get("/me", async (req, res) => {
   }
 });
 
+// ── REFRESH TOKEN ────────────────────────────────────────────
+authRouter.post("/refresh", async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: "No refresh token" });
+    }
+
+    // ✅ Verify refresh token
+    const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    const user = await User.findById(payload._id);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    // ✅ Generate new access token
+    const newAccessToken = await user.getJWT();
+    res.cookie("token", newAccessToken, accessCookieOptions);
+
+    res.status(200).json({
+      message: "Token refreshed",
+      token: newAccessToken,
+    });
+  } catch (err) {
+    res.status(401).json({ error: "Invalid or expired refresh token" });
+  }
+});
+
 // ── LOGOUT ───────────────────────────────────────────────────
 authRouter.post("/logout", async (req, res) => {
   try {
-    // ✅ Clear cookie properly with same options
-    res.cookie("token", "", {
+    // ✅ Clear both cookies
+    const clearOptions = {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
-      maxAge: 0, // expire immediately
-    });
+      maxAge: 0,
+    };
+    res.cookie("token", "", clearOptions);
+    res.cookie("refreshToken", "", clearOptions);
     res.status(200).json({ message: "Logout successful" });
   } catch (err) {
     res.status(400).json({ error: err.message });

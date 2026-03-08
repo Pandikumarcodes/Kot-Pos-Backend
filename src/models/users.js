@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -35,6 +36,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// ── Hash password before save ─────────────────────────────────
 userSchema.pre("save", async function (next) {
   try {
     if (!this.isModified("password")) return next();
@@ -46,22 +48,28 @@ userSchema.pre("save", async function (next) {
   }
 });
 
+// ── Access Token — 15 mins ────────────────────────────────────
 userSchema.methods.getJWT = async function () {
-  const user = this;
   const token = jwt.sign(
-    { _id: user._id, username: this.username, role: this.role },
+    { _id: this._id, username: this.username, role: this.role },
     process.env.JWT_SECRET,
-    { expiresIn: "8h" },
+    { expiresIn: "15m" }, // ✅ short lived
   );
   return token;
 };
 
-userSchema.methods.validatePassword = async function (passwordInputByUser) {
-  const isPasswordValid = await bcrypt.compare(
-    passwordInputByUser,
-    this.password,
+// ── Refresh Token — 7 days ────────────────────────────────────
+userSchema.methods.getRefreshToken = function () {
+  return jwt.sign(
+    { _id: this._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }, // ✅ long lived
   );
-  return isPasswordValid;
+};
+
+// ── Validate password ─────────────────────────────────────────
+userSchema.methods.validatePassword = async function (passwordInputByUser) {
+  return await bcrypt.compare(passwordInputByUser, this.password);
 };
 
 module.exports = mongoose.model("User", userSchema);
