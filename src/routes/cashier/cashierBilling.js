@@ -4,31 +4,23 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const Billing = require("../../models/billings");
 const MenuItem = require("../../models/menuItems");
 
+// ── Notification service ──────────────────────────────────────
+const { notify } = require("../../services/notificationservices");
+
 const cashierbillingRouter = express.Router();
 cashierbillingRouter.use(userAuth, allowRoles(["cashier"]));
 
+// ── CREATE BILL ───────────────────────────────────────────────
 cashierbillingRouter.post("/billing", async (req, res) => {
   try {
-    const {
-      customerName,
-      customerPhone,
-      items,
-      paymentStatus,
-      paymentMethod,
-      // shopName,
-      // shopAddress,
-    } = req.body;
-
-    // validateBillingData(req.body);
+    const { customerName, customerPhone, items, paymentStatus, paymentMethod } =
+      req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "Items are required" });
     }
 
-    // Get today's date part like "20250914"
     const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
-
-    // Count how many bills created today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -47,7 +39,6 @@ cashierbillingRouter.post("/billing", async (req, res) => {
           .status(400)
           .json({ error: "itemId is required for each item" });
       }
-
       const menuItem = await MenuItem.findById(i.itemId);
       if (!menuItem) {
         return res
@@ -62,10 +53,12 @@ cashierbillingRouter.post("/billing", async (req, res) => {
         total: menuItem.price * i.quantity,
       });
     }
+
     const totalAmount = detailedItems.reduce(
       (sum, item) => sum + item.quantity * item.price,
       0,
     );
+
     const newBill = new Billing({
       billNumber,
       customerName,
@@ -74,12 +67,14 @@ cashierbillingRouter.post("/billing", async (req, res) => {
       totalAmount,
       paymentStatus,
       paymentMethod,
-      // shopName: req.user.shopName,
-      // shopAddress: req.user.shopAddress,
       createdBy: req.user._id,
     });
 
     await newBill.save();
+
+    // ── Notify admin + cashiers ───────────────────────────────
+    const io = req.app.get("io");
+    notify.billingUpdated(io, newBill);
 
     res.status(201).json({
       message: "Bill generated successfully",
@@ -90,6 +85,7 @@ cashierbillingRouter.post("/billing", async (req, res) => {
   }
 });
 
+// ── GET ALL BILLS ─────────────────────────────────────────────
 cashierbillingRouter.get("/bills", async (req, res) => {
   try {
     const myBills = await Billing.find({ createdBy: req.user._id }).sort({
@@ -105,30 +101,26 @@ cashierbillingRouter.get("/bills", async (req, res) => {
   }
 });
 
+// ── GET SINGLE BILL ───────────────────────────────────────────
 cashierbillingRouter.get("/bills/:billId", async (req, res) => {
   try {
     const { billId } = req.params;
-
     const bill = await Billing.findOne({
       _id: billId,
       createdBy: req.user._id,
     });
-    if (!bill) {
-      return res.status(404).json({ error: "Bill not found" });
-    }
+    if (!bill) return res.status(404).json({ error: "Bill not found" });
     res.status(200).json({ bill });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch Bill" });
   }
-  res.json({ message: "Get single bill details" });
 });
 
+// ── MARK PAID ─────────────────────────────────────────────────
 cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
   try {
     const { billId } = req.params;
-
-    // Find the bill created by this cashier
     const bill = await Billing.findOne({
       _id: billId,
       createdBy: req.user._id,
@@ -138,29 +130,28 @@ cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
     if (bill.paymentStatus === "paid")
       return res.status(400).json({ error: "Bill is already paid" });
 
-    // Update payment status to "paid"
     bill.paymentStatus = "paid";
     bill.paidAt = new Date();
-
     await bill.save();
 
-    res.status(200).json({
-      message: "Bill marked as paid successfully",
-      bill,
-    });
+    // ── Notify admin + cashiers ───────────────────────────────
+    const io = req.app.get("io");
+    notify.billingUpdated(io, bill);
+
+    res.status(200).json({ message: "Bill marked as paid successfully", bill });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update bill payment status" });
   }
 });
 
+// ── DELETE BILL ───────────────────────────────────────────────
 cashierbillingRouter.delete("/bills/:billId", async (req, res) => {
   try {
     const { billId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(billId)) {
       return res.status(400).json({ error: "Invalid Bill Id" });
     }
-
     const deletedBill = await Billing.findOneAndDelete({
       _id: billId,
       createdBy: req.user._id,
@@ -180,7 +171,7 @@ cashierbillingRouter.delete("/bills/:billId", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err); // show real error in console
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const settingsSchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      default: null,
+      index: true,
+    },
+
     // ── General ───────────────────────────────────────────────
     businessName: { type: String, default: "My Restaurant" },
     email: { type: String, default: "" },
@@ -21,6 +28,8 @@ const settingsSchema = new mongoose.Schema(
 
     // ── Billing ───────────────────────────────────────────────
     taxRate: { type: Number, default: 5 },
+    fssai: { type: String, default: "" },
+    hsn: { type: String, default: "996331" },
     serviceCharge: { type: Number, default: 0 },
     autoRoundOff: { type: Boolean, default: true },
     printReceipt: { type: Boolean, default: true },

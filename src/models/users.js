@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "locked", "accepted"],
       default: "active",
     },
+
+    // ✅ NEW — which branch this user belongs to
+    // null / undefined = super-admin (sees all branches)
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      default: null,
+    },
   },
   { timestamps: true },
 );
@@ -48,23 +56,25 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// ── Access Token — 15 mins ────────────────────────────────────
+// ── Access Token — 15 mins (now includes branchId) ────────────
 userSchema.methods.getJWT = async function () {
-  const token = jwt.sign(
-    { _id: this._id, username: this.username, role: this.role },
+  return jwt.sign(
+    {
+      _id: this._id,
+      username: this.username,
+      role: this.role,
+      branchId: this.branchId ?? null, // ✅ included in token
+    },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" }, // ✅ short lived
+    { expiresIn: "15m" },
   );
-  return token;
 };
 
 // ── Refresh Token — 7 days ────────────────────────────────────
 userSchema.methods.getRefreshToken = function () {
-  return jwt.sign(
-    { _id: this._id },
-    process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" }, // ✅ long lived
-  );
+  return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: "7d",
+  });
 };
 
 // ── Validate password ─────────────────────────────────────────

@@ -3,15 +3,17 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const chefRouter = express.Router();
 const Kot = require("../../models/kot");
 
+// ── Notification service ──────────────────────────────────────
+const { notify } = require("../../services/notificationservices");
+
 chefRouter.use(userAuth, allowRoles(["chef", "admin", "manager"]));
 
 // ── GET ALL ACTIVE ORDERS ─────────────────────────────────────
-// ✅ Returns pending + preparing + ready (not just pending)
 chefRouter.get("/kot", async (req, res) => {
   try {
     const KotOrders = await Kot.find({
       status: { $in: ["pending", "preparing", "ready"] },
-    }).sort({ createdAt: 1 }); // oldest first
+    }).sort({ createdAt: 1 });
     res.json({ KotOrders });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -38,6 +40,11 @@ chefRouter.put("/kot/:orderId/start", async (req, res) => {
       { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
+
+    // ── Notify all rooms ──────────────────────────────────────
+    const io = req.app.get("io");
+    notify.kotUpdated(io, order);
+
     res.json({ message: "Order marked as preparing", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -53,6 +60,11 @@ chefRouter.put("/kot/:orderId/ready", async (req, res) => {
       { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
+
+    // ── Notify all rooms ──────────────────────────────────────
+    const io = req.app.get("io");
+    notify.kotUpdated(io, order);
+
     res.json({ message: "Order marked as ready", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -68,6 +80,11 @@ chefRouter.put("/kot/:orderId/cancel", async (req, res) => {
       { new: true },
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
+
+    // ── Notify all rooms ──────────────────────────────────────
+    const io = req.app.get("io");
+    notify.kotUpdated(io, order);
+
     res.json({ message: "Order cancelled", order });
   } catch (err) {
     res.status(400).json({ error: err.message });

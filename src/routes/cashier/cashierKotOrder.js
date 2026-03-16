@@ -4,7 +4,10 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const cashierKotRouter = express.Router();
 const TakeAway = require("../../models/takeAway");
 const MenuItem = require("../../models/menuItems");
-const Kot = require("../../models/kot"); // ✅ import Kot model
+const Kot = require("../../models/kot");
+
+// ── Notification service ──────────────────────────────────────
+const { notify } = require("../../services/notificationservices");
 
 cashierKotRouter.use(userAuth, allowRoles(["cashier", "admin", "manager"]));
 
@@ -39,6 +42,12 @@ cashierKotRouter.post("/takeaway-orders", async (req, res) => {
       totalAmount,
     });
     await newOrder.save();
+    deductStockForKot(
+      newOrder.items,
+      req.branchId,
+      newOrder._id,
+      req.user._id,
+    ).catch((err) => console.error("Stock deduction failed:", err.message));
     res.status(201).json({
       message: "Order created successfully",
       order: newOrder,
@@ -65,9 +74,8 @@ cashierKotRouter.get("/takeaway/:orderId", async (req, res) => {
     const order = await TakeAway.findById(orderId)
       .populate("createdBy", "username")
       .populate("items.itemId", "ItemName price");
-    if (!order) {
+    if (!order)
       return res.status(404).json({ error: "This order Id not found" });
-    }
     res.status(200).json({ message: "Single order", order });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -85,13 +93,12 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
 
-    // ✅ Create KOT entry so chef can see it
     const totalAmount = order.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
 
-    await Kot.create({
+    const kot = await Kot.create({
       orderType: "takeaway",
       customerName: order.customerName,
       customerPhone: order.customerPhone,
@@ -100,6 +107,10 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
       totalAmount,
       status: "pending",
     });
+
+    // ── Notify kitchen + admin ────────────────────────────────
+    const io = req.app.get("io");
+    notify.newOrder(io, kot);
 
     res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
   } catch (err) {

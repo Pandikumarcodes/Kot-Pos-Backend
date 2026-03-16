@@ -3,10 +3,12 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const waiterOrderRouter = express.Router();
 const TableOrder = require("../../models/waiter");
 const MenuItem = require("../../models/menuItems");
-const Kot = require("../../models/kot"); // ✅ import Kot model
-const Table = require("../../models/tables"); // ✅ import Table model
+const Kot = require("../../models/kot");
+const Table = require("../../models/tables");
+const { deductStockForKot } = require("../../controllers/inventoryController");
+// ── Notification service ──────────────────────────────────────
+const { notify } = require("../../services/notificationservices");
 
-// ✅ All roles that take orders
 waiterOrderRouter.use(
   userAuth,
   allowRoles(["waiter", "manager", "admin", "cashier"]),
@@ -54,6 +56,12 @@ waiterOrderRouter.post("/orders", async (req, res) => {
     });
 
     await newOrder.save();
+    deductStockForKot(
+      newOrder.items,
+      req.branchId,
+      newOrder._id,
+      req.user._id,
+    ).catch((err) => console.error("Stock deduction failed:", err.message));
 
     res.status(201).json({
       message: "Order created successfully",
@@ -70,8 +78,6 @@ waiterOrderRouter.get("/orders", async (req, res) => {
     const myOrders = await TableOrder.find()
       .populate("createdBy", "username")
       .sort({ createdAt: -1 });
-
-    // ✅ Return empty array instead of 404
     res.status(200).json({ myOrders });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -86,10 +92,7 @@ waiterOrderRouter.get("/orders/:orderId", async (req, res) => {
       .populate("createdBy", "username")
       .populate("items.itemId", "ItemName price");
 
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-
+    if (!order) return res.status(404).json({ error: "Order not found" });
     res.status(200).json({ order });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -107,11 +110,9 @@ waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
     );
     if (!order) return res.status(404).json({ error: "Order not found" });
 
-    // ✅ Get table number from Table model
     const table = await Table.findById(order.tableId);
 
-    // ✅ Create KOT entry so chef can see it
-    await Kot.create({
+    const kot = await Kot.create({
       orderType: "dine-in",
       tableNumber: table?.tableNumber || order.tableNumber,
       tableId: order.tableId,
@@ -121,6 +122,10 @@ waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
       totalAmount: order.totalAmount,
       status: "pending",
     });
+
+    // ── Notify kitchen + admin ────────────────────────────────
+    const io = req.app.get("io");
+    notify.newOrder(io, kot);
 
     res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
   } catch (err) {

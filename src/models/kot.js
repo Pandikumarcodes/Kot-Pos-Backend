@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const kotSchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+      index: true,
+    },
+
     orderType: {
       type: String,
       enum: ["dine-in", "takeaway"],
@@ -20,18 +27,13 @@ const kotSchema = new mongoose.Schema(
         return this.orderType === "dine-in";
       },
     },
-    customerName: {
-      type: String,
-      trim: true,
-    },
-    customerPhone: {
-      type: String,
-      trim: true,
-    },
+    customerName: { type: String, trim: true },
+    customerPhone: { type: String, trim: true },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+     required: false,
+      default: null,
     },
     items: [
       {
@@ -45,17 +47,18 @@ const kotSchema = new mongoose.Schema(
         price: { type: Number, required: true, min: 0 },
       },
     ],
-    totalAmount: {
-      type: Number,
-      required: true,
-    },
+    totalAmount: { type: Number, required: true },
     status: {
       type: String,
       enum: ["pending", "preparing", "ready", "served", "cancelled"],
       default: "pending",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+// Compound index for fast per-branch KOT queries
+kotSchema.index({ branchId: 1, status: 1 });
+kotSchema.index({ branchId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Kot", kotSchema);

@@ -65,13 +65,14 @@ authRouter.post("/signup", async (req, res) => {
 
 // ── LOGIN ────────────────────────────────────────────────────
 authRouter.post("/login", async (req, res) => {
-  const { username, password } = req.body;
   try {
+    const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-
+    if (user.status === "locked")
+      return res.status(403).json({ error: "Account locked" });
     const isPasswordValid = await user.validatePassword(password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid password" });
@@ -90,7 +91,19 @@ authRouter.post("/login", async (req, res) => {
     // ✅ Set both cookies
     res.cookie("token", accessToken, accessCookieOptions);
     res.cookie("refreshToken", refreshToken, refreshCookieOptions);
-
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 15 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
     res.status(200).json({
       message: `${username} Login successful`,
       token: accessToken,
@@ -99,6 +112,7 @@ authRouter.post("/login", async (req, res) => {
         username: user.username,
         role: user.role,
         status: user.status,
+        branchId: user.branchId ?? null,
       },
     });
   } catch (err) {
@@ -129,6 +143,7 @@ authRouter.get("/me", async (req, res) => {
         name: user.username,
         email: user.username,
         role: user.role,
+        branchId: user.branchId ?? null,
       },
     });
   } catch (err) {
