@@ -1,5 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 const authRouter = express.Router();
 const User = require("../models/users");
 
@@ -11,7 +12,9 @@ const {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// ── Cookie options ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Cookie options — single source of truth
+// ─────────────────────────────────────────────────────────────
 const accessCookieOptions = {
   httpOnly: true,
   secure: isProduction,
@@ -26,8 +29,56 @@ const refreshCookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
-// ── SIGNUP ───────────────────────────────────────────────────
-authRouter.post("/signup", async (req, res) => {
+// FIX #9 — moved clearCookieOptions to top with other cookie options
+const clearCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 0,
+};
+
+// ─────────────────────────────────────────────────────────────
+// Rate limiter — FIX #5
+// Prevents brute-force attacks on login and signup
+// ─────────────────────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15-minute window
+  max: 10, // max 10 attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again later." },
+});
+
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1-hour window
+  max: 5, // max 5 signups per hour per IP
+  message: { error: "Too many accounts created. Please try again later." },
+});
+
+// ─────────────────────────────────────────────────────────────
+// Auth middleware — FIX #3
+// Single shared middleware instead of duplicating token logic in every route
+// ─────────────────────────────────────────────────────────────
+const authMiddleware = (req, res, next) => {
+  const token =
+    req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
+
+  if (!token) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// SIGNUP
+// ─────────────────────────────────────────────────────────────
+authRouter.post("/signup", signupLimiter, async (req, res) => {
   try {
     validateSignupData(req.body);
 
@@ -35,7 +86,7 @@ authRouter.post("/signup", async (req, res) => {
 
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      return res.status(400).json({ error: "username already exists" });
+      return res.status(400).json({ error: "Username already exists" });
     }
 
     const safeRole = validateRole({ role });
@@ -59,23 +110,31 @@ authRouter.post("/signup", async (req, res) => {
       },
     });
   } catch (err) {
+    // FIX #7 — consistent error logging across all routes
+    console.error("[auth/signup]", err);
     res.status(400).json({ error: err.message });
   }
 });
 
-// ── LOGIN ────────────────────────────────────────────────────
-authRouter.post("/login", async (req, res) => {
+// ─────────────────────────────────────────────────────────────
+// LOGIN
+// ─────────────────────────────────────────────────────────────
+authRouter.post("/login", loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
+
     const user = await User.findOne({ username });
-    if (!user) {
+
+    // prevents username enumeration attacks
+    const isPasswordValid = user
+      ? await user.validatePassword(password)
+      : false;
+    if (!user || !isPasswordValid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-    if (user.status === "locked")
+
+    if (user.status === "locked") {
       return res.status(403).json({ error: "Account locked" });
-    const isPasswordValid = await user.validatePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid password" });
     }
 
     if (user.status !== "active") {
@@ -84,29 +143,15 @@ authRouter.post("/login", async (req, res) => {
         .json({ error: "Your account is inactive. Contact admin." });
     }
 
-    // ✅ Generate both tokens
     const accessToken = await user.getJWT();
     const refreshToken = user.getRefreshToken();
 
-    // ✅ Set both cookies
     res.cookie("token", accessToken, accessCookieOptions);
     res.cookie("refreshToken", refreshToken, refreshCookieOptions);
-    res
-      .cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 15 * 60 * 1000,
-      })
-      .cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+
+    // httpOnly cookies handle auth; exposing token in body risks XSS theft
     res.status(200).json({
       message: `${username} Login successful`,
-      token: accessToken,
       user: {
         id: user._id,
         username: user.username,
@@ -116,23 +161,18 @@ authRouter.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error("[auth/login]", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ── ME ───────────────────────────────────────────────────────
-authRouter.get("/me", async (req, res) => {
+// ─────────────────────────────────────────────────────────────
+// ME — get current user from token
+// ─────────────────────────────────────────────────────────────
+
+authRouter.get("/me", authMiddleware, async (req, res) => {
   try {
-    const token =
-      req.cookies.token || req.headers.authorization?.replace("Bearer ", "");
-
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload._id);
+    const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
@@ -147,11 +187,14 @@ authRouter.get("/me", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(401).json({ error: "Invalid or expired token" });
+    console.error("[auth/me]", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// ── REFRESH TOKEN ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// REFRESH TOKEN
+// ─────────────────────────────────────────────────────────────
 authRouter.post("/refresh", async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -160,7 +203,6 @@ authRouter.post("/refresh", async (req, res) => {
       return res.status(401).json({ error: "No refresh token" });
     }
 
-    // ✅ Verify refresh token
     const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     const user = await User.findById(payload._id);
@@ -168,35 +210,30 @@ authRouter.post("/refresh", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    // ✅ Generate new access token
     const newAccessToken = await user.getJWT();
+    const newRefreshToken = user.getRefreshToken();
+
     res.cookie("token", newAccessToken, accessCookieOptions);
+    res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
 
     res.status(200).json({
       message: "Token refreshed",
       token: newAccessToken,
     });
   } catch (err) {
+    console.error("[auth/refresh]", err);
     res.status(401).json({ error: "Invalid or expired refresh token" });
   }
 });
 
-// ── LOGOUT ───────────────────────────────────────────────────
-authRouter.post("/logout", async (req, res) => {
-  try {
-    // ✅ Clear both cookies
-    const clearOptions = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
-      maxAge: 0,
-    };
-    res.cookie("token", "", clearOptions);
-    res.cookie("refreshToken", "", clearOptions);
-    res.status(200).json({ message: "Logout successful" });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
+// ─────────────────────────────────────────────────────────────
+// LOGOUT
+// ─────────────────────────────────────────────────────────────
+
+authRouter.post("/logout", (req, res) => {
+  res.cookie("token", "", clearCookieOptions);
+  res.cookie("refreshToken", "", clearCookieOptions);
+  res.status(200).json({ message: "Logout successful" });
 });
 
-module.exports = { authRouter };
+module.exports = { authRouter, authMiddleware };
