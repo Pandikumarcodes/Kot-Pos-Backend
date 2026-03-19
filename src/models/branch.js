@@ -1,4 +1,3 @@
-// backend/models/Branch.js
 const mongoose = require("mongoose");
 
 const branchSchema = new mongoose.Schema(

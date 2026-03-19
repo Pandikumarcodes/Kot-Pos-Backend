@@ -3,7 +3,7 @@ const Billing = require("./billings");
 const User = require("./users");
 const Table = require("./tables");
 const MenuItem = require("./menuItems");
-const Branch = require("./Branch");
+const Branch = require("./branch");
 
 async function ensureIndexes() {
   try {
