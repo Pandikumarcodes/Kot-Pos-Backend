@@ -7,7 +7,7 @@ const Table = require("./models/tables");
 const Kot = require("./models/kot");
 const Billing = require("./models/billings");
 const Settings = require("./models/settings");
-const Branch = require("./models/branch"); // ✅ new
+const Branch = require("./models/Branch");
 
 // ── Colours for console output ────────────────────────────────
 const c = {
