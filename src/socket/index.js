@@ -1,10 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// src/socket/index.js
-//
-// Handles ONLY connection lifecycle and room joining.
-// All emit logic has moved to src/services/notificationService.js
-// ─────────────────────────────────────────────────────────────
-
 const initSocket = (io) => {
   io.on("connection", (socket) => {
     console.log(`🔌 Socket connected: ${socket.id}`);

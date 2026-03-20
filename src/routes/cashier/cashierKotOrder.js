@@ -1,15 +1,22 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const cashierKotRouter = express.Router();
 const TakeAway = require("../../models/takeAway");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
+const { deductStockForKot } = require("../../controllers/inventoryController");
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
 
-cashierKotRouter.use(userAuth, allowRoles(["cashier", "admin", "manager"]));
+// branchScope runs AFTER userAuth so req.user is already populated
+cashierKotRouter.use(
+  userAuth,
+  allowRoles(["cashier", "admin", "manager"]),
+  branchScope,
+);
 
 // ── CREATE TAKEAWAY ORDER ─────────────────────────────────────
 cashierKotRouter.post("/takeaway-orders", async (req, res) => {
@@ -42,12 +49,16 @@ cashierKotRouter.post("/takeaway-orders", async (req, res) => {
       totalAmount,
     });
     await newOrder.save();
-    deductStockForKot(
-      newOrder.items,
-      req.branchId,
-      newOrder._id,
-      req.user._id,
-    ).catch((err) => console.error("Stock deduction failed:", err.message));
+
+    if (req.branchId) {
+      deductStockForKot(
+        newOrder.items,
+        req.branchId,
+        newOrder._id,
+        req.user._id,
+      ).catch((err) => console.error("Stock deduction failed:", err.message));
+    }
+
     res.status(201).json({
       message: "Order created successfully",
       order: newOrder,
@@ -86,12 +97,21 @@ cashierKotRouter.get("/takeaway/:orderId", async (req, res) => {
 cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
   const { orderId } = req.params;
   try {
+    // Prevent duplicate KOTs — check status before proceeding
+    const existingOrder = await TakeAway.findById(orderId);
+    if (!existingOrder)
+      return res.status(404).json({ error: "Order not found" });
+    if (existingOrder.status === "sent_to_kitchen") {
+      return res
+        .status(409)
+        .json({ error: "Order has already been sent to kitchen" });
+    }
+
     const order = await TakeAway.findByIdAndUpdate(
       orderId,
       { status: "sent_to_kitchen" },
       { new: true },
     );
-    if (!order) return res.status(404).json({ error: "Order not found" });
 
     const totalAmount = order.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -99,6 +119,7 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
     );
 
     const kot = await Kot.create({
+      branchId: req.branchId,
       orderType: "takeaway",
       customerName: order.customerName,
       customerPhone: order.customerPhone,
@@ -119,7 +140,7 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
 });
 
 // ── MARK RECEIVED ─────────────────────────────────────────────
-cashierKotRouter.put("/takeAway/:orderId/received", async (req, res) => {
+cashierKotRouter.put("/takeaway/:orderId/received", async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findByIdAndUpdate(
@@ -135,7 +156,7 @@ cashierKotRouter.put("/takeAway/:orderId/received", async (req, res) => {
 });
 
 // ── CANCEL ORDER ──────────────────────────────────────────────
-cashierKotRouter.put("/takeAway/:orderId/cancel", async (req, res) => {
+cashierKotRouter.put("/takeaway/:orderId/cancel", async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findByIdAndUpdate(

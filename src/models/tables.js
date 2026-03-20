@@ -8,7 +8,7 @@ const tableSchema = new mongoose.Schema(
     },
     tableNumber: {
       type: Number,
-      required: true,
+      required: false,
       unique: true,
     },
     capacity: {
@@ -26,7 +26,7 @@ const tableSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Table = mongoose.model("Table", tableSchema);

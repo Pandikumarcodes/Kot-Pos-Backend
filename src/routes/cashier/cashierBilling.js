@@ -1,14 +1,22 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const Billing = require("../../models/billings");
 const MenuItem = require("../../models/menuItems");
+const Table = require("../../models/tables");
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
 
 const cashierbillingRouter = express.Router();
-cashierbillingRouter.use(userAuth, allowRoles(["cashier"]));
+
+// Add branchScope so req.branchId is available
+cashierbillingRouter.use(
+  userAuth,
+  allowRoles(["cashier", "admin", "manager"]),
+  branchScope,
+);
 
 // ── CREATE BILL ───────────────────────────────────────────────
 cashierbillingRouter.post("/billing", async (req, res) => {
@@ -72,25 +80,38 @@ cashierbillingRouter.post("/billing", async (req, res) => {
 
     await newBill.save();
 
-    // ── Notify admin + cashiers ───────────────────────────────
     const io = req.app.get("io");
     notify.billingUpdated(io, newBill);
 
-    res.status(201).json({
-      message: "Bill generated successfully",
-      bill: newBill,
-    });
+    res
+      .status(201)
+      .json({ message: "Bill generated successfully", bill: newBill });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
 // ── GET ALL BILLS ─────────────────────────────────────────────
+// FIX: Returns ALL bills (including waiter-created ones), not just
+// bills created by this cashier. Cashier needs to see waiter bills too.
 cashierbillingRouter.get("/bills", async (req, res) => {
   try {
-    const myBills = await Billing.find({ createdBy: req.user._id }).sort({
-      createdAt: -1,
-    });
+    const filter = {};
+
+    // Optional filters
+    if (req.query.status) filter.paymentStatus = req.query.status;
+    if (req.query.search) {
+      filter.$or = [
+        { customerName: { $regex: req.query.search, $options: "i" } },
+        { customerPhone: { $regex: req.query.search, $options: "i" } },
+        { billNumber: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+
+    const myBills = await Billing.find(filter)
+      .populate("createdBy", "username role")
+      .sort({ createdAt: -1 });
+
     if (!myBills.length) {
       return res.status(404).json({ error: "No Bills found" });
     }
@@ -105,10 +126,10 @@ cashierbillingRouter.get("/bills", async (req, res) => {
 cashierbillingRouter.get("/bills/:billId", async (req, res) => {
   try {
     const { billId } = req.params;
-    const bill = await Billing.findOne({
-      _id: billId,
-      createdBy: req.user._id,
-    });
+    const bill = await Billing.findById(billId).populate(
+      "createdBy",
+      "username role",
+    );
     if (!bill) return res.status(404).json({ error: "Bill not found" });
     res.status(200).json({ bill });
   } catch (err) {
@@ -118,23 +139,31 @@ cashierbillingRouter.get("/bills/:billId", async (req, res) => {
 });
 
 // ── MARK PAID ─────────────────────────────────────────────────
+// FIX: Also frees the table when bill is marked as paid
 cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
   try {
     const { billId } = req.params;
-    const bill = await Billing.findOne({
-      _id: billId,
-      createdBy: req.user._id,
-    });
+    const { paymentMethod } = req.body; // cashier selects payment method
 
+    const bill = await Billing.findById(billId);
     if (!bill) return res.status(404).json({ error: "Bill not found" });
     if (bill.paymentStatus === "paid")
       return res.status(400).json({ error: "Bill is already paid" });
 
     bill.paymentStatus = "paid";
     bill.paidAt = new Date();
+    // Update payment method if cashier provides one
+    if (paymentMethod) bill.paymentMethod = paymentMethod;
     await bill.save();
 
-    // ── Notify admin + cashiers ───────────────────────────────
+    // FIX: Free the table so it shows as available again
+    if (bill.tableId) {
+      await Table.findByIdAndUpdate(bill.tableId, {
+        status: "available",
+        currentCustomer: null,
+      });
+    }
+
     const io = req.app.get("io");
     notify.billingUpdated(io, bill);
 
@@ -152,18 +181,13 @@ cashierbillingRouter.delete("/bills/:billId", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(billId)) {
       return res.status(400).json({ error: "Invalid Bill Id" });
     }
-    const deletedBill = await Billing.findOneAndDelete({
-      _id: billId,
-      createdBy: req.user._id,
-    });
+    const deletedBill = await Billing.findByIdAndDelete(billId);
     if (!deletedBill) {
-      return res
-        .status(404)
-        .json({ error: "Bill not found or not authorized" });
+      return res.status(404).json({ error: "Bill not found" });
     }
     return res.status(200).json({
       message: "Bill deleted successfully",
-      Bill: {
+      bill: {
         id: deletedBill._id,
         customerName: deletedBill.customerName,
         totalAmount: deletedBill.totalAmount,
