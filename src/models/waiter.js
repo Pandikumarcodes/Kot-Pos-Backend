@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const tableOrderSchema = new mongoose.Schema(
   {
-    tableNumber: { type: Number, required: true },
+    tableNumber: { type: Number, required: false },
     customerName: { type: String, trim: true },
     tableId: {
       type: mongoose.Schema.Types.ObjectId,

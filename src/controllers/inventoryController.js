@@ -216,7 +216,11 @@ async function adjustStock(req, res) {
 // Audit trail for a single inventory item.
 async function getStockLogs(req, res) {
   try {
-    const logs = await StockLog.find({ inventoryId: req.params.id })
+    // FIX (minor): Added branchId filter to prevent cross-branch log access
+    const logs = await StockLog.find({
+      inventoryId: req.params.id,
+      branchId: req.branchId,
+    })
       .populate("doneBy", "username role")
       .sort({ createdAt: -1 })
       .limit(50)
@@ -259,7 +263,8 @@ async function deductStockForKot(kotItems, branchId, kotId, doneBy) {
     if (!inv) continue; // No inventory link — skip silently
 
     const stockBefore = inv.currentStock;
-    const deductAmount = kotItem.quantity; // 1 KOT item = 1 unit of stock
+    // FIX 6: Use deductRatio to support recipe-based multipliers (defaults to 1)
+    const deductAmount = kotItem.quantity * (inv.deductRatio ?? 1);
     const newStock = Math.max(0, inv.currentStock - deductAmount);
 
     inv.currentStock = newStock;
@@ -292,5 +297,5 @@ module.exports = {
   adjustStock,
   getStockLogs,
   deleteInventory,
-  deductStockForKot, // ← used inside KOT create route
+  deductStockForKot,
 };

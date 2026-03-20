@@ -48,9 +48,7 @@ const io = new Server(server, {
 initSocket(io);
 app.set("io", io);
 
-// ── Trust proxy (Render/Railway sit behind one) ───────────────
-// Without this, all users share the same IP → one user's requests
-// consume everyone's rate limit quota
+// ── Trust proxy ───────────────────────────────────────────────
 app.set("trust proxy", 1);
 
 // ── Middlewares ───────────────────────────────────────────────
@@ -81,7 +79,6 @@ app.use(
 );
 
 // ── Rate Limiters ─────────────────────────────────────────────
-
 app.use("/auth", authLimiter);
 
 app.use("/admin/reports", reportLimiter);
@@ -110,7 +107,10 @@ const {
   adminSettingsRouter,
 } = require("./routes/admin/adminSettingsRouter.js");
 const { adminBranchRouter } = require("./routes/admin/adminBranchRouter");
-const branchScope = require("./middlewares/branchScope");
+
+// NOTE: branchScope is NOT mounted globally here anymore.
+// Each router applies it internally AFTER userAuth so req.user
+// is guaranteed to be populated when branchScope runs.
 
 const { cashierbillingRouter } = require("./routes/cashier/cashierBilling.js");
 const { cashierKotRouter } = require("./routes/cashier/cashierKotOrder.js");
@@ -133,9 +133,9 @@ app.use("/admin", adminUserRouter);
 app.use("/admin", adminReportRouter);
 app.use("/admin", adminCustomerRouter);
 app.use("/admin", adminSettingsRouter);
-app.use(branchScope);
 app.use("/admin", adminBranchRouter);
 app.use("/admin/inventory", inventoryRouter);
+
 app.use("/cashier", cashierbillingRouter);
 app.use("/cashier", cashierKotRouter);
 app.use("/cashier", cashierReportsRouter);

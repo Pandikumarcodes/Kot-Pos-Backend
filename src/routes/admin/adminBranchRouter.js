@@ -10,7 +10,6 @@ function superAdminOnly(req, res, next) {
   const role = req.user?.role;
   const branchId = req.user?.branchId;
 
-  // Must be admin role
   if (role !== "admin") {
     return res.status(403).json({ error: "Super-admin access only" });
   }
@@ -27,6 +26,7 @@ function superAdminOnly(req, res, next) {
 
   next();
 }
+
 // ── GET /admin/branches  — list all branches ──────────────────
 router.get("/branches", userAuth, superAdminOnly, async (req, res) => {
   try {
@@ -112,13 +112,46 @@ router.post(
       if (!branch) return res.status(404).json({ error: "Branch not found" });
       if (!user) return res.status(404).json({ error: "User not found" });
 
+      // FIX: Prevent assigning a super-admin (branchless admin) to a branch
+      if (user.role === "admin" && !user.branchId) {
+        return res
+          .status(400)
+          .json({ error: "Cannot assign a super-admin to a branch" });
+      }
+
       user.branchId = branch._id;
-      await user.save({ validateBeforeSave: false }); // skip password re-validation
+      await user.save({ validateBeforeSave: false });
 
       res.json({
         message: `${user.username} assigned to ${branch.name}`,
         user,
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// ── POST /admin/branches/:id/remove-staff  — unassign user from branch ──
+// Body: { userId }
+router.post(
+  "/branches/:id/remove-staff",
+  userAuth,
+  superAdminOnly,
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      const user = await User.findOne({ _id: userId, branchId: req.params.id });
+      if (!user) {
+        return res.status(404).json({ error: "User not found in this branch" });
+      }
+
+      user.branchId = null;
+      await user.save({ validateBeforeSave: false });
+
+      res.json({ message: `${user.username} removed from branch`, user });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -133,6 +166,26 @@ router.get(
   async (req, res) => {
     try {
       const users = await User.find({ branchId: req.params.id })
+        .select("-password")
+        .sort({ role: 1 });
+      res.json({ users });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// ── GET /admin/branches/unassigned-staff  — users with no branch ──
+router.get(
+  "/branches/unassigned-staff",
+  userAuth,
+  superAdminOnly,
+  async (req, res) => {
+    try {
+      const users = await User.find({
+        branchId: null,
+        role: { $ne: "admin" }, // exclude super-admins
+      })
         .select("-password")
         .sort({ role: 1 });
       res.json({ users });

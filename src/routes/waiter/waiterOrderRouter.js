@@ -1,17 +1,150 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const waiterOrderRouter = express.Router();
 const TableOrder = require("../../models/waiter");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Table = require("../../models/tables");
+const Billing = require("../../models/billings"); // ← same model as cashier uses
 const { deductStockForKot } = require("../../controllers/inventoryController");
-// ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
 
 waiterOrderRouter.use(
   userAuth,
   allowRoles(["waiter", "manager", "admin", "cashier"]),
+  branchScope,
+);
+
+// ── GET MENU ─────────────────────────────────────────────────
+waiterOrderRouter.get("/menu", async (req, res) => {
+  try {
+    const filter = { available: true };
+    if (req.query.category) filter.category = req.query.category;
+    if (req.query.search)
+      filter.ItemName = { $regex: req.query.search, $options: "i" };
+
+    const menuItems = await MenuItem.find(filter)
+      .select("ItemName price category description image available")
+      .sort({ category: 1, ItemName: 1 });
+
+    res.status(200).json({ menuItems });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET ALL ORDERS FOR A TABLE ────────────────────────────────
+waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
+  const { tableId } = req.params;
+  try {
+    const orders = await TableOrder.find({
+      tableId,
+      status: { $ne: "cancelled" },
+    })
+      .populate("createdBy", "username")
+      .sort({ createdAt: 1 });
+
+    const allItems = orders.flatMap((o) =>
+      o.items.map((item) => ({
+        ...item.toObject(),
+        orderId: o._id,
+        round: orders.indexOf(o) + 1,
+        status: o.status,
+      })),
+    );
+
+    const grandTotal = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+    res.status(200).json({ orders, allItems, grandTotal });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── SEND TO CASHIER ───────────────────────────────────────────
+// Waiter calls this when customer finishes eating.
+// Creates a pending bill combining all rounds → cashier collects payment.
+waiterOrderRouter.post(
+  "/orders/table/:tableId/send-to-cashier",
+  async (req, res) => {
+    const { tableId } = req.params;
+    try {
+      const { customerName, customerPhone, tableNumber } = req.body;
+
+      // Strip non-digits and validate phone
+      const phone = (customerPhone || "").replace(/\D/g, "");
+      if (!phone || phone.length !== 10) {
+        return res.status(400).json({
+          error: "A valid 10-digit phone number is required to send the bill",
+        });
+      }
+
+      // Fetch all non-cancelled orders for this table
+      const orders = await TableOrder.find({
+        tableId,
+        status: { $ne: "cancelled" },
+      });
+
+      if (!orders.length) {
+        return res
+          .status(400)
+          .json({ error: "No orders found for this table" });
+      }
+
+      // Combine all items across all rounds
+      const allItems = orders.flatMap((o) => o.items);
+      const grandTotal = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+      const billItems = allItems.map((item) => ({
+        itemId: item.itemId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.price * item.quantity,
+      }));
+
+      // Generate bill number same format as cashier
+      const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayCount = await Billing.countDocuments({
+        createdAt: { $gte: todayStart },
+      });
+      const billNumber = `BILL-${today}-${(todayCount + 1).toString().padStart(3, "0")}`;
+
+      // Create bill — tableId stored so cashier can free the table on payment
+      const bill = await Billing.create({
+        billNumber,
+        customerName: customerName || "Walk-in",
+        customerPhone: phone,
+        items: billItems,
+        totalAmount: grandTotal,
+        paymentStatus: "unpaid",
+        paymentMethod: "none",
+        tableId, // ← stored so mark-as-paid can free the table
+        tableNumber: tableNumber || null,
+        createdBy: req.user._id,
+      });
+
+      // Mark all table orders as served
+      await TableOrder.updateMany(
+        { tableId, status: { $ne: "cancelled" } },
+        { status: "served" },
+      );
+
+      // Update table status to billing so waiter/admin can see it's waiting for payment
+      await Table.findByIdAndUpdate(tableId, { status: "billing" });
+
+      // Notify cashier
+      const io = req.app.get("io");
+      notify.billingUpdated(io, bill);
+
+      res.status(201).json({ message: "Bill sent to cashier", bill });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
 );
 
 // ── CREATE ORDER ─────────────────────────────────────────────
@@ -56,17 +189,19 @@ waiterOrderRouter.post("/orders", async (req, res) => {
     });
 
     await newOrder.save();
-    deductStockForKot(
-      newOrder.items,
-      req.branchId,
-      newOrder._id,
-      req.user._id,
-    ).catch((err) => console.error("Stock deduction failed:", err.message));
 
-    res.status(201).json({
-      message: "Order created successfully",
-      order: newOrder,
-    });
+    if (req.branchId) {
+      deductStockForKot(
+        newOrder.items,
+        req.branchId,
+        newOrder._id,
+        req.user._id,
+      ).catch((err) => console.error("Stock deduction failed:", err.message));
+    }
+
+    res
+      .status(201)
+      .json({ message: "Order created successfully", order: newOrder });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -75,7 +210,7 @@ waiterOrderRouter.post("/orders", async (req, res) => {
 // ── GET ALL ORDERS ───────────────────────────────────────────
 waiterOrderRouter.get("/orders", async (req, res) => {
   try {
-    const myOrders = await TableOrder.find()
+    const myOrders = await TableOrder.find(req.branchFilter ?? {})
       .populate("createdBy", "username")
       .sort({ createdAt: -1 });
     res.status(200).json({ myOrders });
@@ -103,16 +238,25 @@ waiterOrderRouter.get("/orders/:orderId", async (req, res) => {
 waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
   const { orderId } = req.params;
   try {
+    const existingOrder = await TableOrder.findById(orderId);
+    if (!existingOrder)
+      return res.status(404).json({ error: "Order not found" });
+    if (existingOrder.status === "sent_to_kitchen") {
+      return res
+        .status(409)
+        .json({ error: "Order has already been sent to kitchen" });
+    }
+
     const order = await TableOrder.findByIdAndUpdate(
       orderId,
       { status: "sent_to_kitchen" },
       { new: true },
     );
-    if (!order) return res.status(404).json({ error: "Order not found" });
 
     const table = await Table.findById(order.tableId);
 
     const kot = await Kot.create({
+      branchId: req.branchId,
       orderType: "dine-in",
       tableNumber: table?.tableNumber || order.tableNumber,
       tableId: order.tableId,
@@ -123,7 +267,6 @@ waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
       status: "pending",
     });
 
-    // ── Notify kitchen + admin ────────────────────────────────
     const io = req.app.get("io");
     notify.newOrder(io, kot);
 
