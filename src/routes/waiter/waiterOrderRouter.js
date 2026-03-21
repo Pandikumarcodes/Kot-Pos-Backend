@@ -6,7 +6,7 @@ const TableOrder = require("../../models/waiter");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Table = require("../../models/tables");
-const Billing = require("../../models/billings"); // ← same model as cashier uses
+const Billing = require("../../models/billings");
 const { deductStockForKot } = require("../../controllers/inventoryController");
 const { notify } = require("../../services/notificationservices");
 
@@ -35,12 +35,13 @@ waiterOrderRouter.get("/menu", async (req, res) => {
 });
 
 // ── GET ALL ORDERS FOR A TABLE ────────────────────────────────
+
 waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
   const { tableId } = req.params;
   try {
     const orders = await TableOrder.find({
       tableId,
-      status: { $ne: "cancelled" },
+      status: { $nin: ["cancelled", "served"] },
     })
       .populate("createdBy", "username")
       .sort({ createdAt: 1 });
@@ -56,6 +57,7 @@ waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
 
     const grandTotal = orders.reduce((sum, o) => sum + o.totalAmount, 0);
 
+    // Always return 200 — empty array is valid (table has no active orders)
     res.status(200).json({ orders, allItems, grandTotal });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -63,8 +65,7 @@ waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
 });
 
 // ── SEND TO CASHIER ───────────────────────────────────────────
-// Waiter calls this when customer finishes eating.
-// Creates a pending bill combining all rounds → cashier collects payment.
+
 waiterOrderRouter.post(
   "/orders/table/:tableId/send-to-cashier",
   async (req, res) => {
@@ -72,24 +73,32 @@ waiterOrderRouter.post(
     try {
       const { customerName, customerPhone, tableNumber } = req.body;
 
-      // Strip non-digits and validate phone
-      const phone = (customerPhone || "").replace(/\D/g, "");
-      if (!phone || phone.length !== 10) {
+      // FIX 1: existingBill check inside try so errors are caught
+      const existingBill = await Billing.findOne({
+        tableId,
+        paymentStatus: "unpaid",
+      });
+      if (existingBill) {
         return res.status(400).json({
-          error: "A valid 10-digit phone number is required to send the bill",
+          error:
+            "An unpaid bill already exists for this table. Please ask the cashier to collect payment first.",
         });
       }
 
-      // Fetch all non-cancelled orders for this table
+      // Strip non-digits, use placeholder if not 10 digits
+      const phone = (customerPhone || "").replace(/\D/g, "");
+      const validPhone = phone.length === 10 ? phone : "0000000000";
+
+      // Fetch all non-cancelled, non-served orders for this table
       const orders = await TableOrder.find({
         tableId,
-        status: { $ne: "cancelled" },
+        status: { $nin: ["cancelled", "served"] },
       });
 
       if (!orders.length) {
         return res
           .status(400)
-          .json({ error: "No orders found for this table" });
+          .json({ error: "No active orders found for this table" });
       }
 
       // Combine all items across all rounds
@@ -111,29 +120,31 @@ waiterOrderRouter.post(
       const todayCount = await Billing.countDocuments({
         createdAt: { $gte: todayStart },
       });
-      const billNumber = `BILL-${today}-${(todayCount + 1).toString().padStart(3, "0")}`;
+      const billNumber = `BILL-${today}-${(todayCount + 1)
+        .toString()
+        .padStart(3, "0")}`;
 
-      // Create bill — tableId stored so cashier can free the table on payment
+      // FIX 2: use validPhone not phone
       const bill = await Billing.create({
         billNumber,
         customerName: customerName || "Walk-in",
-        customerPhone: phone,
+        customerPhone: validPhone,
         items: billItems,
         totalAmount: grandTotal,
         paymentStatus: "unpaid",
         paymentMethod: "none",
-        tableId, // ← stored so mark-as-paid can free the table
+        tableId,
         tableNumber: tableNumber || null,
         createdBy: req.user._id,
       });
 
-      // Mark all table orders as served
+      // Mark all active table orders as served
       await TableOrder.updateMany(
-        { tableId, status: { $ne: "cancelled" } },
+        { tableId, status: { $nin: ["cancelled", "served"] } },
         { status: "served" },
       );
 
-      // Update table status to billing so waiter/admin can see it's waiting for payment
+      // Update table status to billing
       await Table.findByIdAndUpdate(tableId, { status: "billing" });
 
       // Notify cashier

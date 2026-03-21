@@ -92,8 +92,6 @@ cashierbillingRouter.post("/billing", async (req, res) => {
 });
 
 // ── GET ALL BILLS ─────────────────────────────────────────────
-// FIX: Returns ALL bills (including waiter-created ones), not just
-// bills created by this cashier. Cashier needs to see waiter bills too.
 cashierbillingRouter.get("/bills", async (req, res) => {
   try {
     const filter = {};
@@ -139,11 +137,11 @@ cashierbillingRouter.get("/bills/:billId", async (req, res) => {
 });
 
 // ── MARK PAID ─────────────────────────────────────────────────
-// FIX: Also frees the table when bill is marked as paid
+
 cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
   try {
     const { billId } = req.params;
-    const { paymentMethod } = req.body; // cashier selects payment method
+    const paymentMethod = req.body?.paymentMethod ?? null;
 
     const bill = await Billing.findById(billId);
     if (!bill) return res.status(404).json({ error: "Bill not found" });

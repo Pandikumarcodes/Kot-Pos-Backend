@@ -9,8 +9,8 @@ const billSchema = new mongoose.Schema(
     },
     customerPhone: {
       type: String,
-      required: true,
-      match: [/^\d{10}$/, "Enter a valid 10-digit phone number"],
+      required: false,
+      default: "",
     },
     billNumber: { type: String, required: true, unique: true },
 
