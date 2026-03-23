@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\Users\\Pandikumar\\Desktop\\Kot-Pos\\kot-pos-backend\\logs\\.3e0f50cde6a06bc7756646b6b1d04ccd39c6929d-audit.json",
+    "files": [
+        {
+            "date": 1774162025381,
+            "name": "C:\\Users\\Pandikumar\\Desktop\\Kot-Pos\\kot-pos-backend\\logs\\error-2026-03-22.log",
+            "hash": "527a85966321ce4dc3cdafda359729b56971e7f3118cca3b42fae8ecae4129f1"
+        },
+        {
+            "date": 1774240480948,
+            "name": "C:\\Users\\Pandikumar\\Desktop\\Kot-Pos\\kot-pos-backend\\logs\\error-2026-03-23.log",
+            "hash": "9e2ba02550855802cdc3d671912d9d8668c86e18dac4500a7d1b22a87dd3ae6f"
+        }
+    ],
+    "hashType": "sha256"
+}
