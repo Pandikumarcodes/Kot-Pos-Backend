@@ -8,6 +8,10 @@ const { connectDB } = require("./config/Database.js");
 const { ensureIndexes } = require("./models/indexes.js");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const helmet = require("helmet");
+// const mongoSanitize = require("./config/sanitize");
+// const xssClean = require("xss-clean");
+// const { doubleCsrfProtection } = require("./config/csrfConfig.js");
 
 const {
   authLimiter,
@@ -27,63 +31,69 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
-// ── Socket.io ─────────────────────────────────────────────────
-const io = new Server(server, {
-  cors: {
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        process.env.FRONTEND_URL,
-      ];
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin.endsWith(".vercel.app")
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  },
-});
+// ── Shared CORS config ────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
+// ── Socket.io ─────────────────────────────────────────────────
+const io = new Server(server, { cors: corsOptions });
 initSocket(io);
 app.set("io", io);
 
 // ── Trust proxy ───────────────────────────────────────────────
 app.set("trust proxy", 1);
 
-// ── Middlewares ───────────────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+// ── Middlewares (Order matters!) ──────────────────────────────
 
+// 1. 🔒 Security headers — must be first
 app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        process.env.FRONTEND_URL,
-      ];
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        origin.endsWith(".vercel.app")
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: [
+          "'self'",
+          ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+          "ws://localhost:3000",
+          "wss://localhost:3000",
+          ...(process.env.BACKEND_URL
+            ? [`wss://${process.env.BACKEND_URL}`]
+            : []),
+        ],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameSrc: ["'none'"],
+      },
     },
-    credentials: true,
+    crossOriginEmbedderPolicy: false,
   }),
 );
 
-// ✅ Request logger — logs every incoming request
+// 2. 🌐 CORS
+app.use(cors(corsOptions));
+
+// 3. 📦 Body parsing with size limits
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(cookieParser());
+
 app.use(requestLogger);
 
 // ── Rate Limiters ─────────────────────────────────────────────
@@ -129,23 +139,62 @@ app.get("/api/version", (req, res) => {
   });
 });
 
-// ── v1 Routes ────────────────────────────────────────────────
+// app.use("/api/v1/auth", authRouter);
+// app.use("/api/v1/test", router);
+// app.use("/api/v1/public", qrMenuRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminMenuRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminTableRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminUserRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminReportRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminCustomerRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminSettingsRouter);
+// app.use("/api/v1/admin", doubleCsrfProtection, adminBranchRouter);
+// app.use("/api/v1/admin/inventory", doubleCsrfProtection, inventoryRouter);
+
+// // All cashier routes
+// app.use("/api/v1/cashier", doubleCsrfProtection, cashierbillingRouter);
+// app.use("/api/v1/cashier", doubleCsrfProtection, cashierKotRouter);
+// app.use("/api/v1/cashier", doubleCsrfProtection, cashierReportsRouter);
+
+// // All waiter routes
+// app.use("/api/v1/waiter", doubleCsrfProtection, waiterOrderRouter);
+// app.use("/api/v1/waiter", doubleCsrfProtection, waiterTableRouter);
+
+// // All chef routes
+// app.use("/api/v1/chef", doubleCsrfProtection, chefRouter);
+
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/test", router);
 app.use("/api/v1/public", qrMenuRouter);
+
+app.use("/api/v1/public", qrMenuRouter);
+
 app.use("/api/v1/admin", adminMenuRouter);
+
 app.use("/api/v1/admin", adminTableRouter);
+
 app.use("/api/v1/admin", adminUserRouter);
+
 app.use("/api/v1/admin", adminReportRouter);
+
 app.use("/api/v1/admin", adminCustomerRouter);
+
 app.use("/api/v1/admin", adminSettingsRouter);
+
 app.use("/api/v1/admin", adminBranchRouter);
+
 app.use("/api/v1/admin/inventory", inventoryRouter);
+
 app.use("/api/v1/cashier", cashierbillingRouter);
+
 app.use("/api/v1/cashier", cashierKotRouter);
+
 app.use("/api/v1/cashier", cashierReportsRouter);
+
 app.use("/api/v1/waiter", waiterOrderRouter);
+
 app.use("/api/v1/waiter", waiterTableRouter);
+
 app.use("/api/v1/chef", chefRouter);
 
 // ── Health Check ──────────────────────────────────────────────
@@ -158,10 +207,34 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ✅ Error logger — must be AFTER all routes
+// ── 404 Handler ───────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`,
+  });
+});
+
+// ── Error logger ──────────────────────────────────────────────
 app.use(errorLogger);
 
-// ── Process-level crash handlers ─────────────────────────────
+// ── Global error handler ──────────────────────────────────────
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+
+  const message =
+    process.env.NODE_ENV === "production"
+      ? "Something went wrong. Please try again later."
+      : err.message;
+
+  res.status(status).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
+  });
+});
+
+// ── Process-level crash handlers ──────────────────────────────
 process.on("unhandledRejection", (reason) => {
   logger.error("Unhandled promise rejection", { reason: String(reason) });
 });
