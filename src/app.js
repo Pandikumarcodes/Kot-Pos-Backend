@@ -175,7 +175,6 @@ app.get("/health", (req, res) => {
     message: "KOT POS API is running!",
     version: "v1",
     timestamp: new Date().toISOString(),
-    // Only expose debug info outside production
     ...(!isProduction && {
       env: process.env.NODE_ENV,
       sockets: io.engine.clientsCount,
@@ -225,6 +224,22 @@ process.on("uncaughtException", (err) => {
   });
   process.exit(1);
 });
+
+// ── Keep Render alive (free tier spins down after 15 min) ─────
+// Pings /health every 14 minutes to prevent cold starts.
+// Requires BACKEND_URL env var set in Render dashboard.
+if (process.env.NODE_ENV === "production" && process.env.BACKEND_URL) {
+  setInterval(
+    () => {
+      fetch(`${process.env.BACKEND_URL}/health`)
+        .then(() => logger.info("Keep-alive ping sent"))
+        .catch((err) =>
+          logger.warn("Keep-alive ping failed", { error: err.message }),
+        );
+    },
+    14 * 60 * 1000,
+  ); // every 14 minutes
+}
 
 // ── Start server ──────────────────────────────────────────────
 connectDB()
