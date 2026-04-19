@@ -6,11 +6,12 @@ const { validateMenuData } = require("../../utils/validation");
 
 const adminMenuRouter = express.Router();
 
-// ── CREATE — admin + manager only ───────────────────────────
+// ── CREATE — admin + manager only ────────────────────────────
+
 adminMenuRouter.post(
   "/menu",
   userAuth,
-  allowRoles(["admin", "manager", "waiter", "chef", "cashier"]),
+  allowRoles(["admin", "manager"]),
   async (req, res) => {
     try {
       validateMenuData(req.body);
@@ -37,10 +38,7 @@ adminMenuRouter.post(
   },
 );
 
-// ── READ ALL — all roles ─────────────────────────────────────
-// ✅ waiter needs menu to place orders
-// ✅ chef needs menu for KOT
-// ✅ cashier needs menu for billing
+// ── READ ALL — all roles ──────────────────────────────────────
 adminMenuRouter.get(
   "/menuItems",
   userAuth,
@@ -55,7 +53,7 @@ adminMenuRouter.get(
   },
 );
 
-// ── UPDATE — admin + manager only ───────────────────────────
+// ── UPDATE — admin + manager only ────────────────────────────
 adminMenuRouter.put(
   "/menu-item/:ItemId",
   userAuth,
@@ -102,7 +100,7 @@ adminMenuRouter.put(
   },
 );
 
-// ── DELETE — admin only ──────────────────────────────────────
+// ── DELETE — admin only ───────────────────────────────────────
 adminMenuRouter.delete(
   "/delete/:ItemId",
   userAuth,

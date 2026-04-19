@@ -1,0 +1,6 @@
+{"env":"test","frontendUrl":"http://localhost:5173","level":"info","message":"Server started","port":"3000","timestamp":"2026-04-19 09:40:44"}
+{"level":"info","message":"Socket.io ready","timestamp":"2026-04-19 09:40:44"}
+{"env":"test","frontendUrl":"http://localhost:5173","level":"info","message":"Server started","port":"3000","timestamp":"2026-04-19 10:38:23"}
+{"level":"info","message":"Socket.io ready","timestamp":"2026-04-19 10:38:23"}
+{"env":"development","frontendUrl":"http://localhost:5173","level":"info","message":"Server started","port":"3000","timestamp":"2026-04-19 12:17:01"}
+{"level":"info","message":"Socket.io ready","timestamp":"2026-04-19 12:17:01"}

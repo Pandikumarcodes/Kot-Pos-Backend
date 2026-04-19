@@ -9,7 +9,7 @@ const { ensureIndexes } = require("./models/indexes.js");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
-// const mongoSanitize = require("./config/sanitize");
+const mongoSanitize = require("./config/sanitize");
 // const xssClean = require("xss-clean");
 // const { doubleCsrfProtection } = require("./config/csrfConfig.js");
 
@@ -94,6 +94,9 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
+// 4. 🧹 Sanitize MongoDB inputs — prevents NoSQL injection
+app.use(mongoSanitize);
+
 app.use(requestLogger);
 
 // ── Rate Limiters ─────────────────────────────────────────────
@@ -128,6 +131,7 @@ const { cashierReportsRouter } = require("./routes/cashier/cashierReports.js");
 const { waiterOrderRouter } = require("./routes/waiter/waiterOrderRouter.js");
 const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter.js");
 const { chefRouter } = require("./routes/chef/chefRouter.js");
+const aiRouter = require("./routes/aiRouter");
 
 // ── Version info endpoint ─────────────────────────────────────
 app.get("/api/version", (req, res) => {
@@ -139,71 +143,47 @@ app.get("/api/version", (req, res) => {
   });
 });
 
-// app.use("/api/v1/auth", authRouter);
-// app.use("/api/v1/test", router);
-// app.use("/api/v1/public", qrMenuRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminMenuRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminTableRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminUserRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminReportRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminCustomerRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminSettingsRouter);
-// app.use("/api/v1/admin", doubleCsrfProtection, adminBranchRouter);
-// app.use("/api/v1/admin/inventory", doubleCsrfProtection, inventoryRouter);
-
-// // All cashier routes
-// app.use("/api/v1/cashier", doubleCsrfProtection, cashierbillingRouter);
-// app.use("/api/v1/cashier", doubleCsrfProtection, cashierKotRouter);
-// app.use("/api/v1/cashier", doubleCsrfProtection, cashierReportsRouter);
-
-// // All waiter routes
-// app.use("/api/v1/waiter", doubleCsrfProtection, waiterOrderRouter);
-// app.use("/api/v1/waiter", doubleCsrfProtection, waiterTableRouter);
-
-// // All chef routes
-// app.use("/api/v1/chef", doubleCsrfProtection, chefRouter);
-
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/test", router);
 app.use("/api/v1/public", qrMenuRouter);
 
-app.use("/api/v1/public", qrMenuRouter);
-
 app.use("/api/v1/admin", adminMenuRouter);
-
 app.use("/api/v1/admin", adminTableRouter);
-
 app.use("/api/v1/admin", adminUserRouter);
-
 app.use("/api/v1/admin", adminReportRouter);
-
 app.use("/api/v1/admin", adminCustomerRouter);
-
 app.use("/api/v1/admin", adminSettingsRouter);
-
 app.use("/api/v1/admin", adminBranchRouter);
-
 app.use("/api/v1/admin/inventory", inventoryRouter);
 
 app.use("/api/v1/cashier", cashierbillingRouter);
-
 app.use("/api/v1/cashier", cashierKotRouter);
-
 app.use("/api/v1/cashier", cashierReportsRouter);
 
 app.use("/api/v1/waiter", waiterOrderRouter);
-
 app.use("/api/v1/waiter", waiterTableRouter);
 
 app.use("/api/v1/chef", chefRouter);
 
+app.use("/api/v1/ai", aiRouter);
+
 // ── Health Check ──────────────────────────────────────────────
 app.get("/health", (req, res) => {
+  const isProduction = process.env.NODE_ENV === "production";
   res.status(200).json({
     status: "ok",
     message: "KOT POS API is running!",
     version: "v1",
-    sockets: io.engine.clientsCount,
+    timestamp: new Date().toISOString(),
+    // Only expose debug info outside production
+    ...(!isProduction && {
+      env: process.env.NODE_ENV,
+      sockets: io.engine.clientsCount,
+      e2eTesting: process.env.E2E_TESTING === "true",
+      rateLimitingActive: !(
+        process.env.NODE_ENV === "test" || process.env.E2E_TESTING === "true"
+      ),
+    }),
   });
 });
 
@@ -221,7 +201,6 @@ app.use(errorLogger);
 // ── Global error handler ──────────────────────────────────────
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
-
   const message =
     process.env.NODE_ENV === "production"
       ? "Something went wrong. Please try again later."

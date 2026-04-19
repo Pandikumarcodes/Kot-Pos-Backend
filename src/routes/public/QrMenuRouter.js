@@ -1,19 +1,10 @@
-// backend/routes/public/qrMenuRouter.js
-// ─────────────────────────────────────────────────────────────
-// PUBLIC routes — NO auth middleware.
-// Customers scan a QR code and hit these endpoints from their phone.
-//
-// Mount in server.js:
-//   const qrMenuRouter = require("./routes/public/qrMenuRouter");
-//   app.use("/public", qrMenuRouter);
-// ─────────────────────────────────────────────────────────────
-
 const express = require("express");
 const router = express.Router();
 const Table = require("../../models/tables");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Settings = require("../../models/settings");
+const Branch = require("../../models/Branch");
 
 // ── GET /public/menu/:tableId ─────────────────────────────────
 // Returns table info + available menu items grouped by category.
@@ -52,6 +43,8 @@ router.get("/menu/:tableId", async (req, res) => {
         tableNumber: table.tableNumber,
         capacity: table.capacity,
         status: table.status,
+        // ── FIX: include branchId so frontend can pass it when ordering ──
+        branchId: table.branchId ?? null,
       },
       restaurant: {
         name: settings?.businessName ?? "KOT POS Restaurant",
@@ -82,6 +75,26 @@ router.post("/order/:tableId", async (req, res) => {
       return res.status(404).json({ error: "Table not found" });
     }
 
+    // ── FIX: resolve branchId from table or fall back to first branch ──
+    let branchId = table.branchId ?? null;
+
+    if (!branchId) {
+      // Table was seeded without branchId — find the first active branch
+      const branch = await Branch.findOne({ isActive: true }).lean();
+      if (branch) {
+        branchId = branch._id;
+        // Also update the table so future orders don't need this fallback
+        await Table.findByIdAndUpdate(table._id, { branchId: branch._id });
+      }
+    }
+
+    if (!branchId) {
+      return res.status(400).json({
+        error:
+          "Branch configuration missing. Please ask a staff member for help.",
+      });
+    }
+
     // Validate and build order items
     const menuItems = await MenuItem.find({
       _id: { $in: items.map((i) => i.itemId) },
@@ -109,7 +122,7 @@ router.post("/order/:tableId", async (req, res) => {
 
     // Create KOT — createdBy is null for customer self-orders
     const kot = await Kot.create({
-      branchId: table.branchId,
+      branchId, // ← now always populated
       orderType: "dine-in",
       tableNumber: table.tableNumber,
       tableId: table._id,

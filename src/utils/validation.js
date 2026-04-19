@@ -26,6 +26,18 @@ const validateMenuData = (data) => {
     throw new Error("Item name must be at least 2 characters long");
   }
 
+  // ── Fix 1: Block XSS — reject HTML tags in item name ─────
+  // Prevents Stored XSS attacks where scripts saved to DB
+  // execute when staff view the menu page
+  if (/<[^>]*>/g.test(ItemName)) {
+    throw new Error("HTML tags are not allowed in item name");
+  }
+
+  // ── Fix 1b: Block dangerous JavaScript protocols ──────────
+  if (/javascript\s*:/gi.test(ItemName)) {
+    throw new Error("Invalid characters in item name");
+  }
+
   // ✅ Matches model enum keys exactly
   const allowedCategories = [
     "starter",
@@ -53,7 +65,6 @@ const validateMenuData = (data) => {
   }
 };
 
-// ✅ Fixed: throws Error instead of using res
 const validateBillingData = (data) => {
   const { paymentStatus, paymentMethod } = data;
 

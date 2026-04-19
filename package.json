@@ -6,7 +6,37 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "test:backend": "jest",
+    "test:backend:watch": "jest --watch",
+    "test:backend:coverage": "jest --coverage",
+    "test:backend:ci": "jest --ci --coverage --forceExit",
+    "test:e2e": "cross-env E2E_TESTING=true NODE_ENV=test node src/app.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "rootDir": ".",
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/src/__tests__/**/*.test.js"
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/routes/**/*.js",
+      "src/middlewares/**/*.js",
+      "src/utils/**/*.js",
+      "!src/**/__tests__/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 70,
+        "functions": 70,
+        "branches": 65
+      }
+    },
+    "testTimeout": 10000
   },
   "repository": {
     "type": "git",
@@ -24,6 +54,7 @@
   },
   "homepage": "https://github.com/Pandikumarcodes/Kot-Pos-Backend#readme",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -42,6 +73,9 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "cross-env": "^10.1.0",
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.2.2"
   }
 }
