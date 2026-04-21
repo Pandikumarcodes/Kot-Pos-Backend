@@ -54,7 +54,7 @@
   },
   "homepage": "https://github.com/Pandikumarcodes/Kot-Pos-Backend#readme",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.50.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

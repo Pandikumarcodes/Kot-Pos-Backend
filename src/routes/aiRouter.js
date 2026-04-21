@@ -1,5 +1,5 @@
 const express = require("express");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 const { userAuth, allowRoles } = require("../middlewares/auth");
 
 const Inventory = require("../models/Inventory");
@@ -17,42 +17,64 @@ function utcMidnight(offsetDays = 0) {
   return d;
 }
 
-// ── Gemini setup ──────────────────────────────────────────────
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+// ── Gemini setup (new @google/genai SDK) ──────────────────────
+const client = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-flash-latest",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-3.1-flash-preview",
+  "gemini-3-flash-preview",
 ];
 
-// ── Core Gemini caller — no throttle, just model fallback ─────
+// ── Core Gemini caller ────────────────────────────────────────
 async function callGemini(prompt) {
+  if (!client)
+    throw new Error("AI client not initialized — check GEMINI_API_KEY");
+
   let lastError;
   for (const modelName of MODELS) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      return result.response.text();
+      const result = await client.models.generateContent({
+        model: modelName,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction:
+            "You are the KOT POS AI analyst for a restaurant. Keep responses short, clear and professional. Max 3 sentences. No markdown formatting.",
+        },
+      });
+      const responseText = result.text;
+
+      if (result && responseText) {
+        console.log(
+          `✅ AI request success — model: ${modelName}, time: ${new Date().toISOString()}`,
+        );
+        return responseText;
+      }
+      throw new Error("Empty response from AI");
     } catch (err) {
-      console.error(`Gemini model ${modelName} failed:`, err.message);
+      console.error(`Gemini model ${modelName} failed:`, {
+        message: err.message,
+        status: err.status,
+        code: err.code,
+        details: err.errorDetails ?? err.response?.data ?? "no details",
+      });
       lastError = err;
-      // Only retry next model on 429, stop immediately on other errors
-      if (err.status !== 429) break;
-      await new Promise((r) => setTimeout(r, 2000));
+      if (err.status === 429) {
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
+      break;
     }
   }
   throw lastError;
 }
 
 // ── Daily summary cache ───────────────────────────────────────
-// Gemini is only called ONCE per 10 minutes for the summary.
-// All other summary requests within that window return instantly
-// from cache — meaning the summary never competes with chat.
+// Gemini called ONCE per 10 minutes for summary — cached after that
 const summaryCache = { text: null, expiry: 0 };
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_TTL = 10 * 60 * 1000;
 
 async function getAiSummary(prompt) {
   if (summaryCache.text && summaryCache.expiry > Date.now()) {
@@ -65,11 +87,6 @@ async function getAiSummary(prompt) {
   return text;
 }
 
-// ── Chat — simple direct call, no queue blocking it ──────────
-async function getAiChatReply(prompt) {
-  return callGemini(prompt);
-}
-
 // ── Common middleware ─────────────────────────────────────────
 router.use(userAuth, allowRoles(["admin", "manager"]));
 
@@ -78,7 +95,7 @@ router.use(userAuth, allowRoles(["admin", "manager"]));
 // ════════════════════════════════════════════════════════════
 router.post("/chat", async (req, res) => {
   try {
-    if (!genAI) {
+    if (!client) {
       return res.status(503).json({
         error: "AI service not configured. Add GEMINI_API_KEY to environment.",
       });
@@ -109,37 +126,34 @@ router.post("/chat", async (req, res) => {
       : {};
 
     const prompt = `
-      You are an AI assistant for a restaurant POS system called KOT POS.
-      You help restaurant owners and managers understand their business data.
-
-      Here is the current restaurant data context:
+      Restaurant data context:
       ${JSON.stringify(safeContext, null, 2)}
 
       User question: ${message}
 
       Instructions:
       - Give a short, clear answer (max 3 sentences)
-      - Use specific numbers and facts from the data when available
+      - Use specific numbers from the data when available
       - If data is not available, say so clearly
       - Compare trends when asked (up/down vs previous period)
-      - Always respond in plain text, no markdown formatting
+      - Plain text only, no markdown
       - Be friendly and professional
     `;
 
-    const reply = await getAiChatReply(prompt);
+    const reply = await callGemini(prompt);
     res.json({ reply });
   } catch (err) {
-    console.error("AI chat error:", err.message);
-
-    // Always return a reply — never an HTTP error — so chat UI stays clean
-    if (err?.status === 429) {
-      return res.json({
-        reply: "The AI quota is temporarily exhausted. Please wait 60 seconds and try again.",
-      });
-    }
-    res.json({
-      reply: "I'm having trouble connecting right now. Please try again in a moment.",
+    console.error("AI chat error FULL:", {
+      message: err.message,
+      status: err.status,
+      code: err.code,
+      stack: err.stack,
     });
+    const feedback =
+      err?.status === 429
+        ? "The AI quota is temporarily exhausted. Please wait 60 seconds and try again."
+        : "I'm having trouble connecting right now. Please try again in a moment.";
+    res.json({ reply: feedback });
   }
 });
 
@@ -186,28 +200,49 @@ router.get("/inventory-alerts", async (req, res) => {
       const daysUntilStockout =
         avgDailyUsage > 0 ? Math.floor(currentStock / avgDailyUsage) : null;
 
-      let level = "ok", message = "", emoji = "✅";
+      let level = "ok",
+        message = "",
+        emoji = "✅";
       if (currentStock <= 0) {
-        level = "critical"; emoji = "🔴"; message = "Out of stock! Reorder immediately.";
+        level = "critical";
+        emoji = "🔴";
+        message = "Out of stock! Reorder immediately.";
       } else if (currentStock <= reorderLevel) {
-        level = "critical"; emoji = "🔴"; message = `Below reorder level (${reorderLevel}${unit}). Order now.`;
+        level = "critical";
+        emoji = "🔴";
+        message = `Below reorder level (${reorderLevel}${unit}). Order now.`;
       } else if (daysUntilStockout !== null && daysUntilStockout <= 2) {
-        level = "critical"; emoji = "🔴"; message = `Will run out in ~${daysUntilStockout} day${daysUntilStockout === 1 ? "" : "s"}. Reorder urgently.`;
+        level = "critical";
+        emoji = "🔴";
+        message = `Will run out in ~${daysUntilStockout} day${daysUntilStockout === 1 ? "" : "s"}. Reorder urgently.`;
       } else if (daysUntilStockout !== null && daysUntilStockout <= 5) {
-        level = "warning"; emoji = "🟡"; message = `Will run out in ~${daysUntilStockout} days. Consider reordering.`;
+        level = "warning";
+        emoji = "🟡";
+        message = `Will run out in ~${daysUntilStockout} days. Consider reordering.`;
       } else if (daysUntilStockout !== null && daysUntilStockout <= 10) {
-        level = "info"; emoji = "🔵"; message = `Stock sufficient for ~${daysUntilStockout} days.`;
+        level = "info";
+        emoji = "🔵";
+        message = `Stock sufficient for ~${daysUntilStockout} days.`;
       } else {
-        level = "ok"; emoji = "✅";
-        message = daysUntilStockout !== null
-          ? `Stock sufficient for ${daysUntilStockout}+ days.`
-          : "No recent usage data available.";
+        level = "ok";
+        emoji = "✅";
+        message =
+          daysUntilStockout !== null
+            ? `Stock sufficient for ${daysUntilStockout}+ days.`
+            : "No recent usage data available.";
       }
 
       return {
-        _id: item._id, name: item.name, currentStock, unit, reorderLevel,
+        _id: item._id,
+        name: item.name,
+        currentStock,
+        unit,
+        reorderLevel,
         avgDailyUsage: parseFloat(avgDailyUsage.toFixed(2)),
-        daysUntilStockout, level, emoji, message,
+        daysUntilStockout,
+        level,
+        emoji,
+        message,
       };
     });
 
@@ -216,9 +251,9 @@ router.get("/inventory-alerts", async (req, res) => {
 
     const counts = {
       critical: alerts.filter((a) => a.level === "critical").length,
-      warning:  alerts.filter((a) => a.level === "warning").length,
-      info:     alerts.filter((a) => a.level === "info").length,
-      ok:       alerts.filter((a) => a.level === "ok").length,
+      warning: alerts.filter((a) => a.level === "warning").length,
+      info: alerts.filter((a) => a.level === "info").length,
+      ok: alerts.filter((a) => a.level === "ok").length,
     };
 
     res.json({ alerts, counts });
@@ -237,23 +272,39 @@ router.get("/daily-summary", async (req, res) => {
       ? { branchId: req.user.branchId }
       : {};
 
-    const today     = utcMidnight(0);
+    const today = utcMidnight(0);
     const yesterday = utcMidnight(1);
     const dayBefore = utcMidnight(2);
 
     const [yesterdayOrders, dayBeforeOrders, yesterdayBills] =
       await Promise.all([
-        Kot.find({ ...branchFilter, createdAt: { $gte: yesterday, $lt: today }, status: { $ne: "cancelled" } }).lean(),
-        Kot.find({ ...branchFilter, createdAt: { $gte: dayBefore, $lt: yesterday }, status: { $ne: "cancelled" } }).lean(),
-        Billing.find({ ...branchFilter, createdAt: { $gte: yesterday, $lt: today }, paymentStatus: "paid" }).lean(),
+        Kot.find({
+          ...branchFilter,
+          createdAt: { $gte: yesterday, $lt: today },
+          status: { $ne: "cancelled" },
+        }).lean(),
+        Kot.find({
+          ...branchFilter,
+          createdAt: { $gte: dayBefore, $lt: yesterday },
+          status: { $ne: "cancelled" },
+        }).lean(),
+        Billing.find({
+          ...branchFilter,
+          createdAt: { $gte: yesterday, $lt: today },
+          paymentStatus: "paid",
+        }).lean(),
       ]);
 
-    const totalRevenue = yesterdayBills.reduce((sum, b) => sum + (b.totalAmount ?? 0), 0);
-    const totalOrders  = yesterdayOrders.length;
-    const prevOrders   = dayBeforeOrders.length;
-    const orderChange  = prevOrders > 0
-      ? (((totalOrders - prevOrders) / prevOrders) * 100).toFixed(1)
-      : null;
+    const totalRevenue = yesterdayBills.reduce(
+      (sum, b) => sum + (b.totalAmount ?? 0),
+      0,
+    );
+    const totalOrders = yesterdayOrders.length;
+    const prevOrders = dayBeforeOrders.length;
+    const orderChange =
+      prevOrders > 0
+        ? (((totalOrders - prevOrders) / prevOrders) * 100).toFixed(1)
+        : null;
 
     const itemCount = {};
     yesterdayOrders.forEach((order) => {
@@ -263,7 +314,8 @@ router.get("/daily-summary", async (req, res) => {
       });
     });
     const topItems = Object.entries(itemCount)
-      .sort(([, a], [, b]) => b - a).slice(0, 5)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
       .map(([name, qty]) => ({ name, qty }));
 
     const hourCount = {};
@@ -271,8 +323,10 @@ router.get("/daily-summary", async (req, res) => {
       const hour = new Date(order.createdAt).getHours();
       hourCount[hour] = (hourCount[hour] ?? 0) + 1;
     });
-    const peakEntry = Object.entries(hourCount).sort(([, a], [, b]) => b - a)[0];
-    const peakHour  = peakEntry
+    const peakEntry = Object.entries(hourCount).sort(
+      ([, a], [, b]) => b - a,
+    )[0];
+    const peakHour = peakEntry
       ? `${peakEntry[0]}:00 - ${parseInt(peakEntry[0]) + 1}:00`
       : "N/A";
 
@@ -282,11 +336,15 @@ router.get("/daily-summary", async (req, res) => {
       paymentBreakdown[method] = (paymentBreakdown[method] ?? 0) + 1;
     });
 
-    const dineIn   = yesterdayOrders.filter((o) => o.orderType === "dine-in").length;
-    const takeaway = yesterdayOrders.filter((o) => o.orderType === "takeaway").length;
+    const dineIn = yesterdayOrders.filter(
+      (o) => o.orderType === "dine-in",
+    ).length;
+    const takeaway = yesterdayOrders.filter(
+      (o) => o.orderType === "takeaway",
+    ).length;
 
     const inventoryItems = await Inventory.find(branchFilter).lean();
-    const criticalStock  = inventoryItems
+    const criticalStock = inventoryItems
       .filter((item) => (item.currentStock ?? 0) <= (item.reorderLevel ?? 0))
       .map((item) => item.name);
 
@@ -296,17 +354,22 @@ router.get("/daily-summary", async (req, res) => {
       totalOrders,
       orderChange: orderChange ? `${orderChange}%` : "no previous data",
       orderTrend: orderChange
-        ? parseFloat(orderChange) >= 0 ? "up" : "down"
+        ? parseFloat(orderChange) >= 0
+          ? "up"
+          : "down"
         : "neutral",
-      topItems, peakHour, paymentBreakdown, dineIn, takeaway,
-      avgOrderValue: totalOrders > 0
-        ? `₹${(totalRevenue / totalOrders).toFixed(0)}`
-        : "₹0",
+      topItems,
+      peakHour,
+      paymentBreakdown,
+      dineIn,
+      takeaway,
+      avgOrderValue:
+        totalOrders > 0 ? `₹${(totalRevenue / totalOrders).toFixed(0)}` : "₹0",
       criticalStockItems: criticalStock,
     };
 
     let aiSummary;
-    if (genAI) {
+    if (client) {
       try {
         const prompt = `
           You are a smart restaurant business analyst for KOT POS.
@@ -326,7 +389,6 @@ router.get("/daily-summary", async (req, res) => {
           No bullet points — write in paragraph form.
           Start with "Good morning! Here's your summary for ${summaryData.date}."
         `;
-        // Uses cache — only calls Gemini once per 10 minutes
         aiSummary = await getAiSummary(prompt);
       } catch (geminiErr) {
         console.error("Gemini daily summary error:", geminiErr.message);
@@ -345,12 +407,16 @@ router.get("/daily-summary", async (req, res) => {
 
 function generateFallbackSummary(data) {
   const trend =
-    data.orderTrend === "up"   ? "📈 up from previous day" :
-    data.orderTrend === "down" ? "📉 down from previous day" : "stable";
-  const topItem  = data.topItems[0]?.name ?? "N/A";
-  const stockMsg = data.criticalStockItems.length > 0
-    ? ` ⚠️ Reorder needed for: ${data.criticalStockItems.join(", ")}.`
-    : " Stock levels are healthy.";
+    data.orderTrend === "up"
+      ? "📈 up from previous day"
+      : data.orderTrend === "down"
+        ? "📉 down from previous day"
+        : "stable";
+  const topItem = data.topItems[0]?.name ?? "N/A";
+  const stockMsg =
+    data.criticalStockItems.length > 0
+      ? ` ⚠️ Reorder needed for: ${data.criticalStockItems.join(", ")}.`
+      : " Stock levels are healthy.";
   return (
     `Good morning! Here's your summary for ${data.date}. ` +
     `Total revenue was ${data.totalRevenue} from ${data.totalOrders} orders (${trend}). ` +
