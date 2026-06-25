@@ -1,6 +1,9 @@
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+dns.setServers(["8.8.8.8"]);
 
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -225,9 +228,6 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
-// ── Keep Render alive (free tier spins down after 15 min) ─────
-// Pings /health every 14 minutes to prevent cold starts.
-// Requires BACKEND_URL env var set in Render dashboard.
 if (process.env.NODE_ENV === "production" && process.env.BACKEND_URL) {
   setInterval(
     () => {
