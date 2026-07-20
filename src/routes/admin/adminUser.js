@@ -78,6 +78,9 @@ adminUserRouter.put(
       if (!role) return res.status(400).json({ error: "Role is required" });
       if (!ALLOWED_ROLES.includes(role))
         return res.status(400).json({ error: "Invalid role" });
+      if (req.user.role === "manager" && role === "admin") {
+        return res.status(403).json({ error: "Managers cannot assign admin role" });
+      }
       if (!mongoose.Types.ObjectId.isValid(userId))
         return res.status(400).json({ error: "Invalid userId" });
       const user = await User.findByIdAndUpdate(

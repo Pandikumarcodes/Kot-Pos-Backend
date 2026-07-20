@@ -294,6 +294,19 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
     expect(res.status).toBe(200);
   });
 
+  it("403 - manager cannot promote a user to admin", async () => {
+    User.findById.mockResolvedValue(mockUserDoc({ role: "manager" }));
+
+    const res = await request(app)
+      .put(`/api/v1/admin/update-role/${VALID_USER_ID}`)
+      .set("Cookie", `token=${makeToken("manager")}`)
+      .send({ role: "admin" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Managers cannot assign admin role");
+    expect(User.findByIdAndUpdate).not.toHaveBeenCalled();
+  });
+
   it("400 — rejects missing role field", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
 
