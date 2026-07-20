@@ -1,35 +1,79 @@
+const jwt = require("jsonwebtoken");
+const User = require("../models/users");
+
+const SOCKET_ROLES = new Set(["admin", "manager", "chef", "waiter", "cashier"]);
+
+const getCookieValue = (cookieHeader, name) => {
+  if (!cookieHeader) return null;
+
+  const cookie = cookieHeader
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(`${name}=`));
+
+  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
+};
+
+const getHandshakeToken = (socket) => {
+  const authorization = socket.handshake.headers.authorization;
+  const bearerToken = authorization?.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length)
+    : null;
+
+  return (
+    socket.handshake.auth?.token ||
+    bearerToken ||
+    getCookieValue(socket.handshake.headers.cookie, "token")
+  );
+};
+
+const getSocketRoom = (user) => {
+  const branchId = user.branchId?.toString() || "global";
+  return `branch:${branchId}:role:${user.role}`;
+};
+
+const authenticateSocket = async (socket, next) => {
+  try {
+    const token = getHandshakeToken(socket);
+    if (!token) throw new Error("Missing token");
+
+    const { _id } = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(_id);
+
+    if (!user || user.status !== "active" || !SOCKET_ROLES.has(user.role)) {
+      throw new Error("Unauthorized socket user");
+    }
+
+    // Only a branchless admin is permitted to receive global events.
+    if (!user.branchId && user.role !== "admin") {
+      throw new Error("User has no branch assignment");
+    }
+
+    socket.data.user = {
+      id: user._id.toString(),
+      role: user.role,
+      branchId: user.branchId?.toString() ?? null,
+    };
+    next();
+  } catch {
+    next(new Error("Unauthorized"));
+  }
+};
+
 const initSocket = (io) => {
+  io.use(authenticateSocket);
+
   io.on("connection", (socket) => {
-    console.log(`🔌 Socket connected: ${socket.id}`);
+    const user = socket.data.user;
+    const room = getSocketRoom(user);
 
-    // ── Client joins their role-based room ────────────────────
-    socket.on("join:room", (role) => {
-      const roomMap = {
-        chef: "kitchen",
-        waiter: "waiters",
-        cashier: "cashiers",
-        admin: "admin",
-        manager: "admin",
-      };
-
-      const room = roomMap[role];
-      if (!room) return;
-
-      socket.join(room);
-      console.log(
-        `👤 Socket ${socket.id} joined room: "${room}" (role: ${role})`,
-      );
-
-      // Confirm back to client
-      socket.emit("room:joined", { room, role });
-    });
-
-    // ── Disconnect ────────────────────────────────────────────
-    socket.on("disconnect", (reason) => {
-      console.log(`❌ Socket disconnected: ${socket.id} — ${reason}`);
+    // Room selection is derived exclusively from the authenticated user.
+    socket.join(room);
+    socket.emit("room:joined", {
+      role: user.role,
+      branchId: user.branchId,
     });
   });
 };
 
-// Only initSocket is exported — emit functions live in notificationService
-module.exports = { initSocket };
+module.exports = { initSocket, authenticateSocket, getSocketRoom };

@@ -81,7 +81,7 @@ cashierbillingRouter.post("/billing", async (req, res) => {
     await newBill.save();
 
     const io = req.app.get("io");
-    notify.billingUpdated(io, newBill);
+    notify.billingUpdated(io, newBill, req.branchId);
 
     res
       .status(201)
@@ -163,7 +163,7 @@ cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
     }
 
     const io = req.app.get("io");
-    notify.billingUpdated(io, bill);
+    notify.billingUpdated(io, bill, req.branchId);
 
     res.status(200).json({ message: "Bill marked as paid successfully", bill });
   } catch (err) {

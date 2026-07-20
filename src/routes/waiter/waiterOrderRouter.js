@@ -149,7 +149,7 @@ waiterOrderRouter.post(
 
       // Notify cashier
       const io = req.app.get("io");
-      notify.billingUpdated(io, bill);
+      notify.billingUpdated(io, bill, req.branchId);
 
       res.status(201).json({ message: "Bill sent to cashier", bill });
     } catch (err) {

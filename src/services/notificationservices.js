@@ -7,6 +7,21 @@ const EVENTS = {
   BILLING_UPDATED: "billing:created",
 };
 
+const roleRoom = (branchId, role) =>
+  `branch:${branchId?.toString() || "global"}:role:${role}`;
+
+const emitToRoles = (io, branchId, roles, event, payload) => {
+  if (!io || !branchId) return;
+
+  roles.forEach((role) => io.to(roleRoom(branchId, role)).emit(event, payload));
+
+  // A branchless admin is the explicit super-admin role and may observe all
+  // branches. Other clients only receive their own branch room.
+  roles
+    .filter((role) => role === "admin")
+    .forEach((role) => io.to(roleRoom("global", role)).emit(event, payload));
+};
+
 // ─────────────────────────────────────────────────────────────
 // notify.newOrder
 // Called when: waiter sends dine-in order OR cashier sends takeaway
@@ -14,9 +29,8 @@ const EVENTS = {
 // Chef sees:   new KOT card instantly
 // ─────────────────────────────────────────────────────────────
 const newOrder = (io, kot) => {
-  if (!io || !kot) return;
-  io.to("kitchen").emit(EVENTS.ORDER_NEW, kot);
-  io.to("admin").emit(EVENTS.ORDER_NEW, kot);
+  if (!io || !kot?.branchId) return;
+  emitToRoles(io, kot.branchId, ["chef", "admin", "manager"], EVENTS.ORDER_NEW, kot);
   console.log(
     `📤 [notify] order:new → kitchen + admin` +
       ` | type: ${kot.orderType}` +
@@ -35,11 +49,14 @@ const newOrder = (io, kot) => {
 //   - admin    → live dashboard
 // ─────────────────────────────────────────────────────────────
 const kotUpdated = (io, kot) => {
-  if (!io || !kot) return;
-  io.to("kitchen").emit(EVENTS.KOT_UPDATED, kot);
-  io.to("waiters").emit(EVENTS.KOT_UPDATED, kot);
-  io.to("cashiers").emit(EVENTS.KOT_UPDATED, kot);
-  io.to("admin").emit(EVENTS.KOT_UPDATED, kot);
+  if (!io || !kot?.branchId) return;
+  emitToRoles(
+    io,
+    kot.branchId,
+    ["chef", "waiter", "cashier", "admin", "manager"],
+    EVENTS.KOT_UPDATED,
+    kot,
+  );
   console.log(
     `📤 [notify] kot:updated → all rooms` +
       ` | status: ${kot.status}` +
@@ -53,10 +70,15 @@ const kotUpdated = (io, kot) => {
 // Called when: table allocated, freed, or status changes
 // Emits to:    admin + waiters
 // ─────────────────────────────────────────────────────────────
-const tableUpdated = (io, table) => {
-  if (!io || !table) return;
-  io.to("admin").emit(EVENTS.TABLE_UPDATED, table);
-  io.to("waiters").emit(EVENTS.TABLE_UPDATED, table);
+const tableUpdated = (io, table, branchId = table?.branchId) => {
+  if (!io || !table || !branchId) return;
+  emitToRoles(
+    io,
+    branchId,
+    ["admin", "manager", "waiter"],
+    EVENTS.TABLE_UPDATED,
+    table,
+  );
   console.log(
     `📤 [notify] table:updated → admin + waiters` +
       ` | table: ${table.tableNumber}` +
@@ -69,10 +91,15 @@ const tableUpdated = (io, table) => {
 // Called when: bill created or marked paid
 // Emits to:    admin + cashiers
 // ─────────────────────────────────────────────────────────────
-const billingUpdated = (io, bill) => {
-  if (!io || !bill) return;
-  io.to("admin").emit(EVENTS.BILLING_UPDATED, bill);
-  io.to("cashiers").emit(EVENTS.BILLING_UPDATED, bill);
+const billingUpdated = (io, bill, branchId = bill?.branchId) => {
+  if (!io || !bill || !branchId) return;
+  emitToRoles(
+    io,
+    branchId,
+    ["admin", "manager", "cashier"],
+    EVENTS.BILLING_UPDATED,
+    bill,
+  );
   console.log(
     `📤 [notify] billing:created → admin + cashiers` +
       ` | bill: ${bill.billNumber}` +

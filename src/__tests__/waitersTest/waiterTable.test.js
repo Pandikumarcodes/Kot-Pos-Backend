@@ -144,7 +144,7 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
       .set("Cookie", `token=${makeToken("waiter")}`)
       .send({ name: "Ravi", phone: "9876543210" });
 
-    expect(notify.tableUpdated).toHaveBeenCalledWith(mockIo, table);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(mockIo, table, undefined);
   });
 
   it("400 — rejects allocation of an already occupied table", async () => {
@@ -276,7 +276,7 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
       .put(`/api/v1/waiter/free/${VALID_TABLE_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`);
 
-    expect(notify.tableUpdated).toHaveBeenCalledWith(mockIo, table);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(mockIo, table, undefined);
   });
 
   it("404 — returns 404 when table does not exist", async () => {

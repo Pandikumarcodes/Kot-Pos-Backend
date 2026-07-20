@@ -23,7 +23,7 @@ waiterTableRouter.post("/allocate/:tableId", async (req, res) => {
 
     // ── Notify admin + waiters ────────────────────────────────
     const io = req.app.get("io");
-    notify.tableUpdated(io, table);
+    notify.tableUpdated(io, table, req.user.branchId);
 
     res.status(200).json({ message: "Table allocated successfully", table });
   } catch (err) {
@@ -43,7 +43,7 @@ waiterTableRouter.put("/free/:tableId", async (req, res) => {
 
     // ── Notify admin + waiters ────────────────────────────────
     const io = req.app.get("io");
-    notify.tableUpdated(io, table);
+    notify.tableUpdated(io, table, req.user.branchId);
 
     res.status(200).json({ message: "Table is now available", table });
   } catch (err) {
