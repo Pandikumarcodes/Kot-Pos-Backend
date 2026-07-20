@@ -31,7 +31,6 @@ jest.mock("../config/cookieConfig", () => ({
 jest.mock("../utils/validation", () => ({
   validateSignupData: jest.fn(), // no-op by default, throws on bad data
   validateStatus: jest.fn(({ status }) => status || "active"),
-  validateRole: jest.fn(({ role }) => role || "waiter"),
 }));
 
 // ── Build a minimal Express app (no DB, no socket, no socket.io)
@@ -92,7 +91,7 @@ describe("POST /api/v1/auth/signup", () => {
 
   it("201 — creates a new user successfully", async () => {
     User.findOne.mockResolvedValue(null); // username not taken
-    const savedUser = mockUserDoc();
+    const savedUser = mockUserDoc({ role: "waiter" });
     User.mockImplementation(() => savedUser);
 
     const res = await request(app).post("/api/v1/auth/signup").send({
@@ -106,8 +105,26 @@ describe("POST /api/v1/auth/signup", () => {
     expect(res.body.message).toBe("User registered successfully");
     expect(res.body.user).toMatchObject({
       username: "testuser",
-      role: "admin", // comes from mockUserDoc
+      role: "waiter",
     });
+  });
+
+  it("201 — ignores a requested admin role and creates a waiter", async () => {
+    User.findOne.mockResolvedValue(null);
+    const savedUser = mockUserDoc({ role: "waiter" });
+    User.mockImplementation(() => savedUser);
+
+    const res = await request(app).post("/api/v1/auth/signup").send({
+      username: "public-user",
+      password: "Test@1234!",
+      role: "admin",
+    });
+
+    expect(res.status).toBe(201);
+    expect(User).toHaveBeenCalledWith(
+      expect.objectContaining({ username: "public-user", role: "waiter" }),
+    );
+    expect(res.body.user.role).toBe("waiter");
   });
 
   it("400 — rejects duplicate username", async () => {

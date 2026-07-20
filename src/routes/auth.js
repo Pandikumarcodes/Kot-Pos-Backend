@@ -13,8 +13,11 @@ const {
 const {
   validateSignupData,
   validateStatus,
-  validateRole,
 } = require("../utils/validation");
+
+// Public registration must never grant privileged access. Staff roles are
+// assigned through the authenticated admin user-management flow.
+const PUBLIC_SIGNUP_ROLE = "waiter";
 
 // ── Rate Limiters ─────────────────────────────────────────────
 const loginLimiter = rateLimit({
@@ -67,16 +70,15 @@ const authMiddleware = (req, res, next) => {
 authRouter.post("/signup", signupLimiter, async (req, res) => {
   try {
     validateSignupData(req.body);
-    const { username, role, password, status } = req.body;
+    const { username, password, status } = req.body;
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ error: "Username already exists" });
     }
-    const safeRole = validateRole({ role });
     const safeStatus = validateStatus({ status });
     const newUser = new User({
       username,
-      role: safeRole,
+      role: PUBLIC_SIGNUP_ROLE,
       password,
       status: safeStatus,
     });
