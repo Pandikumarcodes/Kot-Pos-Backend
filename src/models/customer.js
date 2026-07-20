@@ -10,7 +10,7 @@ const customerSchema = new mongoose.Schema(
     phone: {
       type: String,
       required: true,
-      unique: true, // ✅ phone is unique identifier
+      unique: true,
       trim: true,
     },
     email: {

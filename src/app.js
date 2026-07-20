@@ -1,7 +1,7 @@
 const path = require("path");
 const dns = require("dns");
-dns.setDefaultResultOrder("ipv4first");
-dns.setServers(["8.8.8.8"]);
+// dns.setDefaultResultOrder("ipv4first");
+// dns.setServers(["8.8.8.8"]);
 
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const express = require("express");
