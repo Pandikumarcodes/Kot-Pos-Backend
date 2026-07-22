@@ -1,7 +1,7 @@
 const path = require("path");
 const dns = require("dns");
-// dns.setDefaultResultOrder("ipv4first");
-// dns.setServers(["8.8.8.8"]);
+// Fixes Windows Node.js SRV DNS resolution failure with MongoDB Atlas — do not remove
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
 const express = require("express");
@@ -13,8 +13,6 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
 const mongoSanitize = require("./config/sanitize");
-// const xssClean = require("xss-clean");
-// const { doubleCsrfProtection } = require("./config/csrfConfig.js");
 
 const {
   authLimiter,
