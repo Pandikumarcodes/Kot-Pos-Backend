@@ -112,7 +112,7 @@ app.use(["/chef", "/api/v1/chef"], apiLimiter);
 
 // ── Import Routers ────────────────────────────────────────────
 const { authRouter } = require("./routes/auth.js");
-const { router } = require("./routes/testRouter.js");
+// const { mountTestRoutes } = require("./routes/testRouter.js");
 const qrMenuRouter = require("./routes/public/QrMenuRouter.js");
 const { adminUserRouter } = require("./routes/admin/adminUser.js");
 const { adminMenuRouter } = require("./routes/admin/adminMenu.js");
@@ -145,7 +145,7 @@ app.get("/api/version", (req, res) => {
 });
 
 app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/test", router);
+// mountTestRoutes(app);
 app.use("/api/v1/public", qrMenuRouter);
 
 app.use("/api/v1/admin", adminMenuRouter);
