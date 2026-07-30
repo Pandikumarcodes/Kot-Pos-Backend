@@ -3,6 +3,7 @@ const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
 const chefRouter = express.Router();
 const Kot = require("../../models/kot");
+const { validateOrderId } = require("../../validators/orders");
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
@@ -28,7 +29,7 @@ chefRouter.get("/kot", async (req, res) => {
 });
 
 // ── GET SINGLE ORDER ──────────────────────────────────────────
-chefRouter.get("/kot/:orderId", async (req, res) => {
+chefRouter.get("/kot/:orderId", validateOrderId, async (req, res) => {
   try {
     const order = await Kot.findOne(
       req.scopeToBranch({ _id: req.params.orderId }),
@@ -41,7 +42,7 @@ chefRouter.get("/kot/:orderId", async (req, res) => {
 });
 
 // ── START COOKING ─────────────────────────────────────────────
-chefRouter.put("/kot/:orderId/start", async (req, res) => {
+chefRouter.put("/kot/:orderId/start", validateOrderId, async (req, res) => {
   try {
     const order = await Kot.findOneAndUpdate(
       req.scopeToBranch({ _id: req.params.orderId }),
@@ -61,7 +62,7 @@ chefRouter.put("/kot/:orderId/start", async (req, res) => {
 });
 
 // ── MARK READY ────────────────────────────────────────────────
-chefRouter.put("/kot/:orderId/ready", async (req, res) => {
+chefRouter.put("/kot/:orderId/ready", validateOrderId, async (req, res) => {
   try {
     const order = await Kot.findOneAndUpdate(
       req.scopeToBranch({ _id: req.params.orderId }),
@@ -81,7 +82,7 @@ chefRouter.put("/kot/:orderId/ready", async (req, res) => {
 });
 
 // ── CANCEL ORDER ──────────────────────────────────────────────
-chefRouter.put("/kot/:orderId/cancel", async (req, res) => {
+chefRouter.put("/kot/:orderId/cancel", validateOrderId, async (req, res) => {
   try {
     const order = await Kot.findOneAndUpdate(
       req.scopeToBranch({ _id: req.params.orderId }),

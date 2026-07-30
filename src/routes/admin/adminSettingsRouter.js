@@ -2,6 +2,7 @@ const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
 const Settings = require("../../models/settings.js");
+const { validateSettingsUpdate } = require("../../validators/general");
 const adminSettingsRouter = express.Router();
 
 adminSettingsRouter.use(
@@ -29,6 +30,7 @@ adminSettingsRouter.get("/settings", async (req, res) => {
 adminSettingsRouter.put(
   "/settings",
   allowRoles(["admin"]), // ✅ only admin can save
+  validateSettingsUpdate,
   async (req, res) => {
     try {
       const settingsInput = { ...req.body };

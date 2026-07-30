@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
@@ -6,6 +5,12 @@ const { branchMemberScope, requireBranch } = branchScope;
 const Billing = require("../../models/billings");
 const MenuItem = require("../../models/menuItems");
 const Table = require("../../models/tables");
+const {
+  validateBillCreate,
+  validateBillId,
+  validateBillsQuery,
+  validateBillPayment,
+} = require("../../validators/billing");
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
@@ -21,14 +26,14 @@ cashierbillingRouter.use(
 );
 
 // ── CREATE BILL ───────────────────────────────────────────────
-cashierbillingRouter.post("/billing", requireBranch, async (req, res) => {
+cashierbillingRouter.post(
+  "/billing",
+  requireBranch,
+  validateBillCreate,
+  async (req, res) => {
   try {
     const { customerName, customerPhone, items, paymentStatus, paymentMethod } =
       req.body;
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({ error: "Items are required" });
-    }
 
     const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
     const todayStart = new Date();
@@ -44,11 +49,6 @@ cashierbillingRouter.post("/billing", requireBranch, async (req, res) => {
 
     const detailedItems = [];
     for (const i of items) {
-      if (!i.itemId) {
-        return res
-          .status(400)
-          .json({ error: "itemId is required for each item" });
-      }
       const menuItem = await MenuItem.findById(i.itemId);
       if (!menuItem) {
         return res
@@ -91,10 +91,11 @@ cashierbillingRouter.post("/billing", requireBranch, async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── GET ALL BILLS ─────────────────────────────────────────────
-cashierbillingRouter.get("/bills", async (req, res) => {
+cashierbillingRouter.get("/bills", validateBillsQuery, async (req, res) => {
   try {
     const filter = {};
 
@@ -123,7 +124,10 @@ cashierbillingRouter.get("/bills", async (req, res) => {
 });
 
 // ── GET SINGLE BILL ───────────────────────────────────────────
-cashierbillingRouter.get("/bills/:billId", async (req, res) => {
+cashierbillingRouter.get(
+  "/bills/:billId",
+  validateBillId,
+  async (req, res) => {
   try {
     const { billId } = req.params;
     const bill = await Billing.findOne(
@@ -135,11 +139,15 @@ cashierbillingRouter.get("/bills/:billId", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch Bill" });
   }
-});
+  },
+);
 
 // ── MARK PAID ─────────────────────────────────────────────────
 
-cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
+cashierbillingRouter.put(
+  "/bills/:billId/pay",
+  validateBillPayment,
+  async (req, res) => {
   try {
     const { billId } = req.params;
     const paymentMethod = req.body?.paymentMethod ?? null;
@@ -173,15 +181,16 @@ cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Failed to update bill payment status" });
   }
-});
+  },
+);
 
 // ── DELETE BILL ───────────────────────────────────────────────
-cashierbillingRouter.delete("/bills/:billId", async (req, res) => {
+cashierbillingRouter.delete(
+  "/bills/:billId",
+  validateBillId,
+  async (req, res) => {
   try {
     const { billId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(billId)) {
-      return res.status(400).json({ error: "Invalid Bill Id" });
-    }
     const deletedBill = await Billing.findOneAndDelete(
       req.scopeToBranchMembers({ _id: billId }),
     );
@@ -201,6 +210,7 @@ cashierbillingRouter.delete("/bills/:billId", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 module.exports = { cashierbillingRouter };

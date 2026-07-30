@@ -1,5 +1,6 @@
 const Billing = require("../models/billings");
 const { getPagination, paginate } = require("../middleware/paginate");
+const { serverError } = require("../utils/apiResponse");
 
 // GET /cashier/bills
 async function getBills(req, res) {
@@ -42,8 +43,7 @@ async function getBills(req, res) {
       ...paginate(bills, total, page, limit), // ← new pagination envelope
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch bills" });
+    return serverError(res, "Failed to fetch bills");
   }
 }
 

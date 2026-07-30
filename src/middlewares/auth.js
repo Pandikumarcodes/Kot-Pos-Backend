@@ -1,5 +1,9 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/users");
+const {
+  unauthorized,
+  forbidden,
+} = require("../utils/apiResponse");
 
 const ACCESS_TOKEN_ALGORITHMS = ["HS256"];
 
@@ -93,7 +97,9 @@ const userAuth = async (req, res, next) => {
       err instanceof AuthenticationError
         ? err.message
         : AUTH_ERRORS.INVALID_TOKEN;
-    return res.status(status).json({ error });
+    return status === 403
+      ? forbidden(res, error)
+      : unauthorized(res, error);
   }
 };
 
@@ -102,7 +108,7 @@ const allowRoles = (roles = []) => {
 
   return (req, res, next) => {
     if (!req.user || !allowedRoles.has(req.user.role)) {
-      return res.status(403).json({ error: AUTH_ERRORS.FORBIDDEN });
+      return forbidden(res, AUTH_ERRORS.FORBIDDEN);
     }
     next();
   };

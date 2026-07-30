@@ -1,13 +1,11 @@
 const rateLimit = require("express-rate-limit");
+const { tooManyRequests } = require("../utils/apiResponse");
 
 // ✅ Custom handler — always sends Retry-After so frontend knows when to retry
 const makeHandler = (message) => (req, res) => {
   const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000);
   res.setHeader("Retry-After", retryAfter);
-  res.status(429).json({
-    error: message,
-    retryAfter, // seconds — frontend reads this to show countdown
-  });
+  return tooManyRequests(res, message, { retryAfter });
 };
 
 /**

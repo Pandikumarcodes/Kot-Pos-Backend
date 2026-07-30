@@ -5,11 +5,16 @@ const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Settings = require("../../models/settings");
 const Branch = require("../../models/Branch");
+const {
+  validateOrderId,
+  validatePublicOrder,
+  validateTableId,
+} = require("../../validators/orders");
 
 // ── GET /public/menu/:tableId ─────────────────────────────────
 // Returns table info + available menu items grouped by category.
 // Called when customer scans the QR code.
-router.get("/menu/:tableId", async (req, res) => {
+router.get("/menu/:tableId", validateTableId, async (req, res) => {
   try {
     const table = await Table.findById(req.params.tableId).lean();
     if (!table) {
@@ -62,13 +67,9 @@ router.get("/menu/:tableId", async (req, res) => {
 // ── POST /public/order/:tableId ───────────────────────────────
 // Customer places order directly from their phone.
 // Body: { customerName, customerPhone, items: [{ itemId, quantity }] }
-router.post("/order/:tableId", async (req, res) => {
+router.post("/order/:tableId", validatePublicOrder, async (req, res) => {
   try {
     const { customerName, customerPhone, items } = req.body;
-
-    if (!items || !items.length) {
-      return res.status(400).json({ error: "No items in order" });
-    }
 
     const table = await Table.findById(req.params.tableId).lean();
     if (!table) {
@@ -151,7 +152,10 @@ router.post("/order/:tableId", async (req, res) => {
 
 // ── GET /public/order/:orderId/status ─────────────────────────
 // Customer can poll to check their order status.
-router.get("/order/:orderId/status", async (req, res) => {
+router.get(
+  "/order/:orderId/status",
+  validateOrderId,
+  async (req, res) => {
   try {
     const kot = await Kot.findById(req.params.orderId)
       .select("status totalAmount items createdAt")
@@ -177,6 +181,7 @@ router.get("/order/:orderId/status", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 module.exports = router;

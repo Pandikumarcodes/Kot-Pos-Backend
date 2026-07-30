@@ -8,6 +8,7 @@ const Inventory = require("../models/Inventory");
 const StockLog = require("../models/StockLog");
 const Kot = require("../models/kot");
 const Billing = require("../models/billings");
+const { validateAiChat } = require("../validators/general");
 
 const router = express.Router();
 
@@ -98,7 +99,7 @@ router.use(userAuth, allowRoles(["admin", "manager"]), branchScope);
 // ════════════════════════════════════════════════════════════
 // 1. AI SALES ASSISTANT  —  POST /api/v1/ai/chat
 // ════════════════════════════════════════════════════════════
-router.post("/chat", async (req, res) => {
+router.post("/chat", validateAiChat, async (req, res) => {
   try {
     if (!client) {
       return res.status(503).json({
@@ -107,10 +108,6 @@ router.post("/chat", async (req, res) => {
     }
 
     const { message, context } = req.body;
-    if (!message?.trim()) {
-      return res.status(400).json({ error: "Message is required" });
-    }
-
     const safeContext = context
       ? {
           totalRevenue: context.totalRevenue,

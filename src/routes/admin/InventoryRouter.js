@@ -12,15 +12,33 @@ const {
   getStockLogs,
   deleteInventory,
 } = require("../../controllers/inventoryController");
+const {
+  validateInventoryAdjust,
+  validateInventoryCreate,
+  validateInventoryId,
+  validateInventoryQuery,
+  validateInventoryRestock,
+  validateInventoryUpdate,
+} = require("../../validators/inventory");
 
 router.use(userAuth, requireRoles(["admin", "manager"]), branchScope);
 
-router.get("/", getInventory);
-router.post("/", requireBranch, createInventory);
-router.put("/:id", updateInventory);
-router.post("/:id/restock", requireBranch, restockItem);
-router.post("/:id/adjust", requireBranch, adjustStock);
-router.get("/:id/logs", requireBranch, getStockLogs);
-router.delete("/:id", deleteInventory);
+router.get("/", validateInventoryQuery, getInventory);
+router.post("/", requireBranch, validateInventoryCreate, createInventory);
+router.put("/:id", validateInventoryUpdate, updateInventory);
+router.post(
+  "/:id/restock",
+  requireBranch,
+  validateInventoryRestock,
+  restockItem,
+);
+router.post(
+  "/:id/adjust",
+  requireBranch,
+  validateInventoryAdjust,
+  adjustStock,
+);
+router.get("/:id/logs", requireBranch, validateInventoryId, getStockLogs);
+router.delete("/:id", validateInventoryId, deleteInventory);
 
 module.exports = router;

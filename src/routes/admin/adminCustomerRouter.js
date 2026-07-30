@@ -1,8 +1,12 @@
-const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
 const Customer = require("../../models/customer");
+const {
+  validateCustomerCreate,
+  validateCustomerId,
+  validateCustomerUpdate,
+} = require("../../validators/customers");
 const adminCustomerRouter = express.Router();
 
 adminCustomerRouter.use(
@@ -22,7 +26,10 @@ adminCustomerRouter.get("/customers", async (req, res) => {
 });
 
 // ── GET SINGLE CUSTOMER ───────────────────────────────────────
-adminCustomerRouter.get("/customers/:customerId", async (req, res) => {
+adminCustomerRouter.get(
+  "/customers/:customerId",
+  validateCustomerId,
+  async (req, res) => {
   try {
     const customer = await Customer.findById(req.params.customerId);
     if (!customer) return res.status(404).json({ error: "Customer not found" });
@@ -30,15 +37,16 @@ adminCustomerRouter.get("/customers/:customerId", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── CREATE CUSTOMER ───────────────────────────────────────────
-adminCustomerRouter.post("/customers", async (req, res) => {
+adminCustomerRouter.post(
+  "/customers",
+  validateCustomerCreate,
+  async (req, res) => {
   try {
     const { name, phone, email, address } = req.body;
-    if (!name || !phone) {
-      return res.status(400).json({ error: "Name and phone are required" });
-    }
     const existing = await Customer.findOne({ phone });
     if (existing) {
       return res
@@ -50,15 +58,16 @@ adminCustomerRouter.post("/customers", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── UPDATE CUSTOMER ───────────────────────────────────────────
-adminCustomerRouter.put("/customers/:customerId", async (req, res) => {
+adminCustomerRouter.put(
+  "/customers/:customerId",
+  validateCustomerUpdate,
+  async (req, res) => {
   try {
     const { name, phone, email, address } = req.body;
-    if (!mongoose.Types.ObjectId.isValid(req.params.customerId)) {
-      return res.status(400).json({ error: "Invalid customer ID" });
-    }
     const customer = await Customer.findByIdAndUpdate(
       req.params.customerId,
       { name, phone, email, address },
@@ -69,17 +78,16 @@ adminCustomerRouter.put("/customers/:customerId", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── DELETE CUSTOMER — admin only ──────────────────────────────
 adminCustomerRouter.delete(
   "/customers/:customerId",
   allowRoles(["admin"]),
+  validateCustomerId,
   async (req, res) => {
     try {
-      if (!mongoose.Types.ObjectId.isValid(req.params.customerId)) {
-        return res.status(400).json({ error: "Invalid customer ID" });
-      }
       const customer = await Customer.findByIdAndDelete(req.params.customerId);
       if (!customer)
         return res.status(404).json({ error: "Customer not found" });

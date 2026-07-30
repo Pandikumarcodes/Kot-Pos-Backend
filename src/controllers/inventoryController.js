@@ -1,6 +1,7 @@
 const Inventory = require("../models/Inventory");
 const StockLog = require("../models/StockLog");
 const MenuItem = require("../models/menuItems");
+const { notFound, serverError } = require("../utils/apiResponse");
 
 // ── GET /admin/inventory ──────────────────────────────────────
 // List all inventory items for this branch.
@@ -39,7 +40,7 @@ async function getInventory(req, res) {
 
     res.json({ items: annotated, lowStockCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to fetch inventory");
   }
 }
 
@@ -57,8 +58,6 @@ async function createInventory(req, res) {
       supplier,
       menuItemId,
     } = req.body;
-
-    if (!name) return res.status(400).json({ error: "Name is required" });
 
     const item = await Inventory.create({
       branchId: req.branchId,
@@ -88,7 +87,7 @@ async function createInventory(req, res) {
 
     res.status(201).json({ message: "Inventory item created", item });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to create inventory item");
   }
 }
 
@@ -120,10 +119,10 @@ async function updateInventory(req, res) {
       { new: true, runValidators: true },
     );
 
-    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (!item) return notFound(res, "Item not found");
     res.json({ message: "Updated", item });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to update inventory item");
   }
 }
 
@@ -132,15 +131,11 @@ async function updateInventory(req, res) {
 async function restockItem(req, res) {
   try {
     const { quantity, note } = req.body;
-    if (!quantity || quantity <= 0) {
-      return res.status(400).json({ error: "Quantity must be greater than 0" });
-    }
-
     const item = await Inventory.findOne({
       _id: req.params.id,
       ...req.branchFilter,
     });
-    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (!item) return notFound(res, "Item not found");
 
     const stockBefore = item.currentStock;
     item.currentStock += Number(quantity);
@@ -164,7 +159,7 @@ async function restockItem(req, res) {
 
     res.json({ message: `Restocked ${quantity} ${item.unit}`, item });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to restock inventory item");
   }
 }
 
@@ -174,15 +169,11 @@ async function restockItem(req, res) {
 async function adjustStock(req, res) {
   try {
     const { quantity, note } = req.body;
-    if (quantity === undefined) {
-      return res.status(400).json({ error: "Quantity is required" });
-    }
-
     const item = await Inventory.findOne({
       _id: req.params.id,
       ...req.branchFilter,
     });
-    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (!item) return notFound(res, "Item not found");
 
     const stockBefore = item.currentStock;
     const newStock = Math.max(0, item.currentStock + Number(quantity));
@@ -208,7 +199,7 @@ async function adjustStock(req, res) {
 
     res.json({ message: "Stock adjusted", item });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to adjust inventory stock");
   }
 }
 
@@ -228,7 +219,7 @@ async function getStockLogs(req, res) {
 
     res.json({ logs });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to fetch stock logs");
   }
 }
 
@@ -241,10 +232,10 @@ async function deleteInventory(req, res) {
       { isActive: false },
       { new: true },
     );
-    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (!item) return notFound(res, "Item not found");
     res.json({ message: "Item removed from inventory" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return serverError(res, "Failed to remove inventory item");
   }
 }
 

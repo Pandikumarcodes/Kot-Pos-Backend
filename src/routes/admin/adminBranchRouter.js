@@ -5,6 +5,12 @@ const { requireSuperAdmin } = require("../../middlewares/branchScope");
 const Branch = require("../../models/Branch");
 const User = require("../../models/users");
 const Settings = require("../../models/settings");
+const {
+  validateBranchCreate,
+  validateBranchId,
+  validateBranchStaff,
+  validateBranchUpdate,
+} = require("../../validators/branches");
 
 // ── Guard: super-admin only ───────────────────────────────────
 // ── GET /admin/branches  — list all branches ──────────────────
@@ -20,11 +26,14 @@ router.get("/branches", userAuth, requireSuperAdmin, async (req, res) => {
 });
 
 // ── POST /admin/branches  — create a branch ───────────────────
-router.post("/branches", userAuth, requireSuperAdmin, async (req, res) => {
+router.post(
+  "/branches",
+  userAuth,
+  requireSuperAdmin,
+  validateBranchCreate,
+  async (req, res) => {
   try {
     const { name, address, phone, email, gstin } = req.body;
-    if (!name)
-      return res.status(400).json({ error: "Branch name is required" });
 
     const branch = await Branch.create({ name, address, phone, email, gstin });
 
@@ -41,10 +50,16 @@ router.post("/branches", userAuth, requireSuperAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── PUT /admin/branches/:id  — update branch info ─────────────
-router.put("/branches/:id", userAuth, requireSuperAdmin, async (req, res) => {
+router.put(
+  "/branches/:id",
+  userAuth,
+  requireSuperAdmin,
+  validateBranchUpdate,
+  async (req, res) => {
   try {
     const { name, address, phone, email, gstin, isActive } = req.body;
     const branch = await Branch.findByIdAndUpdate(
@@ -57,10 +72,16 @@ router.put("/branches/:id", userAuth, requireSuperAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── DELETE /admin/branches/:id  — deactivate (soft delete) ────
-router.delete("/branches/:id", userAuth, requireSuperAdmin, async (req, res) => {
+router.delete(
+  "/branches/:id",
+  userAuth,
+  requireSuperAdmin,
+  validateBranchId,
+  async (req, res) => {
   try {
     const branch = await Branch.findByIdAndUpdate(
       req.params.id,
@@ -72,7 +93,8 @@ router.delete("/branches/:id", userAuth, requireSuperAdmin, async (req, res) => 
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── POST /admin/branches/:id/assign-staff  — assign user to branch ──
 // Body: { userId }
@@ -80,10 +102,10 @@ router.post(
   "/branches/:id/assign-staff",
   userAuth,
   requireSuperAdmin,
+  validateBranchStaff,
   async (req, res) => {
     try {
       const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
 
       const [branch, user] = await Promise.all([
         Branch.findById(req.params.id),
@@ -118,10 +140,10 @@ router.post(
   "/branches/:id/remove-staff",
   userAuth,
   requireSuperAdmin,
+  validateBranchStaff,
   async (req, res) => {
     try {
       const { userId } = req.body;
-      if (!userId) return res.status(400).json({ error: "userId is required" });
 
       const user = await User.findOne({ _id: userId, branchId: req.params.id });
       if (!user) {
@@ -143,6 +165,7 @@ router.get(
   "/branches/:id/staff",
   userAuth,
   requireSuperAdmin,
+  validateBranchId,
   async (req, res) => {
     try {
       const users = await User.find({ branchId: req.params.id })
@@ -180,6 +203,7 @@ router.get(
   "/branches/:id/summary",
   userAuth,
   requireSuperAdmin,
+  validateBranchId,
   async (req, res) => {
     try {
       const Kot = require("../../models/kot");

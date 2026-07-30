@@ -6,6 +6,10 @@ const waiterTableRouter = express.Router();
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
+const {
+  validateTableAllocate,
+  validateWaiterTableId,
+} = require("../../validators/tables");
 
 waiterTableRouter.use(
   userAuth,
@@ -14,7 +18,10 @@ waiterTableRouter.use(
 );
 
 // ── ALLOCATE TABLE ────────────────────────────────────────────
-waiterTableRouter.post("/allocate/:tableId", async (req, res) => {
+waiterTableRouter.post(
+  "/allocate/:tableId",
+  validateTableAllocate,
+  async (req, res) => {
   try {
     const { name, phone } = req.body;
     const table = await Table.findById(req.params.tableId);
@@ -34,10 +41,14 @@ waiterTableRouter.post("/allocate/:tableId", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── FREE TABLE ────────────────────────────────────────────────
-waiterTableRouter.put("/free/:tableId", async (req, res) => {
+waiterTableRouter.put(
+  "/free/:tableId",
+  validateWaiterTableId,
+  async (req, res) => {
   try {
     const table = await Table.findById(req.params.tableId);
     if (!table) return res.status(404).json({ error: "Table not found" });
@@ -54,6 +65,7 @@ waiterTableRouter.put("/free/:tableId", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 module.exports = { waiterTableRouter };

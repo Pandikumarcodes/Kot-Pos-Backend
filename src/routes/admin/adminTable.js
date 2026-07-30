@@ -1,8 +1,12 @@
-const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
 const Table = require("../../models/tables");
+const {
+  validateTableCreate,
+  validateTableId,
+  validateTableUpdate,
+} = require("../../validators/tables");
 
 const adminTableRouter = express.Router();
 adminTableRouter.use(userAuth, branchScope);
@@ -11,6 +15,7 @@ adminTableRouter.use(userAuth, branchScope);
 adminTableRouter.post(
   "/tables",
   allowRoles(["admin", "manager"]),
+  validateTableCreate,
   async (req, res) => {
     try {
       const { tableNumber, capacity } = req.body;
@@ -47,6 +52,7 @@ adminTableRouter.get(
 adminTableRouter.get(
   "/tables/:id",
   allowRoles(["admin", "manager", "waiter", "cashier"]),
+  validateTableId,
   async (req, res) => {
     try {
       const table = await Table.findById(req.params.id);
@@ -62,6 +68,7 @@ adminTableRouter.get(
 adminTableRouter.put(
   "/tables/:id",
   allowRoles(["admin", "manager"]),
+  validateTableUpdate,
   async (req, res) => {
     try {
       const { capacity, status } = req.body;
@@ -82,6 +89,7 @@ adminTableRouter.put(
 adminTableRouter.delete(
   "/tables/:id",
   allowRoles(["admin"]),
+  validateTableId,
   async (req, res) => {
     try {
       const deleted = await Table.findByIdAndDelete(req.params.id);

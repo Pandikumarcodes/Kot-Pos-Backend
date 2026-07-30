@@ -6,6 +6,7 @@ const adminReportRouter = express.Router();
 const Billing = require("../../models/billings");
 const Kot = require("../../models/kot");
 const TableOrder = require("../../models/waiter");
+const { validateReportQuery } = require("../../validators/general");
 
 adminReportRouter.use(
   userAuth,
@@ -56,7 +57,10 @@ function getDateRange(range, from, to) {
 
 // ── GET SUMMARY STATS ─────────────────────────────────────────
 // GET /admin/reports/summary?range=today|week|month|custom&from=&to=
-adminReportRouter.get("/reports/summary", async (req, res) => {
+adminReportRouter.get(
+  "/reports/summary",
+  validateReportQuery,
+  async (req, res) => {
   try {
     const { range = "today", from, to } = req.query;
     const { start, end } = getDateRange(range, from, to);
@@ -109,11 +113,15 @@ adminReportRouter.get("/reports/summary", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── TOP SELLING ITEMS ─────────────────────────────────────────
 // GET /admin/reports/top-items?range=today|week|month
-adminReportRouter.get("/reports/top-items", async (req, res) => {
+adminReportRouter.get(
+  "/reports/top-items",
+  validateReportQuery,
+  async (req, res) => {
   try {
     const { range = "today", from, to } = req.query;
     const { start, end } = getDateRange(range, from, to);
@@ -142,11 +150,15 @@ adminReportRouter.get("/reports/top-items", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── PAYMENT METHODS ───────────────────────────────────────────
 // GET /admin/reports/payments?range=today|week|month
-adminReportRouter.get("/reports/payments", async (req, res) => {
+adminReportRouter.get(
+  "/reports/payments",
+  validateReportQuery,
+  async (req, res) => {
   try {
     const { range = "today", from, to } = req.query;
     const { start, end } = getDateRange(range, from, to);
@@ -179,11 +191,15 @@ adminReportRouter.get("/reports/payments", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── SALES BY HOUR ─────────────────────────────────────────────
 // GET /admin/reports/hourly?range=today|week|month
-adminReportRouter.get("/reports/hourly", async (req, res) => {
+adminReportRouter.get(
+  "/reports/hourly",
+  validateReportQuery,
+  async (req, res) => {
   try {
     const { range = "today", from, to } = req.query;
     const { start, end } = getDateRange(range, from, to);
@@ -223,6 +239,7 @@ adminReportRouter.get("/reports/hourly", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+  },
+);
 
 module.exports = { adminReportRouter };

@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
@@ -8,6 +7,10 @@ const TakeAway = require("../../models/takeAway");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const { deductStockForKot } = require("../../controllers/inventoryController");
+const {
+  validateOrderId,
+  validateTakeawayCreate,
+} = require("../../validators/orders");
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
@@ -24,6 +27,7 @@ cashierKotRouter.use(
 cashierKotRouter.post(
   "/takeaway-orders",
   requireBranch,
+  validateTakeawayCreate,
   async (req, res) => {
   try {
     const { customerName, customerPhone, items } = req.body;
@@ -87,7 +91,10 @@ cashierKotRouter.get("/takeaway-orders", async (req, res) => {
 });
 
 // ── GET SINGLE TAKEAWAY ORDER ─────────────────────────────────
-cashierKotRouter.get("/takeaway/:orderId", async (req, res) => {
+cashierKotRouter.get(
+  "/takeaway/:orderId",
+  validateOrderId,
+  async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findOne(
@@ -101,10 +108,14 @@ cashierKotRouter.get("/takeaway/:orderId", async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── SEND TO KITCHEN ───────────────────────────────────────────
-cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
+cashierKotRouter.put(
+  "/takeaway/:orderId/send",
+  validateOrderId,
+  async (req, res) => {
   const { orderId } = req.params;
   try {
     // Prevent duplicate KOTs — check status before proceeding
@@ -149,10 +160,14 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── MARK RECEIVED ─────────────────────────────────────────────
-cashierKotRouter.put("/takeaway/:orderId/received", async (req, res) => {
+cashierKotRouter.put(
+  "/takeaway/:orderId/received",
+  validateOrderId,
+  async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findOneAndUpdate(
@@ -165,10 +180,14 @@ cashierKotRouter.put("/takeaway/:orderId/received", async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── CANCEL ORDER ──────────────────────────────────────────────
-cashierKotRouter.put("/takeaway/:orderId/cancel", async (req, res) => {
+cashierKotRouter.put(
+  "/takeaway/:orderId/cancel",
+  validateOrderId,
+  async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TakeAway.findOneAndUpdate(
@@ -181,6 +200,7 @@ cashierKotRouter.put("/takeaway/:orderId/cancel", async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 module.exports = { cashierKotRouter };

@@ -1,5 +1,6 @@
 const Kot = require("../models/kot");
 const { getPagination, paginate } = require("../middleware/paginate");
+const { serverError } = require("../utils/apiResponse");
 
 // GET /waiter/orders
 async function getOrders(req, res) {
@@ -50,8 +51,7 @@ async function getOrders(req, res) {
 
     res.json(paginate(orders, total, page, limit));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch orders" });
+    return serverError(res, "Failed to fetch orders");
   }
 }
 

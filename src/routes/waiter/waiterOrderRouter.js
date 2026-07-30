@@ -10,6 +10,13 @@ const Table = require("../../models/tables");
 const Billing = require("../../models/billings");
 const { deductStockForKot } = require("../../controllers/inventoryController");
 const { notify } = require("../../services/notificationservices");
+const { validateMenuQuery } = require("../../validators/menu");
+const {
+  validateOrderId,
+  validateSendToCashier,
+  validateTableId,
+  validateWaiterOrderCreate,
+} = require("../../validators/orders");
 
 waiterOrderRouter.use(
   userAuth,
@@ -19,7 +26,7 @@ waiterOrderRouter.use(
 );
 
 // ── GET MENU ─────────────────────────────────────────────────
-waiterOrderRouter.get("/menu", async (req, res) => {
+waiterOrderRouter.get("/menu", validateMenuQuery, async (req, res) => {
   try {
     const filter = { available: true };
     if (req.query.category) filter.category = req.query.category;
@@ -38,41 +45,46 @@ waiterOrderRouter.get("/menu", async (req, res) => {
 
 // ── GET ALL ORDERS FOR A TABLE ────────────────────────────────
 
-waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
-  const { tableId } = req.params;
-  try {
-    const orders = await TableOrder.find(
-      req.scopeToBranchMembers({
-        tableId,
-        status: { $nin: ["cancelled", "served"] },
-      }),
-    )
-      .populate("createdBy", "username")
-      .sort({ createdAt: 1 });
+waiterOrderRouter.get(
+  "/orders/table/:tableId",
+  validateTableId,
+  async (req, res) => {
+    const { tableId } = req.params;
+    try {
+      const orders = await TableOrder.find(
+        req.scopeToBranchMembers({
+          tableId,
+          status: { $nin: ["cancelled", "served"] },
+        }),
+      )
+        .populate("createdBy", "username")
+        .sort({ createdAt: 1 });
 
-    const allItems = orders.flatMap((o) =>
-      o.items.map((item) => ({
-        ...item.toObject(),
-        orderId: o._id,
-        round: orders.indexOf(o) + 1,
-        status: o.status,
-      })),
-    );
+      const allItems = orders.flatMap((o) =>
+        o.items.map((item) => ({
+          ...item.toObject(),
+          orderId: o._id,
+          round: orders.indexOf(o) + 1,
+          status: o.status,
+        })),
+      );
 
-    const grandTotal = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+      const grandTotal = orders.reduce((sum, o) => sum + o.totalAmount, 0);
 
-    // Always return 200 — empty array is valid (table has no active orders)
-    res.status(200).json({ orders, allItems, grandTotal });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+      // Always return 200 — empty array is valid (table has no active orders)
+      res.status(200).json({ orders, allItems, grandTotal });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+);
 
 // ── SEND TO CASHIER ───────────────────────────────────────────
 
 waiterOrderRouter.post(
   "/orders/table/:tableId/send-to-cashier",
   requireBranch,
+  validateSendToCashier,
   async (req, res) => {
     const { tableId } = req.params;
     try {
@@ -171,64 +183,65 @@ waiterOrderRouter.post(
 );
 
 // ── CREATE ORDER ─────────────────────────────────────────────
-waiterOrderRouter.post("/orders", requireBranch, async (req, res) => {
-  try {
-    const { tableNumber, customerName, tableId, items } = req.body;
+waiterOrderRouter.post(
+  "/orders",
+  requireBranch,
+  validateWaiterOrderCreate,
+  async (req, res) => {
+    try {
+      const { tableNumber, customerName, tableId, items } = req.body;
 
-    if (!tableId || !items || !items.length) {
-      return res.status(400).json({ error: "tableId and items are required" });
+      const menuItems = await MenuItem.find({
+        _id: { $in: items.map((i) => i.itemId) },
+      });
+
+      if (menuItems.length !== items.length) {
+        return res.status(400).json({ error: "Some menu items not found" });
+      }
+
+      const orderItems = items.map((i) => {
+        const found = menuItems.find((m) => m._id.toString() === i.itemId);
+        return {
+          itemId: found._id,
+          name: found.ItemName,
+          quantity: i.quantity,
+          price: found.price,
+        };
+      });
+
+      const totalAmount = orderItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
+
+      const newOrder = new TableOrder({
+        tableNumber,
+        customerName: customerName || "Walk-in",
+        tableId,
+        createdBy: req.user._id,
+        items: orderItems,
+        totalAmount,
+      });
+
+      await newOrder.save();
+
+      if (req.branchId) {
+        deductStockForKot(
+          newOrder.items,
+          req.branchId,
+          newOrder._id,
+          req.user._id,
+        ).catch((err) => console.error("Stock deduction failed:", err.message));
+      }
+
+      res
+        .status(201)
+        .json({ message: "Order created successfully", order: newOrder });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
     }
-
-    const menuItems = await MenuItem.find({
-      _id: { $in: items.map((i) => i.itemId) },
-    });
-
-    if (menuItems.length !== items.length) {
-      return res.status(400).json({ error: "Some menu items not found" });
-    }
-
-    const orderItems = items.map((i) => {
-      const found = menuItems.find((m) => m._id.toString() === i.itemId);
-      return {
-        itemId: found._id,
-        name: found.ItemName,
-        quantity: i.quantity,
-        price: found.price,
-      };
-    });
-
-    const totalAmount = orderItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
-
-    const newOrder = new TableOrder({
-      tableNumber,
-      customerName: customerName || "Walk-in",
-      tableId,
-      createdBy: req.user._id,
-      items: orderItems,
-      totalAmount,
-    });
-
-    await newOrder.save();
-
-    if (req.branchId) {
-      deductStockForKot(
-        newOrder.items,
-        req.branchId,
-        newOrder._id,
-        req.user._id,
-      ).catch((err) => console.error("Stock deduction failed:", err.message));
-    }
-
-    res
-      .status(201)
-      .json({ message: "Order created successfully", order: newOrder });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+  },
+);
 
 // ── GET ALL ORDERS ───────────────────────────────────────────
 waiterOrderRouter.get("/orders", async (req, res) => {
@@ -243,7 +256,7 @@ waiterOrderRouter.get("/orders", async (req, res) => {
 });
 
 // ── GET SINGLE ORDER ─────────────────────────────────────────
-waiterOrderRouter.get("/orders/:orderId", async (req, res) => {
+waiterOrderRouter.get("/orders/:orderId", validateOrderId, async (req, res) => {
   const { orderId } = req.params;
   try {
     const order = await TableOrder.findOne(
@@ -263,80 +276,89 @@ waiterOrderRouter.get("/orders/:orderId", async (req, res) => {
 waiterOrderRouter.put(
   "/orders/:orderId/send",
   requireBranch,
+  validateOrderId,
   async (req, res) => {
-  const { orderId } = req.params;
-  try {
-    const existingOrder = await TableOrder.findOne(
-      req.scopeToBranchMembers({ _id: orderId }),
-    );
-    if (!existingOrder)
-      return res.status(404).json({ error: "Order not found" });
-    if (existingOrder.status === "sent_to_kitchen") {
-      return res
-        .status(409)
-        .json({ error: "Order has already been sent to kitchen" });
+    const { orderId } = req.params;
+    try {
+      const existingOrder = await TableOrder.findOne(
+        req.scopeToBranchMembers({ _id: orderId }),
+      );
+      if (!existingOrder)
+        return res.status(404).json({ error: "Order not found" });
+      if (existingOrder.status === "sent_to_kitchen") {
+        return res
+          .status(409)
+          .json({ error: "Order has already been sent to kitchen" });
+      }
+
+      const order = await TableOrder.findOneAndUpdate(
+        req.scopeToBranchMembers({ _id: orderId }),
+        { status: "sent_to_kitchen" },
+        { new: true },
+      );
+
+      const table = await Table.findById(order.tableId);
+
+      const kot = await Kot.create({
+        branchId: req.branchId,
+        orderType: "dine-in",
+        tableNumber: table?.tableNumber || order.tableNumber,
+        tableId: order.tableId,
+        customerName: order.customerName,
+        createdBy: order.createdBy,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        status: "pending",
+      });
+
+      const io = req.app.get("io");
+      notify.newOrder(io, kot);
+
+      res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
     }
-
-    const order = await TableOrder.findOneAndUpdate(
-      req.scopeToBranchMembers({ _id: orderId }),
-      { status: "sent_to_kitchen" },
-      { new: true },
-    );
-
-    const table = await Table.findById(order.tableId);
-
-    const kot = await Kot.create({
-      branchId: req.branchId,
-      orderType: "dine-in",
-      tableNumber: table?.tableNumber || order.tableNumber,
-      tableId: order.tableId,
-      customerName: order.customerName,
-      createdBy: order.createdBy,
-      items: order.items,
-      totalAmount: order.totalAmount,
-      status: "pending",
-    });
-
-    const io = req.app.get("io");
-    notify.newOrder(io, kot);
-
-    res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
   },
 );
 
 // ── MARK SERVED ──────────────────────────────────────────────
-waiterOrderRouter.put("/orders/:orderId/served", async (req, res) => {
-  const { orderId } = req.params;
-  try {
-    const order = await TableOrder.findOneAndUpdate(
-      req.scopeToBranchMembers({ _id: orderId }),
-      { status: "served" },
-      { new: true },
-    );
-    if (!order) return res.status(404).json({ error: "Order not found" });
-    res.status(200).json({ message: "Order marked as served", order });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+waiterOrderRouter.put(
+  "/orders/:orderId/served",
+  validateOrderId,
+  async (req, res) => {
+    const { orderId } = req.params;
+    try {
+      const order = await TableOrder.findOneAndUpdate(
+        req.scopeToBranchMembers({ _id: orderId }),
+        { status: "served" },
+        { new: true },
+      );
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      res.status(200).json({ message: "Order marked as served", order });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+);
 
 // ── CANCEL ORDER ─────────────────────────────────────────────
-waiterOrderRouter.put("/orders/:orderId/cancel", async (req, res) => {
-  const { orderId } = req.params;
-  try {
-    const order = await TableOrder.findOneAndUpdate(
-      req.scopeToBranchMembers({ _id: orderId }),
-      { status: "cancelled" },
-      { new: true },
-    );
-    if (!order) return res.status(404).json({ error: "Order not found" });
-    res.status(200).json({ message: "Order has been cancelled", order });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
+waiterOrderRouter.put(
+  "/orders/:orderId/cancel",
+  validateOrderId,
+  async (req, res) => {
+    const { orderId } = req.params;
+    try {
+      const order = await TableOrder.findOneAndUpdate(
+        req.scopeToBranchMembers({ _id: orderId }),
+        { status: "cancelled" },
+        { new: true },
+      );
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      res.status(200).json({ message: "Order has been cancelled", order });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+);
 
 module.exports = { waiterOrderRouter };

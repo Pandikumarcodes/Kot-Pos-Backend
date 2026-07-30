@@ -1,17 +1,14 @@
-const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
 const { requireBranch } = branchScope;
 const User = require("../../models/users");
 const {
-  validateSignupData,
-  validateStatus,
-  validateRole,
-} = require("../../utils/validation");
+  validateCreateUser,
+  validateRoleUpdate,
+  validateUserId,
+} = require("../../validators/users");
 const adminUserRouter = express.Router();
-
-const ALLOWED_ROLES = ["admin", "chef", "waiter", "cashier", "manager"];
 
 adminUserRouter.use(userAuth, branchScope);
 
@@ -20,21 +17,19 @@ adminUserRouter.post(
   "/create-user",
   allowRoles(["admin"]),
   requireBranch,
+  validateCreateUser,
   async (req, res) => {
     try {
-      validateSignupData(req.body);
       const { username, role, password, status } = req.body;
       const existingUser = await User.findOne({ username });
       if (existingUser) {
         return res.status(400).json({ error: "username already exists" });
       }
-      const safeRole = validateRole({ role });
-      const safeStatus = validateStatus({ status });
       const newUser = new User({
         username,
-        role: safeRole,
+        role,
         password,
-        status: safeStatus,
+        status,
         branchId: req.branchId,
       });
       await newUser.save();
@@ -74,18 +69,14 @@ adminUserRouter.get(
 adminUserRouter.put(
   "/update-role/:userId",
   allowRoles(["admin", "manager"]),
+  validateRoleUpdate,
   async (req, res) => {
     try {
       const { userId } = req.params;
       const { role } = req.body;
-      if (!role) return res.status(400).json({ error: "Role is required" });
-      if (!ALLOWED_ROLES.includes(role))
-        return res.status(400).json({ error: "Invalid role" });
       if (req.user.role === "manager" && role === "admin") {
         return res.status(403).json({ error: "Managers cannot assign admin role" });
       }
-      if (!mongoose.Types.ObjectId.isValid(userId))
-        return res.status(400).json({ error: "Invalid userId" });
       const user = await User.findOneAndUpdate(
         req.scopeToBranch({ _id: userId }),
         { role },
@@ -106,11 +97,10 @@ adminUserRouter.put(
 adminUserRouter.delete(
   "/deleteUser/:userId",
   allowRoles(["admin"]),
+  validateUserId,
   async (req, res) => {
     try {
       const { userId } = req.params;
-      if (!mongoose.Types.ObjectId.isValid(userId))
-        return res.status(400).json({ error: "Invalid User Id" });
       const deletedUser = await User.findOneAndDelete(
         req.scopeToBranch({ _id: userId }),
       );
