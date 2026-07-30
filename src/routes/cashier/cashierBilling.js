@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { branchMemberScope, requireBranch } = branchScope;
 const Billing = require("../../models/billings");
 const MenuItem = require("../../models/menuItems");
 const Table = require("../../models/tables");
@@ -16,10 +17,11 @@ cashierbillingRouter.use(
   userAuth,
   allowRoles(["cashier", "admin", "manager"]),
   branchScope,
+  branchMemberScope,
 );
 
 // ── CREATE BILL ───────────────────────────────────────────────
-cashierbillingRouter.post("/billing", async (req, res) => {
+cashierbillingRouter.post("/billing", requireBranch, async (req, res) => {
   try {
     const { customerName, customerPhone, items, paymentStatus, paymentMethod } =
       req.body;
@@ -106,7 +108,7 @@ cashierbillingRouter.get("/bills", async (req, res) => {
       ];
     }
 
-    const myBills = await Billing.find(filter)
+    const myBills = await Billing.find(req.scopeToBranchMembers(filter))
       .populate("createdBy", "username role")
       .sort({ createdAt: -1 });
 
@@ -124,10 +126,9 @@ cashierbillingRouter.get("/bills", async (req, res) => {
 cashierbillingRouter.get("/bills/:billId", async (req, res) => {
   try {
     const { billId } = req.params;
-    const bill = await Billing.findById(billId).populate(
-      "createdBy",
-      "username role",
-    );
+    const bill = await Billing.findOne(
+      req.scopeToBranchMembers({ _id: billId }),
+    ).populate("createdBy", "username role");
     if (!bill) return res.status(404).json({ error: "Bill not found" });
     res.status(200).json({ bill });
   } catch (err) {
@@ -143,7 +144,9 @@ cashierbillingRouter.put("/bills/:billId/pay", async (req, res) => {
     const { billId } = req.params;
     const paymentMethod = req.body?.paymentMethod ?? null;
 
-    const bill = await Billing.findById(billId);
+    const bill = await Billing.findOne(
+      req.scopeToBranchMembers({ _id: billId }),
+    );
     if (!bill) return res.status(404).json({ error: "Bill not found" });
     if (bill.paymentStatus === "paid")
       return res.status(400).json({ error: "Bill is already paid" });
@@ -179,7 +182,9 @@ cashierbillingRouter.delete("/bills/:billId", async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(billId)) {
       return res.status(400).json({ error: "Invalid Bill Id" });
     }
-    const deletedBill = await Billing.findByIdAndDelete(billId);
+    const deletedBill = await Billing.findOneAndDelete(
+      req.scopeToBranchMembers({ _id: billId }),
+    );
     if (!deletedBill) {
       return res.status(404).json({ error: "Bill not found" });
     }

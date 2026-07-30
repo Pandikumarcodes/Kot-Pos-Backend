@@ -1,12 +1,17 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const Table = require("../../models/tables");
 const waiterTableRouter = express.Router();
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
 
-waiterTableRouter.use(userAuth, allowRoles(["waiter", "manager", "admin"]));
+waiterTableRouter.use(
+  userAuth,
+  allowRoles(["waiter", "manager", "admin"]),
+  branchScope,
+);
 
 // ── ALLOCATE TABLE ────────────────────────────────────────────
 waiterTableRouter.post("/allocate/:tableId", async (req, res) => {

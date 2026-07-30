@@ -1,0 +1,39 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.16.0
+2 info using node@v24.18.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\Pandikumar\Desktop\Kot-Pos\kot-pos-backend\.npmrc
+5 silly config load:file:C:\Users\Pandikumar\.npmrc
+6 silly config load:file:C:\Users\Pandikumar\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm ci
+8 verbose argv "ci" "--dry-run" "--ignore-scripts" "--offline"
+9 verbose logfile logs-max:10 dir:C:\Users\Pandikumar\Desktop\Kot-Pos\kot-pos-backend\.npm-cache-review\_logs\2026-07-30T14_23_07_334Z-
+10 verbose logfile C:\Users\Pandikumar\Desktop\Kot-Pos\kot-pos-backend\.npm-cache-review\_logs\2026-07-30T14_23_07_334Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+13 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+14 http fetch GET https://registry.npmjs.org/npm attempt 1 failed with EACCES
+15 silly idealTree buildDeps
+16 silly fetch manifest @google/generative-ai@^0.24.1
+17 silly packumentCache full:https://registry.npmjs.org/@google%2fgenerative-ai cache-miss
+18 silly placeDep ROOT @google/generative-ai@ OK for: kot-pos-backend@1.0.0 want: ^0.24.1
+19 verbose stack Error: request to https://registry.npmjs.org/@google%2fgenerative-ai failed: cache mode is 'only-if-cached' but no cached response is available.
+19 verbose stack     at cacheFetch (C:\Program Files\nodejs\node_modules\npm\node_modules\make-fetch-happen\lib\cache\index.js:12:13)
+19 verbose stack     at async fetch (C:\Program Files\nodejs\node_modules\npm\node_modules\make-fetch-happen\lib\fetch.js:98:7)
+19 verbose stack     at async RegistryFetcher.packument (C:\Program Files\nodejs\node_modules\npm\node_modules\pacote\lib\registry.js:90:19)
+19 verbose stack     at async RegistryFetcher.manifest (C:\Program Files\nodejs\node_modules\npm\node_modules\pacote\lib\registry.js:128:23)
+19 verbose stack     at async #fetchManifest (C:\Program Files\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:1299:20)
+19 verbose stack     at async #nodeFromEdge (C:\Program Files\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:1134:19)
+19 verbose stack     at async #buildDepStep (C:\Program Files\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:978:15)
+19 verbose stack     at async Arborist.buildIdealTree (C:\Program Files\nodejs\node_modules\npm\node_modules\@npmcli\arborist\lib\arborist\build-ideal-tree.js:178:7)
+19 verbose stack     at async CI.exec (C:\Program Files\nodejs\node_modules\npm\lib\commands\ci.js:78:5)
+19 verbose stack     at async Npm.exec (C:\Program Files\nodejs\node_modules\npm\lib\npm.js:193:9)
+20 error code ENOTCACHED
+21 error request to https://registry.npmjs.org/@google%2fgenerative-ai failed: cache mode is 'only-if-cached' but no cached response is available.
+22 verbose cwd C:\Users\Pandikumar\Desktop\Kot-Pos\kot-pos-backend
+23 verbose os Windows_NT 10.0.26200
+24 verbose node v24.18.0
+25 verbose npm  v11.16.0
+26 verbose exit 1
+27 verbose code 1
+28 error A complete log of this run can be found in: C:\Users\Pandikumar\Desktop\Kot-Pos\kot-pos-backend\.npm-cache-review\_logs\2026-07-30T14_23_07_334Z-debug-0.log

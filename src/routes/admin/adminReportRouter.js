@@ -1,11 +1,18 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
+const { branchMemberScope } = branchScope;
 const adminReportRouter = express.Router();
 const Billing = require("../../models/billings");
 const Kot = require("../../models/kot");
 const TableOrder = require("../../models/waiter");
 
-adminReportRouter.use(userAuth, allowRoles(["admin", "manager"]));
+adminReportRouter.use(
+  userAuth,
+  allowRoles(["admin", "manager"]),
+  branchScope,
+  branchMemberScope,
+);
 
 // ── HELPER: get date range ────────────────────────────────────
 function getDateRange(range, from, to) {
@@ -58,6 +65,7 @@ adminReportRouter.get("/reports/summary", async (req, res) => {
     const revenueResult = await Billing.aggregate([
       {
         $match: {
+          ...req.branchMemberFilter,
           paymentStatus: "paid",
           createdAt: { $gte: start, $lte: end },
         },
@@ -73,11 +81,13 @@ adminReportRouter.get("/reports/summary", async (req, res) => {
 
     // Total dine-in orders
     const dineInCount = await TableOrder.countDocuments({
+      ...req.branchMemberFilter,
       createdAt: { $gte: start, $lte: end },
     });
 
     // Total takeaway orders
     const takeawayCount = await Kot.countDocuments({
+      ...req.branchFilter,
       orderType: "takeaway",
       createdAt: { $gte: start, $lte: end },
     });
@@ -109,7 +119,12 @@ adminReportRouter.get("/reports/top-items", async (req, res) => {
     const { start, end } = getDateRange(range, from, to);
 
     const topItems = await Kot.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $match: {
+          ...req.branchFilter,
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
       { $unwind: "$items" },
       {
         $group: {
@@ -139,6 +154,7 @@ adminReportRouter.get("/reports/payments", async (req, res) => {
     const payments = await Billing.aggregate([
       {
         $match: {
+          ...req.branchMemberFilter,
           paymentStatus: "paid",
           createdAt: { $gte: start, $lte: end },
         },
@@ -175,6 +191,7 @@ adminReportRouter.get("/reports/hourly", async (req, res) => {
     const hourly = await Billing.aggregate([
       {
         $match: {
+          ...req.branchMemberFilter,
           paymentStatus: "paid",
           createdAt: { $gte: start, $lte: end },
         },

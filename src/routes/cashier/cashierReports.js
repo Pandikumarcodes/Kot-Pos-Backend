@@ -1,7 +1,8 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const cashierReportsRouter = express.Router();
-cashierReportsRouter.use(userAuth, allowRoles(["cashier"]));
+cashierReportsRouter.use(userAuth, allowRoles(["cashier"]), branchScope);
 const Billing = require("../../models/billings");
 
 cashierReportsRouter.get("/income", async (req, res) => {

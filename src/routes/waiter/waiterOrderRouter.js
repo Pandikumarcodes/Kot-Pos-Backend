@@ -1,6 +1,7 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { branchMemberScope, requireBranch } = branchScope;
 const waiterOrderRouter = express.Router();
 const TableOrder = require("../../models/waiter");
 const MenuItem = require("../../models/menuItems");
@@ -14,6 +15,7 @@ waiterOrderRouter.use(
   userAuth,
   allowRoles(["waiter", "manager", "admin", "cashier"]),
   branchScope,
+  branchMemberScope,
 );
 
 // ── GET MENU ─────────────────────────────────────────────────
@@ -39,10 +41,12 @@ waiterOrderRouter.get("/menu", async (req, res) => {
 waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
   const { tableId } = req.params;
   try {
-    const orders = await TableOrder.find({
-      tableId,
-      status: { $nin: ["cancelled", "served"] },
-    })
+    const orders = await TableOrder.find(
+      req.scopeToBranchMembers({
+        tableId,
+        status: { $nin: ["cancelled", "served"] },
+      }),
+    )
       .populate("createdBy", "username")
       .sort({ createdAt: 1 });
 
@@ -68,16 +72,19 @@ waiterOrderRouter.get("/orders/table/:tableId", async (req, res) => {
 
 waiterOrderRouter.post(
   "/orders/table/:tableId/send-to-cashier",
+  requireBranch,
   async (req, res) => {
     const { tableId } = req.params;
     try {
       const { customerName, customerPhone, tableNumber } = req.body;
 
       // FIX 1: existingBill check inside try so errors are caught
-      const existingBill = await Billing.findOne({
-        tableId,
-        paymentStatus: "unpaid",
-      });
+      const existingBill = await Billing.findOne(
+        req.scopeToBranchMembers({
+          tableId,
+          paymentStatus: "unpaid",
+        }),
+      );
       if (existingBill) {
         return res.status(400).json({
           error:
@@ -90,10 +97,12 @@ waiterOrderRouter.post(
       const validPhone = phone.length === 10 ? phone : "0000000000";
 
       // Fetch all non-cancelled, non-served orders for this table
-      const orders = await TableOrder.find({
-        tableId,
-        status: { $nin: ["cancelled", "served"] },
-      });
+      const orders = await TableOrder.find(
+        req.scopeToBranchMembers({
+          tableId,
+          status: { $nin: ["cancelled", "served"] },
+        }),
+      );
 
       if (!orders.length) {
         return res
@@ -140,7 +149,10 @@ waiterOrderRouter.post(
 
       // Mark all active table orders as served
       await TableOrder.updateMany(
-        { tableId, status: { $nin: ["cancelled", "served"] } },
+        req.scopeToBranchMembers({
+          tableId,
+          status: { $nin: ["cancelled", "served"] },
+        }),
         { status: "served" },
       );
 
@@ -159,7 +171,7 @@ waiterOrderRouter.post(
 );
 
 // ── CREATE ORDER ─────────────────────────────────────────────
-waiterOrderRouter.post("/orders", async (req, res) => {
+waiterOrderRouter.post("/orders", requireBranch, async (req, res) => {
   try {
     const { tableNumber, customerName, tableId, items } = req.body;
 
@@ -221,7 +233,7 @@ waiterOrderRouter.post("/orders", async (req, res) => {
 // ── GET ALL ORDERS ───────────────────────────────────────────
 waiterOrderRouter.get("/orders", async (req, res) => {
   try {
-    const myOrders = await TableOrder.find(req.branchFilter ?? {})
+    const myOrders = await TableOrder.find(req.branchMemberFilter)
       .populate("createdBy", "username")
       .sort({ createdAt: -1 });
     res.status(200).json({ myOrders });
@@ -234,7 +246,9 @@ waiterOrderRouter.get("/orders", async (req, res) => {
 waiterOrderRouter.get("/orders/:orderId", async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await TableOrder.findById(orderId)
+    const order = await TableOrder.findOne(
+      req.scopeToBranchMembers({ _id: orderId }),
+    )
       .populate("createdBy", "username")
       .populate("items.itemId", "ItemName price");
 
@@ -246,10 +260,15 @@ waiterOrderRouter.get("/orders/:orderId", async (req, res) => {
 });
 
 // ── SEND TO KITCHEN ──────────────────────────────────────────
-waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
+waiterOrderRouter.put(
+  "/orders/:orderId/send",
+  requireBranch,
+  async (req, res) => {
   const { orderId } = req.params;
   try {
-    const existingOrder = await TableOrder.findById(orderId);
+    const existingOrder = await TableOrder.findOne(
+      req.scopeToBranchMembers({ _id: orderId }),
+    );
     if (!existingOrder)
       return res.status(404).json({ error: "Order not found" });
     if (existingOrder.status === "sent_to_kitchen") {
@@ -258,8 +277,8 @@ waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
         .json({ error: "Order has already been sent to kitchen" });
     }
 
-    const order = await TableOrder.findByIdAndUpdate(
-      orderId,
+    const order = await TableOrder.findOneAndUpdate(
+      req.scopeToBranchMembers({ _id: orderId }),
       { status: "sent_to_kitchen" },
       { new: true },
     );
@@ -285,14 +304,15 @@ waiterOrderRouter.put("/orders/:orderId/send", async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── MARK SERVED ──────────────────────────────────────────────
 waiterOrderRouter.put("/orders/:orderId/served", async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await TableOrder.findByIdAndUpdate(
-      orderId,
+    const order = await TableOrder.findOneAndUpdate(
+      req.scopeToBranchMembers({ _id: orderId }),
       { status: "served" },
       { new: true },
     );
@@ -307,8 +327,8 @@ waiterOrderRouter.put("/orders/:orderId/served", async (req, res) => {
 waiterOrderRouter.put("/orders/:orderId/cancel", async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await TableOrder.findByIdAndUpdate(
-      orderId,
+    const order = await TableOrder.findOneAndUpdate(
+      req.scopeToBranchMembers({ _id: orderId }),
       { status: "cancelled" },
       { new: true },
     );

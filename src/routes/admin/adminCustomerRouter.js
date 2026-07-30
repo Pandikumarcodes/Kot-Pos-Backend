@@ -1,10 +1,15 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const Customer = require("../../models/customer");
 const adminCustomerRouter = express.Router();
 
-adminCustomerRouter.use(userAuth, allowRoles(["admin", "manager"]));
+adminCustomerRouter.use(
+  userAuth,
+  allowRoles(["admin", "manager"]),
+  branchScope,
+);
 
 // ── GET ALL CUSTOMERS ─────────────────────────────────────────
 adminCustomerRouter.get("/customers", async (req, res) => {
@@ -69,7 +74,6 @@ adminCustomerRouter.put("/customers/:customerId", async (req, res) => {
 // ── DELETE CUSTOMER — admin only ──────────────────────────────
 adminCustomerRouter.delete(
   "/customers/:customerId",
-  userAuth,
   allowRoles(["admin"]),
   async (req, res) => {
     try {

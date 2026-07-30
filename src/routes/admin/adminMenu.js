@@ -1,16 +1,17 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const MenuItem = require("../../models/menuItems");
 const { validateMenuData } = require("../../utils/validation");
 
 const adminMenuRouter = express.Router();
+adminMenuRouter.use(userAuth, branchScope);
 
 // ── CREATE — admin + manager only ────────────────────────────
 
 adminMenuRouter.post(
   "/menu",
-  userAuth,
   allowRoles(["admin", "manager"]),
   async (req, res) => {
     try {
@@ -41,7 +42,6 @@ adminMenuRouter.post(
 // ── READ ALL — all roles ──────────────────────────────────────
 adminMenuRouter.get(
   "/menuItems",
-  userAuth,
   allowRoles(["admin", "manager", "waiter", "chef", "cashier"]),
   async (req, res) => {
     try {
@@ -56,7 +56,6 @@ adminMenuRouter.get(
 // ── UPDATE — admin + manager only ────────────────────────────
 adminMenuRouter.put(
   "/menu-item/:ItemId",
-  userAuth,
   allowRoles(["admin", "manager"]),
   async (req, res) => {
     try {
@@ -103,7 +102,6 @@ adminMenuRouter.put(
 // ── DELETE — admin only ───────────────────────────────────────
 adminMenuRouter.delete(
   "/delete/:ItemId",
-  userAuth,
   allowRoles(["admin"]),
   async (req, res) => {
     try {

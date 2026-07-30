@@ -1,19 +1,26 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const chefRouter = express.Router();
 const Kot = require("../../models/kot");
 
 // ── Notification service ──────────────────────────────────────
 const { notify } = require("../../services/notificationservices");
 
-chefRouter.use(userAuth, allowRoles(["chef", "admin", "manager"]));
+chefRouter.use(
+  userAuth,
+  allowRoles(["chef", "admin", "manager"]),
+  branchScope,
+);
 
 // ── GET ALL ACTIVE ORDERS ─────────────────────────────────────
 chefRouter.get("/kot", async (req, res) => {
   try {
-    const KotOrders = await Kot.find({
-      status: { $in: ["pending", "preparing", "ready"] },
-    }).sort({ createdAt: 1 });
+    const KotOrders = await Kot.find(
+      req.scopeToBranch({
+        status: { $in: ["pending", "preparing", "ready"] },
+      }),
+    ).sort({ createdAt: 1 });
     res.json({ KotOrders });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -23,7 +30,9 @@ chefRouter.get("/kot", async (req, res) => {
 // ── GET SINGLE ORDER ──────────────────────────────────────────
 chefRouter.get("/kot/:orderId", async (req, res) => {
   try {
-    const order = await Kot.findById(req.params.orderId);
+    const order = await Kot.findOne(
+      req.scopeToBranch({ _id: req.params.orderId }),
+    );
     if (!order) return res.status(404).json({ error: "Order not found" });
     res.json({ order });
   } catch (err) {
@@ -34,8 +43,8 @@ chefRouter.get("/kot/:orderId", async (req, res) => {
 // ── START COOKING ─────────────────────────────────────────────
 chefRouter.put("/kot/:orderId/start", async (req, res) => {
   try {
-    const order = await Kot.findByIdAndUpdate(
-      req.params.orderId,
+    const order = await Kot.findOneAndUpdate(
+      req.scopeToBranch({ _id: req.params.orderId }),
       { status: "preparing" },
       { new: true },
     );
@@ -54,8 +63,8 @@ chefRouter.put("/kot/:orderId/start", async (req, res) => {
 // ── MARK READY ────────────────────────────────────────────────
 chefRouter.put("/kot/:orderId/ready", async (req, res) => {
   try {
-    const order = await Kot.findByIdAndUpdate(
-      req.params.orderId,
+    const order = await Kot.findOneAndUpdate(
+      req.scopeToBranch({ _id: req.params.orderId }),
       { status: "ready" },
       { new: true },
     );
@@ -74,8 +83,8 @@ chefRouter.put("/kot/:orderId/ready", async (req, res) => {
 // ── CANCEL ORDER ──────────────────────────────────────────────
 chefRouter.put("/kot/:orderId/cancel", async (req, res) => {
   try {
-    const order = await Kot.findByIdAndUpdate(
-      req.params.orderId,
+    const order = await Kot.findOneAndUpdate(
+      req.scopeToBranch({ _id: req.params.orderId }),
       { status: "cancelled" },
       { new: true },
     );

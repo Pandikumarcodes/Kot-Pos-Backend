@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { branchMemberScope, requireBranch } = branchScope;
 const cashierKotRouter = express.Router();
 const TakeAway = require("../../models/takeAway");
 const MenuItem = require("../../models/menuItems");
@@ -16,10 +17,14 @@ cashierKotRouter.use(
   userAuth,
   allowRoles(["cashier", "admin", "manager"]),
   branchScope,
+  branchMemberScope,
 );
 
 // ── CREATE TAKEAWAY ORDER ─────────────────────────────────────
-cashierKotRouter.post("/takeaway-orders", async (req, res) => {
+cashierKotRouter.post(
+  "/takeaway-orders",
+  requireBranch,
+  async (req, res) => {
   try {
     const { customerName, customerPhone, items } = req.body;
     const menuItems = await MenuItem.find({
@@ -66,12 +71,15 @@ cashierKotRouter.post("/takeaway-orders", async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+  },
+);
 
 // ── GET ALL TAKEAWAY ORDERS ───────────────────────────────────
 cashierKotRouter.get("/takeaway-orders", async (req, res) => {
   try {
-    const myOrders = await TakeAway.find().sort({ createdAt: -1 });
+    const myOrders = await TakeAway.find(req.branchMemberFilter).sort({
+      createdAt: -1,
+    });
     res.status(200).json({ myOrders: myOrders || [] });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -82,7 +90,9 @@ cashierKotRouter.get("/takeaway-orders", async (req, res) => {
 cashierKotRouter.get("/takeaway/:orderId", async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await TakeAway.findById(orderId)
+    const order = await TakeAway.findOne(
+      req.scopeToBranchMembers({ _id: orderId }),
+    )
       .populate("createdBy", "username")
       .populate("items.itemId", "ItemName price");
     if (!order)
@@ -98,7 +108,9 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
   const { orderId } = req.params;
   try {
     // Prevent duplicate KOTs — check status before proceeding
-    const existingOrder = await TakeAway.findById(orderId);
+    const existingOrder = await TakeAway.findOne(
+      req.scopeToBranchMembers({ _id: orderId }),
+    );
     if (!existingOrder)
       return res.status(404).json({ error: "Order not found" });
     if (existingOrder.status === "sent_to_kitchen") {
@@ -107,8 +119,8 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
         .json({ error: "Order has already been sent to kitchen" });
     }
 
-    const order = await TakeAway.findByIdAndUpdate(
-      orderId,
+    const order = await TakeAway.findOneAndUpdate(
+      req.scopeToBranchMembers({ _id: orderId }),
       { status: "sent_to_kitchen" },
       { new: true },
     );
@@ -143,8 +155,8 @@ cashierKotRouter.put("/takeaway/:orderId/send", async (req, res) => {
 cashierKotRouter.put("/takeaway/:orderId/received", async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await TakeAway.findByIdAndUpdate(
-      orderId,
+    const order = await TakeAway.findOneAndUpdate(
+      req.scopeToBranchMembers({ _id: orderId }),
       { status: "received" },
       { new: true },
     );
@@ -159,8 +171,8 @@ cashierKotRouter.put("/takeaway/:orderId/received", async (req, res) => {
 cashierKotRouter.put("/takeaway/:orderId/cancel", async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await TakeAway.findByIdAndUpdate(
-      orderId,
+    const order = await TakeAway.findOneAndUpdate(
+      req.scopeToBranchMembers({ _id: orderId }),
       { status: "cancelled" },
       { new: true },
     );

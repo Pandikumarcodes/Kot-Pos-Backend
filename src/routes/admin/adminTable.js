@@ -1,14 +1,15 @@
 const mongoose = require("mongoose");
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
+const branchScope = require("../../middlewares/branchScope");
 const Table = require("../../models/tables");
 
 const adminTableRouter = express.Router();
+adminTableRouter.use(userAuth, branchScope);
 
 // ── CREATE — admin + manager only ───────────────────────────
 adminTableRouter.post(
   "/tables",
-  userAuth,
   allowRoles(["admin", "manager"]),
   async (req, res) => {
     try {
@@ -30,7 +31,6 @@ adminTableRouter.post(
 // ✅ waiter needs this to see the tables page
 adminTableRouter.get(
   "/tables",
-  userAuth,
   allowRoles(["admin", "manager", "waiter", "cashier"]),
   async (req, res) => {
     try {
@@ -46,7 +46,6 @@ adminTableRouter.get(
 // ✅ waiter needs this for the order page
 adminTableRouter.get(
   "/tables/:id",
-  userAuth,
   allowRoles(["admin", "manager", "waiter", "cashier"]),
   async (req, res) => {
     try {
@@ -62,7 +61,6 @@ adminTableRouter.get(
 // ── UPDATE — admin + manager only ───────────────────────────
 adminTableRouter.put(
   "/tables/:id",
-  userAuth,
   allowRoles(["admin", "manager"]),
   async (req, res) => {
     try {
@@ -83,7 +81,6 @@ adminTableRouter.put(
 // ── DELETE — admin only ──────────────────────────────────────
 adminTableRouter.delete(
   "/tables/:id",
-  userAuth,
   allowRoles(["admin"]),
   async (req, res) => {
     try {

@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { userAuth } = require("../../middlewares/auth");
+const { userAuth, requireRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { requireBranch } = branchScope;
 const {
   getInventory,
   createInventory,
@@ -12,14 +13,14 @@ const {
   deleteInventory,
 } = require("../../controllers/inventoryController");
 
-router.use(userAuth, branchScope);
+router.use(userAuth, requireRoles(["admin", "manager"]), branchScope);
 
 router.get("/", getInventory);
-router.post("/", createInventory);
+router.post("/", requireBranch, createInventory);
 router.put("/:id", updateInventory);
-router.post("/:id/restock", restockItem);
-router.post("/:id/adjust", adjustStock);
-router.get("/:id/logs", getStockLogs);
+router.post("/:id/restock", requireBranch, restockItem);
+router.post("/:id/adjust", requireBranch, adjustStock);
+router.get("/:id/logs", requireBranch, getStockLogs);
 router.delete("/:id", deleteInventory);
 
 module.exports = router;

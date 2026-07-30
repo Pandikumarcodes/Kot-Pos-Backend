@@ -1,6 +1,8 @@
 const express = require("express");
 const { GoogleGenAI } = require("@google/genai");
 const { userAuth, allowRoles } = require("../middlewares/auth");
+const branchScope = require("../middlewares/branchScope");
+const { branchMemberScope } = branchScope;
 
 const Inventory = require("../models/Inventory");
 const StockLog = require("../models/StockLog");
@@ -73,22 +75,25 @@ async function callGemini(prompt) {
 
 // ── Daily summary cache ───────────────────────────────────────
 // Gemini called ONCE per 10 minutes for summary — cached after that
-const summaryCache = { text: null, expiry: 0 };
+const summaryCache = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 
-async function getAiSummary(prompt) {
-  if (summaryCache.text && summaryCache.expiry > Date.now()) {
+async function getAiSummary(prompt, cacheKey) {
+  const cached = summaryCache.get(cacheKey);
+  if (cached?.text && cached.expiry > Date.now()) {
     console.log("Returning cached AI summary");
-    return summaryCache.text;
+    return cached.text;
   }
   const text = await callGemini(prompt);
-  summaryCache.text = text;
-  summaryCache.expiry = Date.now() + CACHE_TTL;
+  summaryCache.set(cacheKey, {
+    text,
+    expiry: Date.now() + CACHE_TTL,
+  });
   return text;
 }
 
 // ── Common middleware ─────────────────────────────────────────
-router.use(userAuth, allowRoles(["admin", "manager"]));
+router.use(userAuth, allowRoles(["admin", "manager"]), branchScope);
 
 // ════════════════════════════════════════════════════════════
 // 1. AI SALES ASSISTANT  —  POST /api/v1/ai/chat
@@ -162,9 +167,7 @@ router.post("/chat", async (req, res) => {
 // ════════════════════════════════════════════════════════════
 router.get("/inventory-alerts", async (req, res) => {
   try {
-    const branchFilter = req.user?.branchId
-      ? { branchId: req.user.branchId }
-      : {};
+    const branchFilter = req.branchFilter;
 
     const items = await Inventory.find(branchFilter).lean();
     if (!items.length) {
@@ -266,11 +269,9 @@ router.get("/inventory-alerts", async (req, res) => {
 // ════════════════════════════════════════════════════════════
 // 3. SMART DAILY SUMMARY  —  GET /api/v1/ai/daily-summary
 // ════════════════════════════════════════════════════════════
-router.get("/daily-summary", async (req, res) => {
+router.get("/daily-summary", branchMemberScope, async (req, res) => {
   try {
-    const branchFilter = req.user?.branchId
-      ? { branchId: req.user.branchId }
-      : {};
+    const branchFilter = req.branchFilter;
 
     const today = utcMidnight(0);
     const yesterday = utcMidnight(1);
@@ -289,7 +290,7 @@ router.get("/daily-summary", async (req, res) => {
           status: { $ne: "cancelled" },
         }).lean(),
         Billing.find({
-          ...branchFilter,
+          ...req.branchMemberFilter,
           createdAt: { $gte: yesterday, $lt: today },
           paymentStatus: "paid",
         }).lean(),
@@ -389,7 +390,8 @@ router.get("/daily-summary", async (req, res) => {
           No bullet points — write in paragraph form.
           Start with "Good morning! Here's your summary for ${summaryData.date}."
         `;
-        aiSummary = await getAiSummary(prompt);
+        const cacheKey = req.branchId || "all-branches";
+        aiSummary = await getAiSummary(prompt, cacheKey);
       } catch (geminiErr) {
         console.error("Gemini daily summary error:", geminiErr.message);
         aiSummary = generateFallbackSummary(summaryData);

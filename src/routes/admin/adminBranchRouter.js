@@ -1,34 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const { userAuth } = require("../../middlewares/auth");
+const { requireSuperAdmin } = require("../../middlewares/branchScope");
 const Branch = require("../../models/Branch");
 const User = require("../../models/users");
 const Settings = require("../../models/settings");
 
 // ── Guard: super-admin only ───────────────────────────────────
-function superAdminOnly(req, res, next) {
-  const role = req.user?.role;
-  const branchId = req.user?.branchId;
-
-  if (role !== "admin") {
-    return res.status(403).json({ error: "Super-admin access only" });
-  }
-
-  const hasBranch =
-    branchId !== null &&
-    branchId !== undefined &&
-    branchId !== "null" &&
-    branchId !== "";
-
-  if (hasBranch) {
-    return res.status(403).json({ error: "Super-admin access only" });
-  }
-
-  next();
-}
-
 // ── GET /admin/branches  — list all branches ──────────────────
-router.get("/branches", userAuth, superAdminOnly, async (req, res) => {
+router.get("/branches", userAuth, requireSuperAdmin, async (req, res) => {
   try {
     const branches = await Branch.find()
       .populate("adminUser", "username role")
@@ -40,7 +20,7 @@ router.get("/branches", userAuth, superAdminOnly, async (req, res) => {
 });
 
 // ── POST /admin/branches  — create a branch ───────────────────
-router.post("/branches", userAuth, superAdminOnly, async (req, res) => {
+router.post("/branches", userAuth, requireSuperAdmin, async (req, res) => {
   try {
     const { name, address, phone, email, gstin } = req.body;
     if (!name)
@@ -64,7 +44,7 @@ router.post("/branches", userAuth, superAdminOnly, async (req, res) => {
 });
 
 // ── PUT /admin/branches/:id  — update branch info ─────────────
-router.put("/branches/:id", userAuth, superAdminOnly, async (req, res) => {
+router.put("/branches/:id", userAuth, requireSuperAdmin, async (req, res) => {
   try {
     const { name, address, phone, email, gstin, isActive } = req.body;
     const branch = await Branch.findByIdAndUpdate(
@@ -80,7 +60,7 @@ router.put("/branches/:id", userAuth, superAdminOnly, async (req, res) => {
 });
 
 // ── DELETE /admin/branches/:id  — deactivate (soft delete) ────
-router.delete("/branches/:id", userAuth, superAdminOnly, async (req, res) => {
+router.delete("/branches/:id", userAuth, requireSuperAdmin, async (req, res) => {
   try {
     const branch = await Branch.findByIdAndUpdate(
       req.params.id,
@@ -99,7 +79,7 @@ router.delete("/branches/:id", userAuth, superAdminOnly, async (req, res) => {
 router.post(
   "/branches/:id/assign-staff",
   userAuth,
-  superAdminOnly,
+  requireSuperAdmin,
   async (req, res) => {
     try {
       const { userId } = req.body;
@@ -137,7 +117,7 @@ router.post(
 router.post(
   "/branches/:id/remove-staff",
   userAuth,
-  superAdminOnly,
+  requireSuperAdmin,
   async (req, res) => {
     try {
       const { userId } = req.body;
@@ -162,7 +142,7 @@ router.post(
 router.get(
   "/branches/:id/staff",
   userAuth,
-  superAdminOnly,
+  requireSuperAdmin,
   async (req, res) => {
     try {
       const users = await User.find({ branchId: req.params.id })
@@ -179,7 +159,7 @@ router.get(
 router.get(
   "/branches/unassigned-staff",
   userAuth,
-  superAdminOnly,
+  requireSuperAdmin,
   async (req, res) => {
     try {
       const users = await User.find({
@@ -199,7 +179,7 @@ router.get(
 router.get(
   "/branches/:id/summary",
   userAuth,
-  superAdminOnly,
+  requireSuperAdmin,
   async (req, res) => {
     try {
       const Kot = require("../../models/kot");
