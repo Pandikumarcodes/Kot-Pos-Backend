@@ -3,12 +3,22 @@ const Inventory = require("../models/Inventory");
 
 const baseRepository = createBaseRepository(Inventory);
 
-const findActive = (filter, options = {}) =>
-  baseRepository
-    .findMany({ ...filter, isActive: true }, undefined, options)
+const findActive = (filter, options = {}) => {
+  const {
+    projection,
+    sort = { currentStock: 1 },
+    skip = 0,
+    limit,
+    ...queryOptions
+  } = options;
+  const query = baseRepository
+    .findMany({ ...filter, isActive: true }, projection, queryOptions)
     .populate("menuItemId", "ItemName available")
-    .sort({ currentStock: 1 })
-    .lean({ virtuals: true });
+    .sort(sort)
+    .skip(skip);
+  if (limit !== undefined) query.limit(limit);
+  return query.lean({ virtuals: true });
+};
 
 const createInventory = (data, options = {}) =>
   baseRepository.create(data, options);

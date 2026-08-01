@@ -1,9 +1,16 @@
-const { QueryValidationError, validateOrder, validateSort } = require("./validation");
+const {
+  QueryValidationError,
+  validateOrder,
+  validateSort,
+} = require("./validation");
 
 const buildSort = (sort, order, policy = {}) => {
   const alias = validateSort(sort, policy.fields, policy.defaultField);
   if (!alias) {
-    throw new QueryValidationError("a default or requested sort field is required", "sort");
+    throw new QueryValidationError(
+      "a default or requested sort field is required",
+      "sort",
+    );
   }
   const normalizedOrder = validateOrder(order, policy.defaultOrder);
   const direction = normalizedOrder === "asc" ? 1 : -1;

@@ -6,16 +6,142 @@ const TransactionManager = require("../infrastructure/transaction/TransactionMan
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 const inventoryAudit = require("../modules/inventory/InventoryAuditLogger");
 const AppError = require("../utils/AppError");
+const {
+  QueryBuilder,
+  QueryValidationError,
+  buildPaginationMetadata,
+} = require("../utils/query");
 
 const transactionManager = new TransactionManager();
 
-const listInventory = async ({ branchFilter, lowStock, category, search }) => {
-  const filter = { ...branchFilter, isActive: true };
-  if (lowStock === "true")
-    filter.$expr = { $lte: ["$currentStock", "$lowStockThreshold"] };
-  if (category) filter.category = category;
-  if (search) filter.name = { $regex: search, $options: "i" };
-  const items = await inventoryRepository.findActive(filter);
+const INVENTORY_CATEGORIES = Object.freeze([
+  "raw_material",
+  "beverage",
+  "packaging",
+  "dairy",
+  "produce",
+  "other",
+]);
+
+const INVENTORY_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [{ field: "name", mode: "partial" }],
+  filters: {
+    category: {
+      field: "category",
+      type: "enum",
+      values: INVENTORY_CATEGORIES,
+    },
+  },
+  sorting: {
+    fields: {
+      name: "name",
+      currentStock: "currentStock",
+      lowStockThreshold: "lowStockThreshold",
+      category: "category",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
+    defaultField: "currentStock",
+    defaultOrder: "asc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id",
+      branchId: "branchId",
+      menuItemId: "menuItemId",
+      name: "name",
+      unit: "unit",
+      currentStock: "currentStock",
+      lowStockThreshold: "lowStockThreshold",
+      category: "category",
+      costPerUnit: "costPerUnit",
+      supplier: "supplier",
+      isActive: "isActive",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id",
+      "branchId",
+      "menuItemId",
+      "name",
+      "unit",
+      "currentStock",
+      "lowStockThreshold",
+      "category",
+      "costPerUnit",
+      "supplier",
+      "isActive",
+      "createdAt",
+      "updatedAt",
+    ],
+  },
+  mandatoryFilter: { isActive: true },
+});
+
+const normalizeLowStockFilter = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  if (value === false || value === "false") return null;
+  if (value === true || value === "true") {
+    return { $expr: { $lte: ["$currentStock", "$lowStockThreshold"] } };
+  }
+  throw new QueryValidationError(
+    "lowStock must be true or false",
+    "lowStock",
+  );
+};
+
+const buildInventoryQueryPlan = ({ branchFilter, query = {} }) => {
+  try {
+    const { lowStock, ...standardQuery } = query;
+    return QueryBuilder.build({
+      query: standardQuery,
+      policy: INVENTORY_QUERY_POLICY,
+      trustedConstraints: [
+        branchFilter,
+        normalizeLowStockFilter(lowStock) || {},
+      ],
+    });
+  } catch (error) {
+    if (error instanceof QueryValidationError) {
+      throw new AppError(error.message, 400);
+    }
+    throw error;
+  }
+};
+
+const listInventory = async ({
+  branchFilter,
+  query,
+  page,
+  limit,
+  search,
+  sort,
+  order,
+  lowStock,
+  category,
+}) => {
+  const normalizedQuery = query || {
+    page,
+    limit,
+    search,
+    sort,
+    order,
+    lowStock,
+    category,
+  };
+  const plan = buildInventoryQueryPlan({ branchFilter, query: normalizedQuery });
+  const repositoryOptions = {
+    projection: plan.projection,
+    sort: plan.sort,
+    skip: plan.pagination.skip,
+    limit: plan.pagination.limit,
+  };
+  const [items, total] = await Promise.all([
+    inventoryRepository.findActive(plan.filter, repositoryOptions),
+    inventoryRepository.count(plan.filter),
+  ]);
   const annotated = items.map((item) => ({
     ...item,
     isLowStock: item.currentStock <= item.lowStockThreshold,
@@ -23,6 +149,11 @@ const listInventory = async ({ branchFilter, lowStock, category, search }) => {
   return {
     items: annotated,
     lowStockCount: annotated.filter((item) => item.isLowStock).length,
+    pagination: buildPaginationMetadata({
+      page: plan.pagination.page,
+      limit: plan.pagination.limit,
+      total,
+    }),
   };
 };
 

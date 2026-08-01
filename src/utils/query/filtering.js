@@ -1,4 +1,7 @@
-const { QueryValidationError, validatePublicFieldName } = require("./validation");
+const {
+  QueryValidationError,
+  validatePublicFieldName,
+} = require("./validation");
 
 const ALLOWED_TYPES = Object.freeze([
   "string",
@@ -10,7 +13,12 @@ const ALLOWED_TYPES = Object.freeze([
   "date",
 ]);
 const ALLOWED_OPERATORS = Object.freeze(["eq", "gt", "gte", "lt", "lte"]);
-const OPERATOR_MAP = Object.freeze({ gt: "$gt", gte: "$gte", lt: "$lt", lte: "$lte" });
+const OPERATOR_MAP = Object.freeze({
+  gt: "$gt",
+  gte: "$gte",
+  lt: "$lt",
+  lte: "$lte",
+});
 
 const rejectStructuredValue = (value, name) => {
   if (value !== null && typeof value === "object") {
@@ -22,10 +30,14 @@ const convertFilterValue = (value, definition, name) => {
   rejectStructuredValue(value, name);
   const type = definition.type || "string";
   if (!ALLOWED_TYPES.includes(type)) {
-    throw new QueryValidationError(`filter policy for ${name} has an invalid type`, name);
+    throw new QueryValidationError(
+      `filter policy for ${name} has an invalid type`,
+      name,
+    );
   }
   if (type === "string") {
-    if (typeof value !== "string") throw new QueryValidationError(`${name} must be a string`, name);
+    if (typeof value !== "string")
+      throw new QueryValidationError(`${name} must be a string`, name);
     return value.trim();
   }
   if (type === "boolean") {
@@ -38,7 +50,10 @@ const convertFilterValue = (value, definition, name) => {
       throw new QueryValidationError(`${name} must be a number`, name);
     }
     const number = Number(value);
-    if (!Number.isFinite(number) || (type === "integer" && !Number.isInteger(number))) {
+    if (
+      !Number.isFinite(number) ||
+      (type === "integer" && !Number.isInteger(number))
+    ) {
       throw new QueryValidationError(
         `${name} must be ${type === "integer" ? "an integer" : "a number"}`,
         name,
@@ -47,7 +62,10 @@ const convertFilterValue = (value, definition, name) => {
     return number;
   }
   if (type === "enum") {
-    if (!Array.isArray(definition.values) || !definition.values.includes(value)) {
+    if (
+      !Array.isArray(definition.values) ||
+      !definition.values.includes(value)
+    ) {
       throw new QueryValidationError(`${name} has an invalid value`, name);
     }
     return value;
@@ -75,7 +93,10 @@ const buildFilters = (values = {}, definitions = {}) => {
     const definition = definitions[name];
     const operator = definition.operator || "eq";
     if (!definition.field || !ALLOWED_OPERATORS.includes(operator)) {
-      throw new QueryValidationError(`filter policy for ${name} is invalid`, name);
+      throw new QueryValidationError(
+        `filter policy for ${name} is invalid`,
+        name,
+      );
     }
     const converted = convertFilterValue(value, definition, name);
     if (operator === "eq") {
@@ -94,7 +115,10 @@ const buildFilters = (values = {}, definitions = {}) => {
 const buildDateRangeFilter = (createdFrom, createdTo, policy) => {
   if (!createdFrom && !createdTo) return null;
   if (!policy?.field) {
-    throw new QueryValidationError("date range filtering is not supported", "createdFrom");
+    throw new QueryValidationError(
+      "date range filtering is not supported",
+      "createdFrom",
+    );
   }
   const range = {};
   if (createdFrom) range.$gte = createdFrom;

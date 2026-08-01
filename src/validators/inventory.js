@@ -52,11 +52,27 @@ const adjustBody = Joi.object({
   note: optionalText(500),
 });
 const inventoryQuery = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
   lowStock: Joi.string().valid("true", "false").optional(),
   category: Joi.string()
     .valid(...CATEGORIES)
     .optional(),
   search: searchQuery,
+  sort: Joi.string()
+    .valid(
+      "name",
+      "currentStock",
+      "lowStockThreshold",
+      "category",
+      "createdAt",
+      "updatedAt",
+    )
+    .optional(),
+  order: Joi.string().valid("asc", "desc").optional(),
+  branchId: Joi.string()
+    .pattern(/^[a-f\d]{24}$/i)
+    .optional(),
 });
 
 module.exports = {
@@ -66,7 +82,10 @@ module.exports = {
   }),
   validateInventoryCreate: validateRequest({ body: createInventoryBody }),
   validateInventoryId: validateRequest({ params: inventoryIdParams }),
-  validateInventoryQuery: validateRequest({ query: inventoryQuery }),
+  validateInventoryQuery: validateRequest(
+    { query: inventoryQuery },
+    { allowUnknown: false },
+  ),
   validateInventoryRestock: validateRequest({
     params: inventoryIdParams,
     body: restockBody,

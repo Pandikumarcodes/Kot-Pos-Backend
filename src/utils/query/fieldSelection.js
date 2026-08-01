@@ -5,11 +5,15 @@ const buildProjection = (requestedFields, policy = {}) => {
   const requested = Array.isArray(requestedFields)
     ? requestedFields
     : validateFields(requestedFields);
-  const selected = requested || policy.defaultFields || Object.keys(allowedFields);
+  const selected =
+    requested || policy.defaultFields || Object.keys(allowedFields);
   const projection = {};
   for (const alias of selected) {
     if (!Object.prototype.hasOwnProperty.call(allowedFields, alias)) {
-      throw new QueryValidationError(`field ${alias} is not selectable`, "fields");
+      throw new QueryValidationError(
+        `field ${alias} is not selectable`,
+        "fields",
+      );
     }
     projection[allowedFields[alias]] = 1;
   }

@@ -3,12 +3,11 @@ const { forwardError } = require("./controllerUtils");
 
 const getInventory = async (req, res, next) => {
   try {
+    const { page, limit, search, sort, order, lowStock, category } = req.query;
     res.json(
       await inventoryService.listInventory({
         branchFilter: req.branchFilter,
-        lowStock: req.query.lowStock,
-        category: req.query.category,
-        search: req.query.search,
+        query: { page, limit, search, sort, order, lowStock, category },
       }),
     );
   } catch (err) {

@@ -12,16 +12,20 @@ const isPlainObject = (value) =>
 const clone = (value) => {
   if (Array.isArray(value)) return value.map(clone);
   if (!isPlainObject(value)) return value;
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)]));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, clone(item)]),
+  );
 };
 
 const deepFreeze = (value) => {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  if (!value || typeof value !== "object" || Object.isFrozen(value))
+    return value;
   Object.values(value).forEach(deepFreeze);
   return Object.freeze(value);
 };
 
-const hasKeys = (value) => isPlainObject(value) && Object.keys(value).length > 0;
+const hasKeys = (value) =>
+  isPlainObject(value) && Object.keys(value).length > 0;
 
 const composeFilter = (parts) => {
   const active = parts.filter(hasKeys).map(clone);
@@ -31,7 +35,12 @@ const composeFilter = (parts) => {
 };
 
 class QueryBuilder {
-  constructor({ query = {}, policy = {}, trustedConstraints = [], options = {} } = {}) {
+  constructor({
+    query = {},
+    policy = {},
+    trustedConstraints = [],
+    options = {},
+  } = {}) {
     this.query = query;
     this.policy = policy;
     this.trustedConstraints = Array.isArray(trustedConstraints)
@@ -42,10 +51,16 @@ class QueryBuilder {
 
   build() {
     if (!this.trustedConstraints.every(isPlainObject)) {
-      throw new QueryValidationError("trusted constraints must be objects", "constraints");
+      throw new QueryValidationError(
+        "trusted constraints must be objects",
+        "constraints",
+      );
     }
     if (!isPlainObject(this.options)) {
-      throw new QueryValidationError("query options must be an object", "options");
+      throw new QueryValidationError(
+        "query options must be an object",
+        "options",
+      );
     }
 
     const normalized = validateQuery(this.query, this.policy);
@@ -67,8 +82,15 @@ class QueryBuilder {
       this.policy.dateRange,
     );
     const pagination = buildPagination(normalized, this.policy.pagination);
-    const projection = buildProjection(normalized.fields, this.policy.fieldSelection);
-    const sort = buildSort(normalized.sort, normalized.order, this.policy.sorting);
+    const projection = buildProjection(
+      normalized.fields,
+      this.policy.fieldSelection,
+    );
+    const sort = buildSort(
+      normalized.sort,
+      normalized.order,
+      this.policy.sorting,
+    );
     const filter = composeFilter([
       ...this.trustedConstraints,
       this.policy.mandatoryFilter,

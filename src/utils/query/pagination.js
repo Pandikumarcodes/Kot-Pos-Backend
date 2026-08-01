@@ -1,8 +1,4 @@
-const {
-  DEFAULT_PAGE,
-  DEFAULT_LIMIT,
-  MAX_LIMIT,
-} = require("./constants");
+const { DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } = require("./constants");
 const { validateLimit, validatePage } = require("./validation");
 
 const buildPagination = (
@@ -17,7 +13,9 @@ const buildPagination = (
   const normalizedLimit = validateLimit(limit, { defaultLimit, maxLimit });
   const skip = (normalizedPage - 1) * normalizedLimit;
   if (!Number.isSafeInteger(skip)) {
-    const error = new RangeError("pagination offset exceeds the safe integer range");
+    const error = new RangeError(
+      "pagination offset exceeds the safe integer range",
+    );
     error.field = "page";
     throw error;
   }

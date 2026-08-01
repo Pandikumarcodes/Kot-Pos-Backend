@@ -17,7 +17,8 @@ class QueryValidationError extends Error {
   }
 }
 
-const isMissing = (value) => value === undefined || value === null || value === "";
+const isMissing = (value) =>
+  value === undefined || value === null || value === "";
 
 const validateInteger = (value, field) => {
   const validString = typeof value === "string" && /^\d+$/.test(value);
@@ -83,7 +84,10 @@ const validatePublicFieldName = (value, field) => {
     value.includes(".") ||
     value.startsWith("$")
   ) {
-    throw new QueryValidationError(`${field} contains an invalid field name`, field);
+    throw new QueryValidationError(
+      `${field} contains an invalid field name`,
+      field,
+    );
   }
   return value;
 };
@@ -101,11 +105,17 @@ const validateSort = (value, allowedFields, defaultField) => {
 const validateFields = (value) => {
   if (isMissing(value)) return undefined;
   if (typeof value !== "string") {
-    throw new QueryValidationError("fields must be a comma-separated string", "fields");
+    throw new QueryValidationError(
+      "fields must be a comma-separated string",
+      "fields",
+    );
   }
   const parts = value.split(",").map((field) => field.trim());
   if (parts.some((field) => !field)) {
-    throw new QueryValidationError("fields contains an empty field name", "fields");
+    throw new QueryValidationError(
+      "fields contains an empty field name",
+      "fields",
+    );
   }
   parts.forEach((field) => validatePublicFieldName(field, "fields"));
   return [...new Set(parts)];
@@ -121,10 +131,15 @@ const validateDate = (value, field) => {
   }
   const match = ISO_DATE_TIME.exec(value);
   if (!match) {
-    throw new QueryValidationError(`${field} must be a valid ISO date-time`, field);
+    throw new QueryValidationError(
+      `${field} must be a valid ISO date-time`,
+      field,
+    );
   }
   const [, year, month, day, hour, minute, second] = match;
-  const daysInMonth = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+  const daysInMonth = new Date(
+    Date.UTC(Number(year), Number(month), 0),
+  ).getUTCDate();
   if (
     Number(month) < 1 ||
     Number(month) > 12 ||
@@ -134,11 +149,17 @@ const validateDate = (value, field) => {
     Number(minute) > 59 ||
     Number(second) > 59
   ) {
-    throw new QueryValidationError(`${field} must be a valid ISO date-time`, field);
+    throw new QueryValidationError(
+      `${field} must be a valid ISO date-time`,
+      field,
+    );
   }
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) {
-    throw new QueryValidationError(`${field} must be a valid ISO date-time`, field);
+    throw new QueryValidationError(
+      `${field} must be a valid ISO date-time`,
+      field,
+    );
   }
   return new Date(timestamp).toISOString();
 };
@@ -167,7 +188,10 @@ const validateQuery = (query = {}, policy = {}) => {
   for (const key of Object.keys(query)) {
     validatePublicFieldName(key, key);
     if (!allowedParameters.has(key)) {
-      throw new QueryValidationError(`query parameter ${key} is not allowed`, key);
+      throw new QueryValidationError(
+        `query parameter ${key} is not allowed`,
+        key,
+      );
     }
   }
 

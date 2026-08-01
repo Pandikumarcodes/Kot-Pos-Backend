@@ -25,7 +25,11 @@ const buildSearchFilter = (value, searchableFields = [], maxLength) => {
   const clauses = searchableFields.map((definition) => {
     const { field, mode } = normalizeSearchField(definition);
     const pattern =
-      mode === "exact" ? `^${escaped}$` : mode === "prefix" ? `^${escaped}` : escaped;
+      mode === "exact"
+        ? `^${escaped}$`
+        : mode === "prefix"
+          ? `^${escaped}`
+          : escaped;
     return { [field]: { $regex: pattern, $options: "i" } };
   });
   return { $or: clauses };
