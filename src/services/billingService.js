@@ -1,14 +1,20 @@
 const billingRepository = require("../repositories/BillingRepository");
 const menuRepository = require("../repositories/MenuRepository");
 const tableRepository = require("../repositories/TableRepository");
+const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { notify } = require("./notificationservices");
 
-const generateBillNumber = async () => {
+const transactionManager = new TransactionManager();
+
+const generateBillNumber = async (options = {}) => {
   const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const todayCount = await billingRepository.countCreatedSince(todayStart);
+  const todayCount = await billingRepository.countCreatedSince(
+    todayStart,
+    options,
+  );
   return `BILL-${today}-${(todayCount + 1).toString().padStart(3, "0")}`;
 };
 
@@ -75,22 +81,33 @@ const payBill = async (
   paymentMethod,
   { scopeToBranchMembers, branchId, io },
 ) => {
-  const bill = await billingRepository.findScoped(
-    scopeToBranchMembers({ _id: billId }),
-  );
-  if (!bill) throw new AppError("Bill not found", 404);
-  if (bill.paymentStatus === "paid")
-    throw new AppError("Bill is already paid", 400);
-  bill.paymentStatus = "paid";
-  bill.paidAt = new Date();
-  if (paymentMethod) bill.paymentMethod = paymentMethod;
-  await billingRepository.save(bill);
-  if (bill.tableId) {
-    await tableRepository.updateState(bill.tableId, {
-      status: "available",
-      currentCustomer: null,
-    });
-  }
+  const bill = await transactionManager.execute(async (session) => {
+    const billToPay = await billingRepository.findScoped(
+      scopeToBranchMembers({ _id: billId }),
+      { session },
+    );
+    if (!billToPay) throw new AppError("Bill not found", 404);
+    if (billToPay.paymentStatus === "paid")
+      throw new AppError("Bill is already paid", 400);
+
+    billToPay.paymentStatus = "paid";
+    billToPay.paidAt = new Date();
+    if (paymentMethod) billToPay.paymentMethod = paymentMethod;
+    await billingRepository.save(billToPay, { session });
+
+    if (billToPay.tableId) {
+      await tableRepository.updateState(
+        billToPay.tableId,
+        {
+          status: "available",
+          currentCustomer: null,
+        },
+        { session },
+      );
+    }
+
+    return billToPay;
+  });
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };

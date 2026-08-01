@@ -12,6 +12,11 @@ jest.mock("../../models/users");
 jest.mock("../../models/billings");
 jest.mock("../../models/menuItems");
 jest.mock("../../models/tables");
+jest.mock("../../infrastructure/transaction/TransactionManager", () =>
+  jest.fn().mockImplementation(() => ({
+    execute: jest.fn((work) => work({ id: "billing-test-session" })),
+  })),
+);
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
@@ -404,7 +409,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
 
   it("200 — cashier can mark a bill as paid", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockResolvedValue(mockBillDoc());
+    Billing.findOne.mockResolvedValue(mockBillDoc());
 
     const res = await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)
@@ -419,7 +424,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
   it("200 — frees the table when bill has a tableId", async () => {
     const TABLE_ID = new mongoose.Types.ObjectId().toString();
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockResolvedValue(mockBillDoc({ tableId: TABLE_ID }));
+    Billing.findOne.mockResolvedValue(mockBillDoc({ tableId: TABLE_ID }));
     Table.findByIdAndUpdate.mockResolvedValue({});
 
     await request(app)
@@ -427,15 +432,19 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
       .set("Cookie", `token=${makeToken("cashier")}`)
       .send({ paymentMethod: "cash" });
 
-    expect(Table.findByIdAndUpdate).toHaveBeenCalledWith(TABLE_ID, {
-      status: "available",
-      currentCustomer: null,
-    });
+    expect(Table.findByIdAndUpdate).toHaveBeenCalledWith(
+      TABLE_ID,
+      {
+        status: "available",
+        currentCustomer: null,
+      },
+      { session: { id: "billing-test-session" } },
+    );
   });
 
   it("200 — does not update table when bill has no tableId", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockResolvedValue(mockBillDoc({ tableId: null }));
+    Billing.findOne.mockResolvedValue(mockBillDoc({ tableId: null }));
 
     await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)
@@ -448,7 +457,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
   it("200 — updates paymentMethod when provided", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
     const bill = mockBillDoc({ paymentMethod: "cash" });
-    Billing.findById.mockResolvedValue(bill);
+    Billing.findOne.mockResolvedValue(bill);
 
     await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)
@@ -461,7 +470,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
 
   it("400 — rejects when bill is already paid", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockResolvedValue(mockBillDoc({ paymentStatus: "paid" }));
+    Billing.findOne.mockResolvedValue(mockBillDoc({ paymentStatus: "paid" }));
 
     const res = await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)
@@ -474,7 +483,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
 
   it("404 — returns 404 when bill not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockResolvedValue(null);
+    Billing.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)

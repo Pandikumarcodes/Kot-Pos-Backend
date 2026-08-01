@@ -14,6 +14,11 @@ jest.mock("../../models/menuItems");
 jest.mock("../../models/kot");
 jest.mock("../../models/tables");
 jest.mock("../../models/billings");
+jest.mock("../../infrastructure/transaction/TransactionManager", () =>
+  jest.fn().mockImplementation(() => ({
+    execute: jest.fn((work) => work({ id: "billing-test-session" })),
+  })),
+);
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
@@ -460,12 +465,14 @@ describe("PUT /api/v1/waiter/orders/:orderId/send", () => {
 
   it("200 — sends order to kitchen and creates KOT", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findById.mockResolvedValue(mockOrderDoc({ status: "pending" }));
-    TableOrder.findByIdAndUpdate.mockResolvedValue(
+    TableOrder.findOne.mockResolvedValue(mockOrderDoc({ status: "pending" }));
+    TableOrder.findOneAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "sent_to_kitchen" }),
     );
     Table.findById.mockResolvedValue({ tableNumber: 1 });
-    Kot.create.mockResolvedValue({ _id: "kot_id", orderType: "dine-in" });
+    Kot.create.mockResolvedValue([
+      { _id: "kot_id", branchId: VALID_BRANCH_ID, orderType: "dine-in" },
+    ]);
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/send`)
@@ -478,7 +485,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/send", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findById.mockResolvedValue(null);
+    TableOrder.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/send`)
@@ -490,7 +497,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/send", () => {
 
   it("409 — rejects if order already sent to kitchen", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findById.mockResolvedValue(
+    TableOrder.findOne.mockResolvedValue(
       mockOrderDoc({ status: "sent_to_kitchen" }),
     );
 
@@ -573,7 +580,11 @@ describe("PUT /api/v1/waiter/orders/:orderId/cancel", () => {
 // POST /api/v1/waiter/orders/table/:tableId/send-to-cashier
 // ─────────────────────────────────────────────────────────────
 describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Table.findById.mockResolvedValue({ _id: VALID_TABLE_ID });
+    TableOrder.find.mockResolvedValue([mockOrderDoc()]);
+  });
 
   const validPayload = {
     customerName: "Ravi Kumar",
@@ -586,7 +597,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
     Billing.findOne.mockResolvedValue(null); // no existing unpaid bill
     TableOrder.find.mockResolvedValue([mockOrderDoc()]);
     Billing.countDocuments.mockResolvedValue(0);
-    Billing.create.mockResolvedValue(mockBillDoc());
+    Billing.create.mockResolvedValue([mockBillDoc()]);
     TableOrder.updateMany.mockResolvedValue({});
     Table.findByIdAndUpdate.mockResolvedValue({});
 
@@ -632,7 +643,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
     Billing.findOne.mockResolvedValue(null);
     TableOrder.find.mockResolvedValue([mockOrderDoc()]);
     Billing.countDocuments.mockResolvedValue(2);
-    Billing.create.mockResolvedValue(mockBillDoc());
+    Billing.create.mockResolvedValue([mockBillDoc()]);
     TableOrder.updateMany.mockResolvedValue({});
     Table.findByIdAndUpdate.mockResolvedValue({});
 
@@ -644,7 +655,8 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
     expect(res.status).toBe(201);
     // Billing.create should have been called with "0000000000"
     expect(Billing.create).toHaveBeenCalledWith(
-      expect.objectContaining({ customerPhone: "0000000000" }),
+      [expect.objectContaining({ customerPhone: "0000000000" })],
+      { session: { id: "billing-test-session" } },
     );
   });
 
@@ -653,7 +665,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
     Billing.findOne.mockResolvedValue(null);
     TableOrder.find.mockResolvedValue([mockOrderDoc()]);
     Billing.countDocuments.mockResolvedValue(0);
-    Billing.create.mockResolvedValue(mockBillDoc());
+    Billing.create.mockResolvedValue([mockBillDoc()]);
     TableOrder.updateMany.mockResolvedValue({});
     Table.findByIdAndUpdate.mockResolvedValue({});
 
@@ -664,7 +676,8 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
 
     expect(res.status).toBe(201);
     expect(Billing.create).toHaveBeenCalledWith(
-      expect.objectContaining({ customerName: "Walk-in" }),
+      [expect.objectContaining({ customerName: "Walk-in" })],
+      { session: { id: "billing-test-session" } },
     );
   });
 });

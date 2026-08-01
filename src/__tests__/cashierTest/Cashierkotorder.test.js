@@ -12,6 +12,11 @@ jest.mock("../../models/users");
 jest.mock("../../models/takeAway");
 jest.mock("../../models/menuItems");
 jest.mock("../../models/kot");
+jest.mock("../../infrastructure/transaction/TransactionManager", () =>
+  jest.fn().mockImplementation(() => ({
+    execute: jest.fn((work) => work({ id: "order-test-session" })),
+  })),
+);
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
@@ -260,11 +265,13 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/send", () => {
 
   it("200 — cashier can send takeaway order to kitchen", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findById.mockResolvedValue(mockOrderDoc({ status: "pending" }));
-    TakeAway.findByIdAndUpdate.mockResolvedValue(
+    TakeAway.findOne.mockResolvedValue(mockOrderDoc({ status: "pending" }));
+    TakeAway.findOneAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "sent_to_kitchen" }),
     );
-    Kot.create.mockResolvedValue({ _id: "kot_id", orderType: "takeaway" });
+    Kot.create.mockResolvedValue([
+      { _id: "kot_id", branchId: VALID_BRANCH_ID, orderType: "takeaway" },
+    ]);
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/send`)
@@ -277,7 +284,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/send", () => {
 
   it("409 — rejects if order already sent to kitchen", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findById.mockResolvedValue(
+    TakeAway.findOne.mockResolvedValue(
       mockOrderDoc({ status: "sent_to_kitchen" }),
     );
 
@@ -291,7 +298,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/send", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findById.mockResolvedValue(null);
+    TakeAway.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/send`)

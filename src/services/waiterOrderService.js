@@ -3,10 +3,13 @@ const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const tableRepository = require("../repositories/TableRepository");
 const billingRepository = require("../repositories/BillingRepository");
+const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { generateBillNumber } = require("./billingService");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
+
+const transactionManager = new TransactionManager();
 
 const getTableOrders = async (tableId, scopeToBranchMembers) => {
   const orders = await orderRepository.listTableActive(
@@ -33,43 +36,72 @@ const getTableOrders = async (tableId, scopeToBranchMembers) => {
 const sendToCashier = async (tableId, input, context) => {
   const { customerName, customerPhone, tableNumber } = input;
   const { scopeToBranchMembers, branchId, userId, io } = context;
-  const activeFilter = { tableId, status: { $nin: ["cancelled", "served"] } };
-  const existingBill = await billingRepository.findScoped(
-    scopeToBranchMembers({ tableId, paymentStatus: "unpaid" }),
-  );
-  if (existingBill) {
-    throw new AppError(
-      "An unpaid bill already exists for this table. Please ask the cashier to collect payment first.",
-      400,
+  const bill = await transactionManager.execute(async (session) => {
+    const table = await tableRepository.findById(tableId, undefined, {
+      session,
+    });
+    if (!table) throw new AppError("Table not found", 404);
+
+    const activeFilter = {
+      tableId,
+      status: { $nin: ["cancelled", "served"] },
+    };
+    const scopedActiveFilter = scopeToBranchMembers(activeFilter);
+    const orders = await orderRepository.findMany(
+      scopedActiveFilter,
+      undefined,
+      { session },
     );
-  }
-  const phone = (customerPhone || "").replace(/\D/g, "");
-  const validPhone = phone.length === 10 ? phone : "0000000000";
-  const scopedActiveFilter = scopeToBranchMembers(activeFilter);
-  const orders = await orderRepository.findMany(scopedActiveFilter);
-  if (!orders.length)
-    throw new AppError("No active orders found for this table", 400);
-  const allItems = orders.flatMap((order) => order.items);
-  const bill = await billingRepository.createBill({
-    billNumber: await generateBillNumber(),
-    customerName: customerName || "Walk-in",
-    customerPhone: validPhone,
-    items: allItems.map((item) => ({
-      itemId: item.itemId,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      total: item.price * item.quantity,
-    })),
-    totalAmount: orders.reduce((sum, order) => sum + order.totalAmount, 0),
-    paymentStatus: "unpaid",
-    paymentMethod: "none",
-    tableId,
-    tableNumber: tableNumber || null,
-    createdBy: userId,
+    if (!orders.length)
+      throw new AppError("No active orders found for this table", 400);
+
+    const existingBill = await billingRepository.findScoped(
+      scopeToBranchMembers({ tableId, paymentStatus: "unpaid" }),
+      { session },
+    );
+    if (existingBill) {
+      throw new AppError(
+        "An unpaid bill already exists for this table. Please ask the cashier to collect payment first.",
+        400,
+      );
+    }
+
+    const phone = (customerPhone || "").replace(/\D/g, "");
+    const validPhone = phone.length === 10 ? phone : "0000000000";
+    const allItems = orders.flatMap((order) => order.items);
+    const createdBill = await billingRepository.createBill(
+      {
+        billNumber: await generateBillNumber({ session }),
+        customerName: customerName || "Walk-in",
+        customerPhone: validPhone,
+        items: allItems.map((item) => ({
+          itemId: item.itemId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.price * item.quantity,
+        })),
+        totalAmount: orders.reduce((sum, order) => sum + order.totalAmount, 0),
+        paymentStatus: "unpaid",
+        paymentMethod: "none",
+        tableId,
+        tableNumber: tableNumber || null,
+        createdBy: userId,
+      },
+      { session },
+    );
+    await orderRepository.updateManyStatus(
+      scopedActiveFilter,
+      "served",
+      { session },
+    );
+    await tableRepository.updateState(
+      tableId,
+      { status: "billing" },
+      { session },
+    );
+    return createdBill;
   });
-  await orderRepository.updateManyStatus(scopedActiveFilter, "served");
-  await tableRepository.updateState(tableId, { status: "billing" });
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };
@@ -127,24 +159,48 @@ const sendToKitchen = async (
   { scopeToBranchMembers, branchId, io },
 ) => {
   const filter = scopeToBranchMembers({ _id: orderId });
-  const existing = await orderRepository.findOne(filter);
-  if (!existing) throw new AppError("Order not found", 404);
-  if (existing.status === "sent_to_kitchen") {
-    throw new AppError("Order has already been sent to kitchen", 409);
-  }
-  const order = await orderRepository.updateStatus(filter, "sent_to_kitchen");
-  const table = await tableRepository.findById(order.tableId);
-  const kot = await kitchenRepository.createOrder({
-    branchId,
-    orderType: "dine-in",
-    tableNumber: table?.tableNumber || order.tableNumber,
-    tableId: order.tableId,
-    customerName: order.customerName,
-    createdBy: order.createdBy,
-    items: order.items,
-    totalAmount: order.totalAmount,
-    status: "pending",
+  const { order, kot } = await transactionManager.execute(async (session) => {
+    const existing = await orderRepository.findOne(filter, undefined, {
+      session,
+    });
+    if (!existing) throw new AppError("Order not found", 404);
+
+    const table = await tableRepository.findById(
+      existing.tableId,
+      undefined,
+      { session },
+    );
+    if (!table) throw new AppError("Table not found", 404);
+
+    if (existing.status === "sent_to_kitchen") {
+      throw new AppError("Order has already been sent to kitchen", 409);
+    }
+
+    const updatedOrder = await orderRepository.updateStatus(
+      filter,
+      "sent_to_kitchen",
+      { session },
+    );
+    if (!updatedOrder) throw new AppError("Order not found", 404);
+
+    const createdKot = await kitchenRepository.createOrder(
+      {
+        branchId,
+        orderType: "dine-in",
+        tableNumber: table.tableNumber || updatedOrder.tableNumber,
+        tableId: updatedOrder.tableId,
+        customerName: updatedOrder.customerName,
+        createdBy: updatedOrder.createdBy,
+        items: updatedOrder.items,
+        totalAmount: updatedOrder.totalAmount,
+        status: "pending",
+      },
+      { session },
+    );
+
+    return { order: updatedOrder, kot: createdKot };
   });
+
   notify.newOrder(io, kot);
   return order;
 };

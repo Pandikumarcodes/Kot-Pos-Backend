@@ -1,9 +1,12 @@
 const takeawayOrderRepository = require("../repositories/TakeawayOrderRepository");
 const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
+const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
+
+const transactionManager = new TransactionManager();
 
 const createTakeawayOrder = async (input, { userId, branchId }) => {
   const { customerName, customerPhone, items } = input;
@@ -57,28 +60,44 @@ const sendToKitchen = async (
   { scopeToBranchMembers, branchId, io },
 ) => {
   const filter = scopeToBranchMembers({ _id: orderId });
-  const existing = await takeawayOrderRepository.findOne(filter);
-  if (!existing) throw new AppError("Order not found", 404);
-  if (existing.status === "sent_to_kitchen") {
-    throw new AppError("Order has already been sent to kitchen", 409);
-  }
-  const order = await takeawayOrderRepository.updateStatus(
-    filter,
-    "sent_to_kitchen",
-  );
-  const kot = await kitchenRepository.createOrder({
-    branchId,
-    orderType: "takeaway",
-    customerName: order.customerName,
-    customerPhone: order.customerPhone,
-    createdBy: order.createdBy,
-    items: order.items,
-    totalAmount: order.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    ),
-    status: "pending",
+  const { order, kot } = await transactionManager.execute(async (session) => {
+    const existing = await takeawayOrderRepository.findOne(
+      filter,
+      undefined,
+      { session },
+    );
+    if (!existing) throw new AppError("Order not found", 404);
+    if (existing.status === "sent_to_kitchen") {
+      throw new AppError("Order has already been sent to kitchen", 409);
+    }
+
+    const updatedOrder = await takeawayOrderRepository.updateStatus(
+      filter,
+      "sent_to_kitchen",
+      { session },
+    );
+    if (!updatedOrder) throw new AppError("Order not found", 404);
+
+    const createdKot = await kitchenRepository.createOrder(
+      {
+        branchId,
+        orderType: "takeaway",
+        customerName: updatedOrder.customerName,
+        customerPhone: updatedOrder.customerPhone,
+        createdBy: updatedOrder.createdBy,
+        items: updatedOrder.items,
+        totalAmount: updatedOrder.items.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0,
+        ),
+        status: "pending",
+      },
+      { session },
+    );
+
+    return { order: updatedOrder, kot: createdKot };
   });
+
   notify.newOrder(io, kot);
   return order;
 };
