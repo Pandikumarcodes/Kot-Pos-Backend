@@ -9,8 +9,12 @@ const createBillBody = Joi.object({
   customerName: Joi.string().trim().min(1).max(150).required(),
   customerPhone: optionalText(30),
   items: orderItems,
-  paymentStatus: Joi.string().valid(...PAYMENT_STATUSES).optional(),
-  paymentMethod: Joi.string().valid(...PAYMENT_METHODS).optional(),
+  paymentStatus: Joi.string()
+    .valid(...PAYMENT_STATUSES)
+    .optional(),
+  paymentMethod: Joi.string()
+    .valid(...PAYMENT_METHODS)
+    .optional(),
 });
 const payBillBody = Joi.object({
   paymentMethod: Joi.string()
@@ -19,7 +23,9 @@ const payBillBody = Joi.object({
     .optional(),
 });
 const billsQuery = Joi.object({
-  status: Joi.string().valid(...PAYMENT_STATUSES).optional(),
+  status: Joi.string()
+    .valid(...PAYMENT_STATUSES)
+    .optional(),
   search: searchQuery,
 });
 

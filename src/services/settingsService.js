@@ -1,19 +1,19 @@
-const Settings = require("../models/settings");
+const settingsRepository = require("../repositories/SettingsRepository");
 
 const getSettings = async (branchFilter, branchId) => {
-  const settings = await Settings.findOne(branchFilter);
-  return settings || Settings.create({ branchId });
+  const settings = await settingsRepository.findScoped(branchFilter);
+  return settings || settingsRepository.createSettings({ branchId });
 };
 
 const saveSettings = async (branchFilter, scopeToBranch, branchId, input) => {
   const settingsInput = { ...input };
   delete settingsInput.branchId;
-  const existing = await Settings.findOne(branchFilter);
-  if (!existing) return Settings.create({ ...settingsInput, branchId });
-  return Settings.findOneAndUpdate(
+  const existing = await settingsRepository.findScoped(branchFilter);
+  if (!existing)
+    return settingsRepository.createSettings({ ...settingsInput, branchId });
+  return settingsRepository.updateScoped(
     scopeToBranch({ _id: existing._id }),
-    { $set: settingsInput },
-    { new: true, runValidators: true },
+    settingsInput,
   );
 };
 

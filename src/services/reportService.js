@@ -1,6 +1,4 @@
-const Billing = require("../models/billings");
-const Kot = require("../models/kot");
-const TableOrder = require("../models/waiter");
+const reportRepository = require("../repositories/ReportRepository");
 
 const getDateRange = (range, from, to) => {
   const now = new Date();
@@ -36,15 +34,29 @@ const getDateRange = (range, from, to) => {
   return { start, end };
 };
 
-const getSummary = async ({ range = "today", from, to, branchMemberFilter, branchFilter }) => {
+const getSummary = async ({
+  range = "today",
+  from,
+  to,
+  branchMemberFilter,
+  branchFilter,
+}) => {
   const { start, end } = getDateRange(range, from, to);
   const [revenueResult, dineInCount, takeawayCount] = await Promise.all([
-    Billing.aggregate([
-      { $match: { ...branchMemberFilter, paymentStatus: "paid", createdAt: { $gte: start, $lte: end } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
-    ]),
-    TableOrder.countDocuments({ ...branchMemberFilter, createdAt: { $gte: start, $lte: end } }),
-    Kot.countDocuments({ ...branchFilter, orderType: "takeaway", createdAt: { $gte: start, $lte: end } }),
+    reportRepository.getRevenueSummary({
+      ...branchMemberFilter,
+      paymentStatus: "paid",
+      createdAt: { $gte: start, $lte: end },
+    }),
+    reportRepository.countDineInOrders({
+      ...branchMemberFilter,
+      createdAt: { $gte: start, $lte: end },
+    }),
+    reportRepository.countKitchenOrders({
+      ...branchFilter,
+      orderType: "takeaway",
+      createdAt: { $gte: start, $lte: end },
+    }),
   ]);
   const totalRevenue = revenueResult[0]?.total || 0;
   const totalBills = revenueResult[0]?.count || 0;
@@ -60,23 +72,24 @@ const getSummary = async ({ range = "today", from, to, branchMemberFilter, branc
 
 const getTopItems = ({ range = "today", from, to, branchFilter }) => {
   const { start, end } = getDateRange(range, from, to);
-  return Kot.aggregate([
-    { $match: { ...branchFilter, createdAt: { $gte: start, $lte: end } } },
-    { $unwind: "$items" },
-    { $group: { _id: "$items.name", quantity: { $sum: "$items.quantity" }, revenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } } } },
-    { $sort: { quantity: -1 } },
-    { $limit: 10 },
-    { $project: { name: "$_id", quantity: 1, revenue: 1, _id: 0 } },
-  ]);
+  return reportRepository.getTopItems({
+    ...branchFilter,
+    createdAt: { $gte: start, $lte: end },
+  });
 };
 
-const getPayments = async ({ range = "today", from, to, branchMemberFilter }) => {
+const getPayments = async ({
+  range = "today",
+  from,
+  to,
+  branchMemberFilter,
+}) => {
   const { start, end } = getDateRange(range, from, to);
-  const payments = await Billing.aggregate([
-    { $match: { ...branchMemberFilter, paymentStatus: "paid", createdAt: { $gte: start, $lte: end } } },
-    { $group: { _id: "$paymentMethod", count: { $sum: 1 }, amount: { $sum: "$totalAmount" } } },
-    { $project: { method: "$_id", count: 1, amount: 1, _id: 0 } },
-  ]);
+  const payments = await reportRepository.getPayments({
+    ...branchMemberFilter,
+    paymentStatus: "paid",
+    createdAt: { $gte: start, $lte: end },
+  });
   const total = payments.reduce((sum, payment) => sum + payment.amount, 0);
   return payments.map((payment) => ({
     ...payment,
@@ -84,16 +97,25 @@ const getPayments = async ({ range = "today", from, to, branchMemberFilter }) =>
   }));
 };
 
-const getHourlySales = async ({ range = "today", from, to, branchMemberFilter }) => {
+const getHourlySales = async ({
+  range = "today",
+  from,
+  to,
+  branchMemberFilter,
+}) => {
   const { start, end } = getDateRange(range, from, to);
-  const hourly = await Billing.aggregate([
-    { $match: { ...branchMemberFilter, paymentStatus: "paid", createdAt: { $gte: start, $lte: end } } },
-    { $group: { _id: { $hour: { date: "$createdAt", timezone: "Asia/Kolkata" } }, orders: { $sum: 1 }, revenue: { $sum: "$totalAmount" } } },
-    { $sort: { _id: 1 } },
-    { $project: { hour: "$_id", orders: 1, revenue: 1, _id: 0 } },
-  ]);
+  const hourly = await reportRepository.getHourlySales({
+    ...branchMemberFilter,
+    paymentStatus: "paid",
+    createdAt: { $gte: start, $lte: end },
+  });
   return hourly.map((entry) => ({
-    hour: entry.hour < 12 ? `${entry.hour} AM` : entry.hour === 12 ? "12 PM" : `${entry.hour - 12} PM`,
+    hour:
+      entry.hour < 12
+        ? `${entry.hour} AM`
+        : entry.hour === 12
+          ? "12 PM"
+          : `${entry.hour - 12} PM`,
     orders: entry.orders,
     revenue: entry.revenue,
   }));
@@ -102,11 +124,19 @@ const getHourlySales = async ({ range = "today", from, to, branchMemberFilter })
 const getCashierIncome = async (userId) => {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const income = await Billing.aggregate([
-    { $match: { createdAt: { $gte: todayStart }, createdBy: userId, paymentStatus: "paid" } },
-    { $group: { _id: null, totalIncome: { $sum: "$totalAmount" } } },
-  ]);
+  const income = await reportRepository.getCashierIncome({
+    createdAt: { $gte: todayStart },
+    createdBy: userId,
+    paymentStatus: "paid",
+  });
   return income[0]?.totalIncome || 0;
 };
 
-module.exports = { getDateRange, getSummary, getTopItems, getPayments, getHourlySales, getCashierIncome };
+module.exports = {
+  getDateRange,
+  getSummary,
+  getTopItems,
+  getPayments,
+  getHourlySales,
+  getCashierIncome,
+};

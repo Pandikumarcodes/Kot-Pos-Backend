@@ -1,6 +1,10 @@
 const authService = require("../services/authService");
 const logger = require("../config/logger");
-const { accessCookieOptions, refreshCookieOptions, clearCookieOptions } = require("../config/cookieConfig");
+const {
+  accessCookieOptions,
+  refreshCookieOptions,
+  clearCookieOptions,
+} = require("../config/cookieConfig");
 const { getAccessToken, verifyAccessToken } = require("../middlewares/auth");
 const { forwardError } = require("./controllerUtils");
 
@@ -24,22 +28,28 @@ const login = async (req, res, next) => {
     const result = await authService.login(req.body);
     res.cookie("token", result.accessToken, accessCookieOptions);
     res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
-    res.status(200).json({ message: `${result.user.username} Login successful`, user: result.user });
+    res
+      .status(200)
+      .json({
+        message: `${result.user.username} Login successful`,
+        user: result.user,
+      });
   } catch (err) {
     logger.error("[auth/login]", { message: err.message });
     forwardError(next, err, "Server error");
   }
 };
 
-const me = (req, res) => res.status(200).json({
-  user: {
-    id: req.user._id,
-    name: req.user.username,
-    email: req.user.username,
-    role: req.user.role,
-    branchId: req.user.branchId ?? null,
-  },
-});
+const me = (req, res) =>
+  res.status(200).json({
+    user: {
+      id: req.user._id,
+      name: req.user.username,
+      email: req.user.username,
+      role: req.user.role,
+      branchId: req.user.branchId ?? null,
+    },
+  });
 
 const refresh = async (req, res, next) => {
   try {

@@ -2,8 +2,16 @@ const { Joi, objectId, searchQuery } = require("./common");
 const { validateRequest } = require("./validateRequest");
 
 const MENU_CATEGORIES = [
-  "starter", "main_course", "dessert", "beverage", "snacks",
-  "side_dish", "bread", "rice", "combo", "special",
+  "starter",
+  "main_course",
+  "dessert",
+  "beverage",
+  "snacks",
+  "side_dish",
+  "bread",
+  "rice",
+  "combo",
+  "special",
 ];
 
 const itemName = Joi.string()
@@ -13,7 +21,8 @@ const itemName = Joi.string()
   .required()
   .custom((value, helpers) => {
     if (/<[^>]*>/g.test(value)) return helpers.error("itemName.html");
-    if (/javascript\s*:/i.test(value)) return helpers.error("itemName.javascript");
+    if (/javascript\s*:/i.test(value))
+      return helpers.error("itemName.javascript");
     return value;
   })
   .messages({
@@ -51,7 +60,9 @@ const updateMenuBody = Joi.object({
 });
 const itemIdParams = Joi.object({ ItemId: objectId("menu item ID") });
 const menuQuery = Joi.object({
-  category: Joi.string().valid(...MENU_CATEGORIES).optional(),
+  category: Joi.string()
+    .valid(...MENU_CATEGORIES)
+    .optional(),
   search: searchQuery,
 });
 

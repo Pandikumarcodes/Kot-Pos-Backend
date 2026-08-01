@@ -1,73 +1,98 @@
-const Branch = require("../models/Branch");
-const User = require("../models/users");
-const Settings = require("../models/settings");
-const Kot = require("../models/kot");
+const branchRepository = require("../repositories/BranchRepository");
+const staffRepository = require("../repositories/StaffRepository");
+const settingsRepository = require("../repositories/SettingsRepository");
+const kitchenRepository = require("../repositories/KitchenRepository");
 const AppError = require("../utils/AppError");
 
-const listBranches = () =>
-  Branch.find().populate("adminUser", "username role").sort({ createdAt: -1 });
+const listBranches = () => branchRepository.listWithAdmin();
 
 const createBranch = async ({ name, address, phone, email, gstin }) => {
-  const branch = await Branch.create({ name, address, phone, email, gstin });
-  await Settings.create({ branchId: branch._id, businessName: name, address, phone, gstin });
+  const branch = await branchRepository.createBranch({
+    name,
+    address,
+    phone,
+    email,
+    gstin,
+  });
+  await settingsRepository.createSettings({
+    branchId: branch._id,
+    businessName: name,
+    address,
+    phone,
+    gstin,
+  });
   return branch;
 };
 
 const updateBranch = async (id, input) => {
   const { name, address, phone, email, gstin, isActive } = input;
-  const branch = await Branch.findByIdAndUpdate(
-    id,
-    { name, address, phone, email, gstin, isActive },
-    { new: true, runValidators: true },
-  );
+  const branch = await branchRepository.updateBranch(id, {
+    name,
+    address,
+    phone,
+    email,
+    gstin,
+    isActive,
+  });
   if (!branch) throw new AppError("Branch not found", 404);
   return branch;
 };
 
 const deactivateBranch = async (id) => {
-  const branch = await Branch.findByIdAndUpdate(id, { isActive: false }, { new: true });
+  const branch = await branchRepository.deactivate(id);
   if (!branch) throw new AppError("Branch not found", 404);
   return branch;
 };
 
 const assignStaff = async (branchId, userId) => {
-  const [branch, user] = await Promise.all([Branch.findById(branchId), User.findById(userId)]);
+  const [branch, user] = await Promise.all([
+    branchRepository.findById(branchId),
+    staffRepository.findById(userId),
+  ]);
   if (!branch) throw new AppError("Branch not found", 404);
   if (!user) throw new AppError("User not found", 404);
   if (user.role === "admin" && !user.branchId) {
     throw new AppError("Cannot assign a super-admin to a branch", 400);
   }
   user.branchId = branch._id;
-  await user.save({ validateBeforeSave: false });
+  await staffRepository.save(user, { validateBeforeSave: false });
   return { branch, user };
 };
 
 const removeStaff = async (branchId, userId) => {
-  const user = await User.findOne({ _id: userId, branchId });
+  const user = await staffRepository.findByIdInBranch(userId, branchId);
   if (!user) throw new AppError("User not found in this branch", 404);
   user.branchId = null;
-  await user.save({ validateBeforeSave: false });
+  await staffRepository.save(user, { validateBeforeSave: false });
   return user;
 };
 
-const listBranchStaff = (branchId) =>
-  User.find({ branchId }).select("-password").sort({ role: 1 });
+const listBranchStaff = (branchId) => staffRepository.listByBranch(branchId);
 
-const listUnassignedStaff = () =>
-  User.find({ branchId: null, role: { $ne: "admin" } }).select("-password").sort({ role: 1 });
+const listUnassignedStaff = () => staffRepository.listUnassigned();
 
 const getBranchSummary = async (branchId) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const [totalOrders, activeOrders, staffCount] = await Promise.all([
-    Kot.countDocuments({ branchId, createdAt: { $gte: today } }),
-    Kot.countDocuments({ branchId, status: { $in: ["pending", "preparing", "ready"] } }),
-    User.countDocuments({ branchId, status: "active" }),
+    kitchenRepository.countByFilter({ branchId, createdAt: { $gte: today } }),
+    kitchenRepository.countByFilter({
+      branchId,
+      status: { $in: ["pending", "preparing", "ready"] },
+    }),
+    staffRepository.countActiveByBranch(branchId),
   ]);
   return { totalOrders, activeOrders, staffCount };
 };
 
 module.exports = {
-  listBranches, createBranch, updateBranch, deactivateBranch, assignStaff,
-  removeStaff, listBranchStaff, listUnassignedStaff, getBranchSummary,
+  listBranches,
+  createBranch,
+  updateBranch,
+  deactivateBranch,
+  assignStaff,
+  removeStaff,
+  listBranchStaff,
+  listUnassignedStaff,
+  getBranchSummary,
 };

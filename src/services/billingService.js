@@ -1,6 +1,6 @@
-const Billing = require("../models/billings");
-const MenuItem = require("../models/menuItems");
-const Table = require("../models/tables");
+const billingRepository = require("../repositories/BillingRepository");
+const menuRepository = require("../repositories/MenuRepository");
+const tableRepository = require("../repositories/TableRepository");
 const AppError = require("../utils/AppError");
 const { notify } = require("./notificationservices");
 
@@ -8,16 +8,18 @@ const generateBillNumber = async () => {
   const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const todayCount = await Billing.countDocuments({ createdAt: { $gte: todayStart } });
+  const todayCount = await billingRepository.countCreatedSince(todayStart);
   return `BILL-${today}-${(todayCount + 1).toString().padStart(3, "0")}`;
 };
 
 const createBill = async (input, { userId, branchId, io }) => {
-  const { customerName, customerPhone, items, paymentStatus, paymentMethod } = input;
+  const { customerName, customerPhone, items, paymentStatus, paymentMethod } =
+    input;
   const detailedItems = [];
   for (const item of items) {
-    const menuItem = await MenuItem.findById(item.itemId);
-    if (!menuItem) throw new AppError(`Menu item not found for ID: ${item.itemId}`, 404);
+    const menuItem = await menuRepository.findById(item.itemId);
+    if (!menuItem)
+      throw new AppError(`Menu item not found for ID: ${item.itemId}`, 404);
     detailedItems.push({
       itemId: menuItem._id,
       name: menuItem.ItemName,
@@ -26,17 +28,19 @@ const createBill = async (input, { userId, branchId, io }) => {
       total: menuItem.price * item.quantity,
     });
   }
-  const bill = new Billing({
+  const bill = await billingRepository.createBillDocument({
     billNumber: await generateBillNumber(),
     customerName,
     customerPhone,
     items: detailedItems,
-    totalAmount: detailedItems.reduce((sum, item) => sum + item.quantity * item.price, 0),
+    totalAmount: detailedItems.reduce(
+      (sum, item) => sum + item.quantity * item.price,
+      0,
+    ),
     paymentStatus,
     paymentMethod,
     createdBy: userId,
   });
-  await bill.save();
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };
@@ -51,39 +55,64 @@ const listBills = async ({ status, search, scopeToBranchMembers }) => {
       { billNumber: { $regex: search, $options: "i" } },
     ];
   }
-  const bills = await Billing.find(scopeToBranchMembers(filter))
-    .populate("createdBy", "username role")
-    .sort({ createdAt: -1 });
+  const bills = await billingRepository.listScoped(
+    scopeToBranchMembers(filter),
+  );
   if (!bills.length) throw new AppError("No Bills found", 404);
   return bills;
 };
 
 const getBill = async (billId, scopeToBranchMembers) => {
-  const bill = await Billing.findOne(scopeToBranchMembers({ _id: billId }))
-    .populate("createdBy", "username role");
+  const bill = await billingRepository.findScopedWithCreator(
+    scopeToBranchMembers({ _id: billId }),
+  );
   if (!bill) throw new AppError("Bill not found", 404);
   return bill;
 };
 
-const payBill = async (billId, paymentMethod, { scopeToBranchMembers, branchId, io }) => {
-  const bill = await Billing.findOne(scopeToBranchMembers({ _id: billId }));
+const payBill = async (
+  billId,
+  paymentMethod,
+  { scopeToBranchMembers, branchId, io },
+) => {
+  const bill = await billingRepository.findScoped(
+    scopeToBranchMembers({ _id: billId }),
+  );
   if (!bill) throw new AppError("Bill not found", 404);
-  if (bill.paymentStatus === "paid") throw new AppError("Bill is already paid", 400);
+  if (bill.paymentStatus === "paid")
+    throw new AppError("Bill is already paid", 400);
   bill.paymentStatus = "paid";
   bill.paidAt = new Date();
   if (paymentMethod) bill.paymentMethod = paymentMethod;
-  await bill.save();
+  await billingRepository.save(bill);
   if (bill.tableId) {
-    await Table.findByIdAndUpdate(bill.tableId, { status: "available", currentCustomer: null });
+    await tableRepository.updateState(bill.tableId, {
+      status: "available",
+      currentCustomer: null,
+    });
   }
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };
 
 const deleteBill = async (billId, scopeToBranchMembers) => {
-  const bill = await Billing.findOneAndDelete(scopeToBranchMembers({ _id: billId }));
+  const bill = await billingRepository.deleteScoped(
+    scopeToBranchMembers({ _id: billId }),
+  );
   if (!bill) throw new AppError("Bill not found", 404);
-  return { id: bill._id, customerName: bill.customerName, totalAmount: bill.totalAmount, billNumber: bill.billNumber };
+  return {
+    id: bill._id,
+    customerName: bill.customerName,
+    totalAmount: bill.totalAmount,
+    billNumber: bill.billNumber,
+  };
 };
 
-module.exports = { generateBillNumber, createBill, listBills, getBill, payBill, deleteBill };
+module.exports = {
+  generateBillNumber,
+  createBill,
+  listBills,
+  getBill,
+  payBill,
+  deleteBill,
+};

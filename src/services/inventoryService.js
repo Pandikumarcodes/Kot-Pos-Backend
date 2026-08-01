@@ -1,27 +1,37 @@
-const Inventory = require("../models/Inventory");
-const StockLog = require("../models/StockLog");
-const MenuItem = require("../models/menuItems");
+const inventoryRepository = require("../repositories/InventoryRepository");
+const stockLogRepository = require("../repositories/StockLogRepository");
+const menuRepository = require("../repositories/MenuRepository");
 const AppError = require("../utils/AppError");
 
 const listInventory = async ({ branchFilter, lowStock, category, search }) => {
   const filter = { ...branchFilter, isActive: true };
-  if (lowStock === "true") filter.$expr = { $lte: ["$currentStock", "$lowStockThreshold"] };
+  if (lowStock === "true")
+    filter.$expr = { $lte: ["$currentStock", "$lowStockThreshold"] };
   if (category) filter.category = category;
   if (search) filter.name = { $regex: search, $options: "i" };
-  const items = await Inventory.find(filter)
-    .populate("menuItemId", "ItemName available")
-    .sort({ currentStock: 1 })
-    .lean({ virtuals: true });
+  const items = await inventoryRepository.findActive(filter);
   const annotated = items.map((item) => ({
     ...item,
     isLowStock: item.currentStock <= item.lowStockThreshold,
   }));
-  return { items: annotated, lowStockCount: annotated.filter((item) => item.isLowStock).length };
+  return {
+    items: annotated,
+    lowStockCount: annotated.filter((item) => item.isLowStock).length,
+  };
 };
 
 const createInventory = async (input, { branchId, userId }) => {
-  const { name, unit, currentStock, lowStockThreshold, category, costPerUnit, supplier, menuItemId } = input;
-  const item = await Inventory.create({
+  const {
+    name,
+    unit,
+    currentStock,
+    lowStockThreshold,
+    category,
+    costPerUnit,
+    supplier,
+    menuItemId,
+  } = input;
+  const item = await inventoryRepository.createInventory({
     branchId,
     name,
     unit: unit ?? "pcs",
@@ -33,7 +43,7 @@ const createInventory = async (input, { branchId, userId }) => {
     menuItemId: menuItemId || null,
   });
   if (currentStock > 0) {
-    await StockLog.create({
+    await stockLogRepository.createLog({
       branchId,
       inventoryId: item._id,
       type: "restock",
@@ -48,23 +58,40 @@ const createInventory = async (input, { branchId, userId }) => {
 };
 
 const updateInventory = async (id, branchFilter, input) => {
-  const { name, unit, lowStockThreshold, category, costPerUnit, supplier, menuItemId } = input;
-  const item = await Inventory.findOneAndUpdate(
-    { _id: id, ...branchFilter },
-    { name, unit, lowStockThreshold, category, costPerUnit, supplier, menuItemId },
-    { new: true, runValidators: true },
-  );
+  const {
+    name,
+    unit,
+    lowStockThreshold,
+    category,
+    costPerUnit,
+    supplier,
+    menuItemId,
+  } = input;
+  const item = await inventoryRepository.updateScoped(id, branchFilter, {
+    name,
+    unit,
+    lowStockThreshold,
+    category,
+    costPerUnit,
+    supplier,
+    menuItemId,
+  });
   if (!item) throw new AppError("Item not found", 404);
   return item;
 };
 
-const restockItem = async (id, branchFilter, { quantity, note }, { branchId, userId }) => {
-  const item = await Inventory.findOne({ _id: id, ...branchFilter });
+const restockItem = async (
+  id,
+  branchFilter,
+  { quantity, note },
+  { branchId, userId },
+) => {
+  const item = await inventoryRepository.findScopedById(id, branchFilter);
   if (!item) throw new AppError("Item not found", 404);
   const stockBefore = item.currentStock;
   item.currentStock += Number(quantity);
-  await item.save();
-  await StockLog.create({
+  await inventoryRepository.save(item);
+  await stockLogRepository.createLog({
     branchId,
     inventoryId: item._id,
     type: "restock",
@@ -75,19 +102,24 @@ const restockItem = async (id, branchFilter, { quantity, note }, { branchId, use
     doneBy: userId,
   });
   if (item.menuItemId && stockBefore === 0 && item.currentStock > 0) {
-    await MenuItem.findByIdAndUpdate(item.menuItemId, { available: true });
+    await menuRepository.updateAvailability(item.menuItemId, true);
   }
   return item;
 };
 
-const adjustStock = async (id, branchFilter, { quantity, note }, { branchId, userId }) => {
-  const item = await Inventory.findOne({ _id: id, ...branchFilter });
+const adjustStock = async (
+  id,
+  branchFilter,
+  { quantity, note },
+  { branchId, userId },
+) => {
+  const item = await inventoryRepository.findScopedById(id, branchFilter);
   if (!item) throw new AppError("Item not found", 404);
   const stockBefore = item.currentStock;
   const newStock = Math.max(0, item.currentStock + Number(quantity));
   item.currentStock = newStock;
-  await item.save();
-  await StockLog.create({
+  await inventoryRepository.save(item);
+  await stockLogRepository.createLog({
     branchId,
     inventoryId: item._id,
     type: "adjustment",
@@ -98,37 +130,32 @@ const adjustStock = async (id, branchFilter, { quantity, note }, { branchId, use
     doneBy: userId,
   });
   if (item.menuItemId && newStock === 0) {
-    await MenuItem.findByIdAndUpdate(item.menuItemId, { available: false });
+    await menuRepository.updateAvailability(item.menuItemId, false);
   }
   return item;
 };
 
 const getStockLogs = (inventoryId, branchId) =>
-  StockLog.find({ inventoryId, branchId })
-    .populate("doneBy", "username role")
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .lean();
+  stockLogRepository.listForInventory(inventoryId, branchId);
 
 const deleteInventory = async (id, branchFilter) => {
-  const item = await Inventory.findOneAndUpdate(
-    { _id: id, ...branchFilter },
-    { isActive: false },
-    { new: true },
-  );
+  const item = await inventoryRepository.deactivateScoped(id, branchFilter);
   if (!item) throw new AppError("Item not found", 404);
 };
 
 const deductStockForKot = async (kotItems, branchId, kotId, doneBy) => {
   for (const kotItem of kotItems) {
-    const inventory = await Inventory.findOne({ branchId, menuItemId: kotItem.itemId, isActive: true });
+    const inventory = await inventoryRepository.findActiveByMenuItem(
+      branchId,
+      kotItem.itemId,
+    );
     if (!inventory) continue;
     const stockBefore = inventory.currentStock;
     const deductAmount = kotItem.quantity * (inventory.deductRatio ?? 1);
     const newStock = Math.max(0, inventory.currentStock - deductAmount);
     inventory.currentStock = newStock;
-    await inventory.save();
-    await StockLog.create({
+    await inventoryRepository.save(inventory);
+    await stockLogRepository.createLog({
       branchId,
       inventoryId: inventory._id,
       type: "kot_deduct",
@@ -140,9 +167,18 @@ const deductStockForKot = async (kotItems, branchId, kotId, doneBy) => {
       doneBy,
     });
     if (inventory.menuItemId && newStock === 0) {
-      await MenuItem.findByIdAndUpdate(inventory.menuItemId, { available: false });
+      await menuRepository.updateAvailability(inventory.menuItemId, false);
     }
   }
 };
 
-module.exports = { listInventory, createInventory, updateInventory, restockItem, adjustStock, getStockLogs, deleteInventory, deductStockForKot };
+module.exports = {
+  listInventory,
+  createInventory,
+  updateInventory,
+  restockItem,
+  adjustStock,
+  getStockLogs,
+  deleteInventory,
+  deductStockForKot,
+};

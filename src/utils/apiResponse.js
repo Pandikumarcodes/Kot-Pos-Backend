@@ -19,12 +19,10 @@ const failure = (res, statusCode, message, extra = {}) =>
     ...extra,
   });
 
-const badRequest = (res, message = "Bad request") =>
-  failure(res, 400, message);
+const badRequest = (res, message = "Bad request") => failure(res, 400, message);
 const unauthorized = (res, message = "Unauthorized") =>
   failure(res, 401, message);
-const forbidden = (res, message = "Forbidden") =>
-  failure(res, 403, message);
+const forbidden = (res, message = "Forbidden") => failure(res, 403, message);
 const notFound = (res, message = "Resource not found") =>
   failure(res, 404, message);
 const conflict = (res, message = "Conflict") => failure(res, 409, message);

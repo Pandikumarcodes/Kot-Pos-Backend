@@ -19,10 +19,14 @@ const CATEGORIES = [
 const inventoryIdParams = Joi.object({ id: objectId("inventory item ID") });
 const inventoryFields = {
   name: requiredText("Name", 150),
-  unit: Joi.string().valid(...UNITS).optional(),
+  unit: Joi.string()
+    .valid(...UNITS)
+    .optional(),
   currentStock: Joi.number().min(0).optional(),
   lowStockThreshold: Joi.number().min(0).optional(),
-  category: Joi.string().valid(...CATEGORIES).optional(),
+  category: Joi.string()
+    .valid(...CATEGORIES)
+    .optional(),
   costPerUnit: Joi.number().min(0).optional(),
   supplier: optionalText(150),
   menuItemId: objectId("menu item ID").allow(null, "").optional(),
@@ -49,7 +53,9 @@ const adjustBody = Joi.object({
 });
 const inventoryQuery = Joi.object({
   lowStock: Joi.string().valid("true", "false").optional(),
-  category: Joi.string().valid(...CATEGORIES).optional(),
+  category: Joi.string()
+    .valid(...CATEGORIES)
+    .optional(),
   search: searchQuery,
 });
 

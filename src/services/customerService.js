@@ -1,35 +1,42 @@
-const Customer = require("../models/customer");
+const customerRepository = require("../repositories/CustomerRepository");
 const AppError = require("../utils/AppError");
 
-const listCustomers = () => Customer.find().sort({ lastVisit: -1 });
+const listCustomers = () => customerRepository.listByLastVisit();
 
 const getCustomer = async (customerId) => {
-  const customer = await Customer.findById(customerId);
+  const customer = await customerRepository.findById(customerId);
   if (!customer) throw new AppError("Customer not found", 404);
   return customer;
 };
 
 const createCustomer = async ({ name, phone, email, address }) => {
-  if (await Customer.findOne({ phone })) {
+  if (await customerRepository.findByPhone(phone)) {
     throw new AppError("Customer with this phone already exists", 400);
   }
-  return Customer.create({ name, phone, email, address });
+  return customerRepository.createCustomer({ name, phone, email, address });
 };
 
 const updateCustomer = async (customerId, { name, phone, email, address }) => {
-  const customer = await Customer.findByIdAndUpdate(
-    customerId,
-    { name, phone, email, address },
-    { new: true, runValidators: true },
-  );
+  const customer = await customerRepository.updateCustomer(customerId, {
+    name,
+    phone,
+    email,
+    address,
+  });
   if (!customer) throw new AppError("Customer not found", 404);
   return customer;
 };
 
 const deleteCustomer = async (customerId) => {
-  const customer = await Customer.findByIdAndDelete(customerId);
+  const customer = await customerRepository.deleteCustomer(customerId);
   if (!customer) throw new AppError("Customer not found", 404);
   return customer;
 };
 
-module.exports = { listCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer };
+module.exports = {
+  listCustomers,
+  getCustomer,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+};

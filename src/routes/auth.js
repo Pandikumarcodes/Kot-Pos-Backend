@@ -1,6 +1,9 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { validateLogin, validateSignup } = require("../validators/authentication");
+const {
+  validateLogin,
+  validateSignup,
+} = require("../validators/authentication");
 const { userAuth, allowRoles } = require("../middlewares/auth");
 const controller = require("../controllers/authController");
 const { handleControllerError } = require("../controllers/controllerUtils");
@@ -23,7 +26,12 @@ const signupLimiter = rateLimit({
 
 authRouter.post("/signup", signupLimiter, validateSignup, controller.signup);
 authRouter.post("/login", loginLimiter, validateLogin, controller.login);
-authRouter.get("/me", userAuth, allowRoles(["admin", "manager", "waiter", "chef", "cashier"]), controller.me);
+authRouter.get(
+  "/me",
+  userAuth,
+  allowRoles(["admin", "manager", "waiter", "chef", "cashier"]),
+  controller.me,
+);
 authRouter.post("/refresh", controller.refresh);
 authRouter.post("/logout", controller.logout);
 authRouter.use(handleControllerError);

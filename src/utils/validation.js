@@ -30,10 +30,7 @@ const validateMenuData = (data) => {
 };
 
 const validateBillingData = ({ paymentStatus, paymentMethod }) => {
-  if (
-    paymentStatus &&
-    !["paid", "pending", "due"].includes(paymentStatus)
-  ) {
+  if (paymentStatus && !["paid", "pending", "due"].includes(paymentStatus)) {
     throw new Error("Invalid paymentStatus");
   }
   if (paymentMethod && !["cash", "card", "upi"].includes(paymentMethod)) {

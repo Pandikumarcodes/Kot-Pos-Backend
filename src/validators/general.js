@@ -15,8 +15,12 @@ const settingsBody = Joi.object({
   gstin: optionalText(30),
   currency: optionalText(10),
   timezone: optionalText(100),
-  openTime: Joi.string().pattern(/^\d{2}:\d{2}$/).optional(),
-  closeTime: Joi.string().pattern(/^\d{2}:\d{2}$/).optional(),
+  openTime: Joi.string()
+    .pattern(/^\d{2}:\d{2}$/)
+    .optional(),
+  closeTime: Joi.string()
+    .pattern(/^\d{2}:\d{2}$/)
+    .optional(),
   avgServiceTime: Joi.number().min(0).optional(),
   maxCapacity: Joi.number().integer().min(0).optional(),
   takeawayEnabled: Joi.boolean().optional(),

@@ -1,15 +1,26 @@
-const User = require("../models/users");
+const userRepository = require("../repositories/UserRepository");
 const AppError = require("../utils/AppError");
 
 const createUser = async ({ username, role, password, status }, branchId) => {
-  if (await User.findOne({ username })) throw new AppError("username already exists", 400);
-  const user = new User({ username, role, password, status, branchId });
-  await user.save();
-  return { id: user._id, username: user.username, role: user.role, status: user.status };
+  if (await userRepository.findByUsername(username))
+    throw new AppError("username already exists", 400);
+  const user = await userRepository.createUserDocument({
+    username,
+    role,
+    password,
+    status,
+    branchId,
+  });
+  return {
+    id: user._id,
+    username: user.username,
+    role: user.role,
+    status: user.status,
+  };
 };
 
 const listUsers = async (branchFilter) => {
-  const users = await User.find(branchFilter).select("-password");
+  const users = await userRepository.findByScope(branchFilter);
   if (!users.length) throw new AppError("No users found", 404);
   return users;
 };
@@ -18,17 +29,18 @@ const updateUserRole = async ({ userId, role, actorRole, scopeToBranch }) => {
   if (actorRole === "manager" && role === "admin") {
     throw new AppError("Managers cannot assign admin role", 403);
   }
-  const user = await User.findOneAndUpdate(
+  const user = await userRepository.updateRole(
     scopeToBranch({ _id: userId }),
-    { role },
-    { new: true, runValidators: true, select: "-password" },
+    role,
   );
   if (!user) throw new AppError("User not found", 404);
   return { id: user._id, username: user.username, newRole: user.role };
 };
 
 const deleteUser = async (userId, scopeToBranch) => {
-  const user = await User.findOneAndDelete(scopeToBranch({ _id: userId }));
+  const user = await userRepository.deleteByScope(
+    scopeToBranch({ _id: userId }),
+  );
   if (!user) throw new AppError("User not found", 404);
   return { id: user._id, username: user.username };
 };

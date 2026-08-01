@@ -30,7 +30,13 @@ const emitToRoles = (io, branchId, roles, event, payload) => {
 // ─────────────────────────────────────────────────────────────
 const newOrder = (io, kot) => {
   if (!io || !kot?.branchId) return;
-  emitToRoles(io, kot.branchId, ["chef", "admin", "manager"], EVENTS.ORDER_NEW, kot);
+  emitToRoles(
+    io,
+    kot.branchId,
+    ["chef", "admin", "manager"],
+    EVENTS.ORDER_NEW,
+    kot,
+  );
   console.log(
     `📤 [notify] order:new → kitchen + admin` +
       ` | type: ${kot.orderType}` +

@@ -8,7 +8,11 @@ const forwardError = (next, err, fallbackMessage, fallbackStatus = 500) => {
 
 const handleControllerError = (err, req, res, next) => {
   if (res.headersSent) return next(err);
-  return failure(res, err.statusCode || err.status || 500, err.message || "Internal server error");
+  return failure(
+    res,
+    err.statusCode || err.status || 500,
+    err.message || "Internal server error",
+  );
 };
 
 module.exports = { forwardError, handleControllerError };

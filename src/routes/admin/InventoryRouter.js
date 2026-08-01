@@ -33,12 +33,7 @@ router.post(
   validateInventoryRestock,
   restockItem,
 );
-router.post(
-  "/:id/adjust",
-  requireBranch,
-  validateInventoryAdjust,
-  adjustStock,
-);
+router.post("/:id/adjust", requireBranch, validateInventoryAdjust, adjustStock);
 router.get("/:id/logs", requireBranch, validateInventoryId, getStockLogs);
 router.delete("/:id", validateInventoryId, deleteInventory);
 router.use(handleControllerError);

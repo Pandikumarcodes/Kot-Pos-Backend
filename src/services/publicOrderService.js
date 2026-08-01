@@ -1,14 +1,14 @@
-const Table = require("../models/tables");
-const MenuItem = require("../models/menuItems");
-const Kot = require("../models/kot");
-const Settings = require("../models/settings");
-const Branch = require("../models/Branch");
+const tableRepository = require("../repositories/TableRepository");
+const menuRepository = require("../repositories/MenuRepository");
+const kitchenRepository = require("../repositories/KitchenRepository");
+const settingsRepository = require("../repositories/SettingsRepository");
+const branchRepository = require("../repositories/BranchRepository");
 const AppError = require("../utils/AppError");
 
 const getQrMenu = async (tableId) => {
-  const table = await Table.findById(tableId).lean();
+  const table = await tableRepository.findByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
-  const menuItems = await MenuItem.find({ available: true }).lean();
+  const menuItems = await menuRepository.listAvailableLean();
   const menu = menuItems.reduce((groups, item) => {
     if (!groups[item.category]) groups[item.category] = [];
     groups[item.category].push({
@@ -19,8 +19,10 @@ const getQrMenu = async (tableId) => {
     });
     return groups;
   }, {});
-  const settings = (await Settings.findOne({ branchId: table.branchId ?? null }).lean())
-    ?? (await Settings.findOne({ branchId: null }).lean());
+  const settings =
+    (await settingsRepository.findScopedLean({
+      branchId: table.branchId ?? null,
+    })) ?? (await settingsRepository.findScopedLean({ branchId: null }));
   return {
     table: {
       _id: table._id,
@@ -39,31 +41,48 @@ const getQrMenu = async (tableId) => {
   };
 };
 
-const placePublicOrder = async (tableId, { customerName, customerPhone, items }) => {
-  const table = await Table.findById(tableId).lean();
+const placePublicOrder = async (
+  tableId,
+  { customerName, customerPhone, items },
+) => {
+  const table = await tableRepository.findByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
   let branchId = table.branchId ?? null;
   if (!branchId) {
-    const branch = await Branch.findOne({ isActive: true }).lean();
+    const branch = await branchRepository.findFirstActive();
     if (branch) {
       branchId = branch._id;
-      await Table.findByIdAndUpdate(table._id, { branchId: branch._id });
+      await tableRepository.updateState(table._id, { branchId: branch._id });
     }
   }
   if (!branchId) {
-    throw new AppError("Branch configuration missing. Please ask a staff member for help.", 400);
+    throw new AppError(
+      "Branch configuration missing. Please ask a staff member for help.",
+      400,
+    );
   }
-  const menuItems = await MenuItem.find({
-    _id: { $in: items.map((item) => item.itemId) },
-    available: true,
-  }).lean();
-  if (menuItems.length !== items.length) throw new AppError("Some items are unavailable", 400);
+  const menuItems = await menuRepository.findByIds(
+    items.map((item) => item.itemId),
+    { availableOnly: true, lean: true },
+  );
+  if (menuItems.length !== items.length)
+    throw new AppError("Some items are unavailable", 400);
   const orderItems = items.map((item) => {
-    const menuItem = menuItems.find((entry) => entry._id.toString() === item.itemId);
-    return { itemId: menuItem._id, name: menuItem.ItemName, quantity: item.quantity, price: menuItem.price };
+    const menuItem = menuItems.find(
+      (entry) => entry._id.toString() === item.itemId,
+    );
+    return {
+      itemId: menuItem._id,
+      name: menuItem.ItemName,
+      quantity: item.quantity,
+      price: menuItem.price,
+    };
   });
-  const totalAmount = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const kot = await Kot.create({
+  const totalAmount = orderItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const kot = await kitchenRepository.createOrder({
     branchId,
     orderType: "dine-in",
     tableNumber: table.tableNumber,
@@ -76,13 +95,13 @@ const placePublicOrder = async (tableId, { customerName, customerPhone, items })
     status: "pending",
   });
   if (table.status === "available") {
-    await Table.findByIdAndUpdate(table._id, { status: "occupied" });
+    await tableRepository.updateState(table._id, { status: "occupied" });
   }
   return { orderId: kot._id, totalAmount };
 };
 
 const getPublicOrderStatus = async (orderId) => {
-  const kot = await Kot.findById(orderId).select("status totalAmount items createdAt").lean();
+  const kot = await kitchenRepository.findPublicStatus(orderId);
   if (!kot) throw new AppError("Order not found", 404);
   const statusMessages = {
     pending: "Your order has been received! Kitchen is preparing...",
