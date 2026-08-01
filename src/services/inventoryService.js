@@ -1,7 +1,10 @@
 const inventoryRepository = require("../repositories/InventoryRepository");
 const stockLogRepository = require("../repositories/StockLogRepository");
 const menuRepository = require("../repositories/MenuRepository");
+const userRepository = require("../repositories/UserRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
+const { AUDIT_ACTIONS } = require("../infrastructure/audit");
+const inventoryAudit = require("../modules/inventory/InventoryAuditLogger");
 const AppError = require("../utils/AppError");
 
 const transactionManager = new TransactionManager();
@@ -23,7 +26,30 @@ const listInventory = async ({ branchFilter, lowStock, category, search }) => {
   };
 };
 
-const createInventory = async (input, { branchId, userId }) => {
+const actorContext = async ({ branchId, userId, actorRole, correlationId }) => {
+  const actor = actorRole
+    ? null
+    : await userRepository.findByIdWithSelection(userId, "role");
+  return inventoryAudit.createContext({
+    actorId: userId,
+    actorRole: actorRole || actor?.role || null,
+    branchId,
+    correlationId,
+  });
+};
+
+const writeFailure = async (values) => {
+  try {
+    await inventoryAudit.failure(values);
+  } catch (_auditFailure) {
+    // A secondary audit outage must not replace the workflow error.
+  }
+};
+
+const createInventory = async (
+  input,
+  { branchId, userId, actorRole = null, correlationId = null },
+) => {
   const {
     name,
     unit,
@@ -35,46 +61,80 @@ const createInventory = async (input, { branchId, userId }) => {
     menuItemId,
   } = input;
   const initialStock = currentStock ?? 0;
+  let auditContext = inventoryAudit.createContext({
+    actorId: userId,
+    actorRole,
+    branchId,
+    correlationId,
+  });
+  let inventoryId = "inventory:pending";
 
-  return transactionManager.execute(async (session) => {
-    const item = await inventoryRepository.createInventory(
-      {
-        branchId,
-        name,
-        unit: unit ?? "pcs",
-        currentStock: initialStock,
-        lowStockThreshold: lowStockThreshold ?? 10,
-        category: category ?? "other",
-        costPerUnit: costPerUnit ?? 0,
-        supplier: supplier ?? "",
-        menuItemId: menuItemId || null,
-      },
-      { session },
-    );
-    if (initialStock > 0) {
-      await stockLogRepository.createLog(
+  try {
+    auditContext = await actorContext({
+      branchId,
+      userId,
+      actorRole,
+      correlationId: auditContext.correlationId,
+    });
+    return await transactionManager.execute(async (session) => {
+      const item = await inventoryRepository.createInventory(
         {
           branchId,
-          inventoryId: item._id,
-          type: "restock",
-          quantity: initialStock,
-          stockBefore: 0,
-          stockAfter: initialStock,
-          note: "Initial stock",
-          doneBy: userId,
+          name,
+          unit: unit ?? "pcs",
+          currentStock: initialStock,
+          lowStockThreshold: lowStockThreshold ?? 10,
+          category: category ?? "other",
+          costPerUnit: costPerUnit ?? 0,
+          supplier: supplier ?? "",
+          menuItemId: menuItemId || null,
         },
         { session },
       );
-    }
-    if (item.menuItemId) {
-      await menuRepository.updateAvailability(
-        item.menuItemId,
-        initialStock > 0,
+      inventoryId = item._id;
+      let stockLog = null;
+      if (initialStock > 0) {
+        stockLog = await stockLogRepository.createLog(
+          {
+            branchId,
+            inventoryId: item._id,
+            type: "restock",
+            quantity: initialStock,
+            stockBefore: 0,
+            stockAfter: initialStock,
+            note: "Initial stock",
+            doneBy: userId,
+          },
+          { session },
+        );
+      }
+      if (item.menuItemId) {
+        await menuRepository.updateAvailability(
+          item.menuItemId,
+          initialStock > 0,
+          { session },
+        );
+      }
+      await inventoryAudit.created(
+        {
+          context: auditContext,
+          item,
+          initialQuantity: initialStock,
+          stockLogId: stockLog?._id,
+        },
         { session },
       );
-    }
-    return item;
-  });
+      return item;
+    });
+  } catch (error) {
+    await writeFailure({
+      action: AUDIT_ACTIONS.INVENTORY_CREATE,
+      context: auditContext,
+      entityId: inventoryId,
+      error,
+    });
+    throw error;
+  }
 };
 
 const updateInventory = async (id, branchFilter, input) => {
@@ -104,73 +164,145 @@ const restockItem = async (
   id,
   branchFilter,
   { quantity, note },
-  { branchId, userId },
+  { branchId, userId, actorRole = null, correlationId = null },
 ) => {
-  return transactionManager.execute(async (session) => {
-    const item = await inventoryRepository.findScopedById(id, branchFilter, {
-      session,
+  let auditContext = inventoryAudit.createContext({
+    actorId: userId,
+    actorRole,
+    branchId,
+    correlationId,
+  });
+  try {
+    auditContext = await actorContext({
+      branchId,
+      userId,
+      actorRole,
+      correlationId: auditContext.correlationId,
     });
-    if (!item) throw new AppError("Item not found", 404);
-    const stockBefore = item.currentStock;
-    item.currentStock += Number(quantity);
-    await inventoryRepository.save(item, { session });
-    await stockLogRepository.createLog(
-      {
-        branchId,
-        inventoryId: item._id,
-        type: "restock",
-        quantity: Number(quantity),
-        stockBefore,
-        stockAfter: item.currentStock,
-        note: note || "",
-        doneBy: userId,
-      },
-      { session },
-    );
-    if (item.menuItemId && stockBefore === 0 && item.currentStock > 0) {
-      await menuRepository.updateAvailability(item.menuItemId, true, {
+    return await transactionManager.execute(async (session) => {
+      const item = await inventoryRepository.findScopedById(id, branchFilter, {
         session,
       });
-    }
-    return item;
-  });
+      if (!item) throw new AppError("Item not found", 404);
+      const stockBefore = item.currentStock;
+      item.currentStock += Number(quantity);
+      await inventoryRepository.save(item, { session });
+      const stockLog = await stockLogRepository.createLog(
+        {
+          branchId,
+          inventoryId: item._id,
+          type: "restock",
+          quantity: Number(quantity),
+          stockBefore,
+          stockAfter: item.currentStock,
+          note: note || "",
+          doneBy: userId,
+        },
+        { session },
+      );
+      const availabilityChanged = Boolean(
+        item.menuItemId && stockBefore === 0 && item.currentStock > 0,
+      );
+      if (availabilityChanged) {
+        await menuRepository.updateAvailability(item.menuItemId, true, {
+          session,
+        });
+      }
+      await inventoryAudit.restocked(
+        {
+          context: auditContext,
+          item,
+          previousQuantity: stockBefore,
+          addedQuantity: Number(quantity),
+          stockLogId: stockLog?._id,
+          availabilityChanged,
+        },
+        { session },
+      );
+      return item;
+    });
+  } catch (error) {
+    await writeFailure({
+      action: AUDIT_ACTIONS.INVENTORY_RESTOCK,
+      context: auditContext,
+      entityId: id,
+      error,
+    });
+    throw error;
+  }
 };
 
 const adjustStock = async (
   id,
   branchFilter,
   { quantity, note },
-  { branchId, userId },
+  { branchId, userId, actorRole = null, correlationId = null },
 ) => {
-  return transactionManager.execute(async (session) => {
-    const item = await inventoryRepository.findScopedById(id, branchFilter, {
-      session,
+  let auditContext = inventoryAudit.createContext({
+    actorId: userId,
+    actorRole,
+    branchId,
+    correlationId,
+  });
+  try {
+    auditContext = await actorContext({
+      branchId,
+      userId,
+      actorRole,
+      correlationId: auditContext.correlationId,
     });
-    if (!item) throw new AppError("Item not found", 404);
-    const stockBefore = item.currentStock;
-    const newStock = Math.max(0, item.currentStock + Number(quantity));
-    item.currentStock = newStock;
-    await inventoryRepository.save(item, { session });
-    await stockLogRepository.createLog(
-      {
-        branchId,
-        inventoryId: item._id,
-        type: "adjustment",
-        quantity: Number(quantity),
-        stockBefore,
-        stockAfter: newStock,
-        note: note || "Manual adjustment",
-        doneBy: userId,
-      },
-      { session },
-    );
-    if (item.menuItemId && (stockBefore === 0) !== (newStock === 0)) {
-      await menuRepository.updateAvailability(item.menuItemId, newStock > 0, {
+    return await transactionManager.execute(async (session) => {
+      const item = await inventoryRepository.findScopedById(id, branchFilter, {
         session,
       });
-    }
-    return item;
-  });
+      if (!item) throw new AppError("Item not found", 404);
+      const stockBefore = item.currentStock;
+      const newStock = Math.max(0, item.currentStock + Number(quantity));
+      item.currentStock = newStock;
+      await inventoryRepository.save(item, { session });
+      const stockLog = await stockLogRepository.createLog(
+        {
+          branchId,
+          inventoryId: item._id,
+          type: "adjustment",
+          quantity: Number(quantity),
+          stockBefore,
+          stockAfter: newStock,
+          note: note || "Manual adjustment",
+          doneBy: userId,
+        },
+        { session },
+      );
+      const availabilityChanged = Boolean(
+        item.menuItemId && (stockBefore === 0) !== (newStock === 0),
+      );
+      if (availabilityChanged) {
+        await menuRepository.updateAvailability(item.menuItemId, newStock > 0, {
+          session,
+        });
+      }
+      await inventoryAudit.adjusted(
+        {
+          context: auditContext,
+          item,
+          previousQuantity: stockBefore,
+          reason: note || "Manual adjustment",
+          stockLogId: stockLog?._id,
+          availabilityChanged,
+        },
+        { session },
+      );
+      return item;
+    });
+  } catch (error) {
+    await writeFailure({
+      action: AUDIT_ACTIONS.INVENTORY_ADJUST,
+      context: auditContext,
+      entityId: id,
+      error,
+    });
+    throw error;
+  }
 };
 
 const getStockLogs = (inventoryId, branchId) =>

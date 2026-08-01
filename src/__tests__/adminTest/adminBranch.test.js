@@ -8,6 +8,13 @@ process.env.JWT_SECRET = "test_jwt_secret";
 process.env.NODE_ENV = "test";
 
 jest.mock("../../models/users");
+jest.mock("../../modules/administration/AdministrationAuditLogger", () => ({
+  createContext: jest.fn((values = {}) => ({ correlationId: "test-correlation", ...values })),
+  branchCreated: jest.fn().mockResolvedValue(undefined),
+  branchUpdated: jest.fn().mockResolvedValue(undefined),
+  branchDeleted: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("../../models/Branch");
 jest.mock("../../models/settings");
 jest.mock("../../models/kot");

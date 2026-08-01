@@ -31,9 +31,10 @@ const register = (actions, entityType, level, retentionClass, paths = []) => {
 
 register(
   [A.AUTH_SIGNUP, A.AUTH_LOGIN, A.AUTH_REFRESH, A.AUTH_LOGOUT,
-    A.AUTH_ACCESS_DENIED, A.AUTH_ACCOUNT_LOCKED],
+    A.AUTH_PASSWORD_CHANGE, A.AUTH_PROFILE_UPDATE, A.AUTH_ACCESS_DENIED,
+    A.AUTH_ACCOUNT_LOCKED],
   E.AUTHENTICATION, L.CRITICAL, R.SECURITY,
-  ["status", "refreshTokenState"],
+  ["status", "refreshTokenState", "username", "role", "branchId"],
 );
 register([A.USER_CREATE, A.USER_DELETE], E.USER, L.CRITICAL, R.SECURITY,
   ["username", "role", "status", "branchId"]);
@@ -41,12 +42,21 @@ register([A.USER_ROLE_CHANGE, A.USER_STATUS_CHANGE], E.USER, L.CRITICAL,
   R.SECURITY, ["role", "status"]);
 register([A.STAFF_ASSIGN_BRANCH, A.STAFF_REMOVE_BRANCH], E.STAFF, L.CRITICAL,
   R.SECURITY, ["branchId"]);
+register([A.STAFF_CREATE, A.STAFF_UPDATE, A.STAFF_DELETE], E.STAFF, L.CRITICAL,
+  R.SECURITY, ["username", "role", "status", "branchId"]);
+register([A.STAFF_ROLE_CHANGE, A.ROLE_ASSIGNMENT], E.STAFF, L.CRITICAL,
+  R.SECURITY, ["role"]);
+register([A.STAFF_STATUS_CHANGE, A.ACCOUNT_LOCK, A.ACCOUNT_UNLOCK], E.STAFF,
+  L.CRITICAL, R.SECURITY, ["status"]);
+register([A.PERMISSION_CHANGE], E.STAFF, L.CRITICAL, R.SECURITY,
+  ["permission"]);
 register(
-  [A.BRANCH_CREATE, A.BRANCH_UPDATE, A.BRANCH_ACTIVATE, A.BRANCH_DEACTIVATE],
+  [A.BRANCH_CREATE, A.BRANCH_UPDATE, A.BRANCH_ACTIVATE, A.BRANCH_DEACTIVATE,
+    A.BRANCH_DELETE],
   E.BRANCH, L.CRITICAL, R.SECURITY,
   ["name", "address", "phone", "email", "gstin", "isActive"],
 );
-register([A.SETTINGS_CREATE, A.SETTINGS_UPDATE], E.SETTINGS, L.CRITICAL,
+register([A.SETTINGS_CREATE, A.SETTINGS_UPDATE, A.SETTINGS_RESET], E.SETTINGS, L.CRITICAL,
   R.SECURITY,
   ["businessName", "email", "phone", "address", "gstin", "currency",
     "timezone", "openTime", "closeTime", "avgServiceTime", "maxCapacity",

@@ -1,4 +1,8 @@
 const mockExecute = jest.fn();
+const mockAuditCreated = jest.fn();
+const mockAuditRestocked = jest.fn();
+const mockAuditAdjusted = jest.fn();
+const mockAuditFailure = jest.fn();
 
 jest.mock("../../infrastructure/transaction/TransactionManager", () =>
   jest.fn().mockImplementation(() => ({ execute: mockExecute })),
@@ -14,10 +18,27 @@ jest.mock("../../repositories/StockLogRepository", () => ({
 jest.mock("../../repositories/MenuRepository", () => ({
   updateAvailability: jest.fn(),
 }));
+jest.mock("../../repositories/UserRepository", () => ({
+  findByIdWithSelection: jest.fn(),
+}));
+jest.mock("../../modules/inventory/InventoryAuditLogger", () => ({
+  createContext: jest.fn((values) => ({
+    actor: values.actorId,
+    actorRole: values.actorRole,
+    branchId: values.branchId,
+    correlationId: values.correlationId || "inventory-correlation-1",
+  })),
+  created: mockAuditCreated,
+  restocked: mockAuditRestocked,
+  adjusted: mockAuditAdjusted,
+  failure: mockAuditFailure,
+}));
 
 const inventoryRepository = require("../../repositories/InventoryRepository");
 const stockLogRepository = require("../../repositories/StockLogRepository");
 const menuRepository = require("../../repositories/MenuRepository");
+const userRepository = require("../../repositories/UserRepository");
+const inventoryAudit = require("../../modules/inventory/InventoryAuditLogger");
 const inventoryService = require("../../services/inventoryService");
 
 const session = { id: "inventory-transaction-session" };
@@ -56,6 +77,7 @@ const initialState = () => ({
     },
   ],
   stockLogs: [],
+  audits: [],
   menus: {
     [menuItemId]: { _id: menuItemId, available: false },
   },
@@ -72,6 +94,7 @@ beforeEach(() => {
     transactionPhase = "active";
     try {
       const result = await work(session);
+      if (failure.commit) throw failure.commit;
       transactionPhase = "committed";
       return result;
     } catch (error) {
@@ -79,6 +102,20 @@ beforeEach(() => {
       transactionPhase = "rolled_back";
       throw error;
     }
+  });
+
+  userRepository.findByIdWithSelection.mockResolvedValue({ role: "manager" });
+  mockAuditCreated.mockImplementation(async (intent, options) => {
+    state.audits.push({ action: "INVENTORY.CREATE", intent, options });
+  });
+  mockAuditRestocked.mockImplementation(async (intent, options) => {
+    state.audits.push({ action: "INVENTORY.RESTOCK", intent, options });
+  });
+  mockAuditAdjusted.mockImplementation(async (intent, options) => {
+    state.audits.push({ action: "INVENTORY.ADJUST", intent, options });
+  });
+  mockAuditFailure.mockImplementation(async (intent) => {
+    state.audits.push({ action: intent.action, outcome: "FAILURE", intent });
   });
 
   inventoryRepository.findScopedById.mockImplementation(
@@ -145,6 +182,21 @@ describe("Inventory restock transaction", () => {
     ]);
     expect(state.menus[menuItemId].available).toBe(true);
     expect(transactionPhase).toBe("committed");
+    expect(state.audits).toHaveLength(1);
+    expect(mockAuditRestocked).toHaveBeenCalledWith(
+      expect.objectContaining({
+        previousQuantity: 0,
+        addedQuantity: 5,
+        availabilityChanged: true,
+        context: expect.objectContaining({
+          actor: userId,
+          actorRole: "manager",
+          branchId,
+          correlationId: "inventory-correlation-1",
+        }),
+      }),
+      { session },
+    );
     expect(inventoryRepository.findScopedById).toHaveBeenCalledWith(
       inventoryId,
       branchFilter,
@@ -183,10 +235,20 @@ describe("Inventory restock transaction", () => {
       ),
     ).rejects.toBe(originalError);
 
-    expect(state).toEqual(before);
+    expect({ ...state, audits: [] }).toEqual(before);
     expect(state.stockLogs).toHaveLength(0);
     expect(state.menus[menuItemId].available).toBe(false);
     expect(transactionPhase).toBe("rolled_back");
+    expect(state.audits).toEqual([
+      expect.objectContaining({ outcome: "FAILURE" }),
+    ]);
+    expect(mockAuditFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "INVENTORY.RESTOCK",
+        entityId: inventoryId,
+        error: originalError,
+      }),
+    );
   });
 
   test("keeps branch isolation inside the transaction", async () => {
@@ -205,8 +267,29 @@ describe("Inventory restock transaction", () => {
       statusCode: 404,
     });
 
-    expect(state).toEqual(before);
+    expect({ ...state, audits: [] }).toEqual(before);
     expect(transactionPhase).toBe("rolled_back");
+  });
+
+  test("rolls back the success audit on commit failure and writes only failure audit", async () => {
+    const originalError = new Error("restock commit failed");
+    failure.commit = originalError;
+
+    await expect(
+      inventoryService.restockItem(
+        inventoryId,
+        branchFilter,
+        { quantity: 5 },
+        context,
+      ),
+    ).rejects.toBe(originalError);
+
+    expect(state.inventory[0].currentStock).toBe(0);
+    expect(state.stockLogs).toHaveLength(0);
+    expect(state.menus[menuItemId].available).toBe(false);
+    expect(state.audits).toEqual([
+      expect.objectContaining({ outcome: "FAILURE" }),
+    ]);
   });
 });
 
@@ -236,6 +319,14 @@ describe("Manual stock adjustment transaction", () => {
     );
     expect(state.menus[menuItemId].available).toBe(false);
     expect(transactionPhase).toBe("committed");
+    expect(mockAuditAdjusted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        previousQuantity: 4,
+        reason: "Damaged stock",
+        availabilityChanged: true,
+      }),
+      { session },
+    );
     expect(menuRepository.updateAvailability).toHaveBeenCalledWith(
       menuItemId,
       false,
@@ -257,9 +348,33 @@ describe("Manual stock adjustment transaction", () => {
       ),
     ).rejects.toBe(originalError);
 
-    expect(state).toEqual(before);
+    expect({ ...state, audits: [] }).toEqual(before);
     expect(state.stockLogs).toHaveLength(0);
     expect(transactionPhase).toBe("rolled_back");
+    expect(state.audits).toEqual([
+      expect.objectContaining({ outcome: "FAILURE" }),
+    ]);
+  });
+
+  test("rolls back the success audit on commit failure and writes only failure audit", async () => {
+    const originalError = new Error("adjustment commit failed");
+    failure.commit = originalError;
+
+    await expect(
+      inventoryService.adjustStock(
+        inventoryId,
+        branchFilter,
+        { quantity: -4, note: "Expired" },
+        context,
+      ),
+    ).rejects.toBe(originalError);
+
+    expect(state.inventory[0].currentStock).toBe(4);
+    expect(state.stockLogs).toHaveLength(0);
+    expect(state.menus[menuItemId].available).toBe(true);
+    expect(state.audits).toEqual([
+      expect.objectContaining({ outcome: "FAILURE" }),
+    ]);
   });
 });
 
@@ -289,6 +404,13 @@ describe("Inventory creation transaction", () => {
     ]);
     expect(state.menus[menuItemId].available).toBe(true);
     expect(transactionPhase).toBe("committed");
+    expect(mockAuditCreated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialQuantity: 6,
+        context: expect.objectContaining({ actorRole: "manager" }),
+      }),
+      { session },
+    );
     expect(inventoryRepository.createInventory).toHaveBeenCalledWith(
       expect.objectContaining({ branchId, currentStock: 6 }),
       { session },
@@ -313,9 +435,33 @@ describe("Inventory creation transaction", () => {
       inventoryService.createInventory(input, context),
     ).rejects.toBe(originalError);
 
-    expect(state).toEqual(before);
+    expect({ ...state, audits: [] }).toEqual(before);
     expect(state.stockLogs).toHaveLength(0);
     expect(state.menus[menuItemId].available).toBe(false);
     expect(transactionPhase).toBe("rolled_back");
+    expect(state.audits).toEqual([
+      expect.objectContaining({ outcome: "FAILURE" }),
+    ]);
+  });
+
+  test("rolls back an in-transaction audit when commit fails, then writes failure outside", async () => {
+    const originalError = new Error("commit failed");
+    failure.commit = originalError;
+
+    await expect(
+      inventoryService.createInventory(input, context),
+    ).rejects.toBe(originalError);
+
+    expect(state.inventory).toHaveLength(2);
+    expect(state.stockLogs).toHaveLength(0);
+    expect(state.audits).toEqual([
+      expect.objectContaining({ outcome: "FAILURE" }),
+    ]);
+    expect(inventoryAudit.failure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "INVENTORY.CREATE",
+        error: originalError,
+      }),
+    );
   });
 });

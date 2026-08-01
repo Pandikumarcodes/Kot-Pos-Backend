@@ -11,6 +11,11 @@ process.env.NODE_ENV = "test";
 // ── Mock the User model ───────────────────────────────────────
 // We never touch a real DB — all User calls are intercepted here
 jest.mock("../models/users");
+jest.mock("../modules/administration/AdministrationAuditLogger", () => ({
+  createContext: jest.fn((values = {}) => ({ correlationId: "test-correlation", ...values })),
+  authentication: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 const User = require("../models/users");
 
 // ── Mock logger to silence Winston output during tests ────────

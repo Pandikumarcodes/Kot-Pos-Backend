@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userRepository = require("../repositories/UserRepository");
 const AppError = require("../utils/AppError");
+const administrationAudit = require("../modules/administration/AdministrationAuditLogger");
+const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 
 const PUBLIC_SIGNUP_ROLE = "waiter";
 const REFRESH_TOKEN_ALGORITHMS = ["HS256"];
@@ -40,8 +42,11 @@ const signup = async ({ username, password, status }) => {
   };
 };
 
-const login = async ({ username, password }) => {
-  const user = await userRepository.findByUsername(username, "+password");
+const login = async ({ username, password }, audit = {}) => {
+  let context = administrationAudit.createContext(audit);
+  let user = null;
+  try {
+  user = await userRepository.findByUsername(username, "+password");
   const validPassword = user
     ? await user.validatePassword(password)
     : await bcrypt.compare(password, await DUMMY_PASSWORD_HASH);
@@ -54,6 +59,10 @@ const login = async ({ username, password }) => {
     user.getJWT(),
     issueRefreshToken(user),
   ]);
+  context = administrationAudit.createContext({ ...audit, actorId: user._id,
+    actorRole: user.role, branchId: user.branchId, correlationId: context.correlationId });
+  await administrationAudit.authentication({ action: AUDIT_ACTIONS.AUTH_LOGIN,
+    context, userId: user._id, statusAfter: "authenticated" });
   return {
     accessToken,
     refreshToken,
@@ -65,6 +74,18 @@ const login = async ({ username, password }) => {
       branchId: user.branchId ?? null,
     },
   };
+  } catch (error) {
+    try {
+      if (user) context = administrationAudit.createContext({ ...audit,
+        actorId: user._id, actorRole: user.role, branchId: user.branchId,
+        correlationId: context.correlationId });
+      await administrationAudit.failure({ action: AUDIT_ACTIONS.AUTH_LOGIN,
+        context, entityId: user?._id ?? null, error });
+    } catch (_auditFailure) {
+      // A secondary audit outage must not replace the authentication error.
+    }
+    throw error;
+  }
 };
 
 const refresh = async (refreshToken) => {
@@ -111,12 +132,32 @@ const refresh = async (refreshToken) => {
 };
 
 const logout = async (token, verifyAccessToken) => {
-  if (!token) return;
+  let payload = null;
+  const contextSeed = administrationAudit.createContext();
   try {
-    const payload = verifyAccessToken(token);
-    await userRepository.clearRefreshToken(payload._id);
+    if (token) {
+      payload = verifyAccessToken(token);
+      await userRepository.clearRefreshToken(payload._id);
+    }
   } catch (err) {
     // Logout is intentionally idempotent for expired or invalid sessions.
+  }
+  const context = administrationAudit.createContext({
+    actorId: payload?._id, actorRole: payload?.role, branchId: payload?.branchId,
+    correlationId: contextSeed.correlationId,
+  });
+  try {
+    await administrationAudit.authentication({ action: AUDIT_ACTIONS.AUTH_LOGOUT,
+      context, userId: payload?._id ?? null, statusBefore: "authenticated",
+      statusAfter: "logged_out" });
+  } catch (error) {
+    try {
+      await administrationAudit.failure({ action: AUDIT_ACTIONS.AUTH_LOGOUT,
+        context, entityId: payload?._id ?? null, error });
+    } catch (_auditFailure) {
+      // A secondary audit outage must not replace the audit write error.
+    }
+    throw error;
   }
 };
 

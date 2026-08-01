@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────
 
 const logger = require("../config/logger");
+const administrationRequestContext = require("../modules/administration/AdministrationRequestContext");
 
 // Paths to skip (health checks, static files)
 const SKIP_PATHS = ["/favicon.ico", "/health", "/api/version"];
@@ -37,5 +38,5 @@ module.exports = function requestLogger(req, res, next) {
     });
   });
 
-  next();
+  administrationRequestContext.run(req, next);
 };

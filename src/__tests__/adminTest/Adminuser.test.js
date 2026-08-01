@@ -9,6 +9,13 @@ process.env.NODE_ENV = "test";
 
 // ── Mock models ───────────────────────────────────────────────
 jest.mock("../../models/users");
+jest.mock("../../modules/administration/AdministrationAuditLogger", () => ({
+  createContext: jest.fn((values = {}) => ({ correlationId: "test-correlation", ...values })),
+  staffCreated: jest.fn().mockResolvedValue(undefined),
+  roleChanged: jest.fn().mockResolvedValue(undefined),
+  staffDeleted: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
