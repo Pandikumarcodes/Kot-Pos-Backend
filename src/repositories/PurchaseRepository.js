@@ -1,11 +1,11 @@
-const StockLogRepository = require("./StockLogRepository").StockLogRepository;
+const stockLogRepository = require("./StockLogRepository");
 
-class PurchaseRepository extends StockLogRepository {
-  listRestocks(branchId, filter = {}) {
-    return this.findMany({ ...filter, branchId, type: "restock" })
-      .sort({ createdAt: -1 });
-  }
-}
+const listRestocks = (branchId, filter = {}) =>
+  stockLogRepository
+    .findMany({ ...filter, branchId, type: "restock" })
+    .sort({ createdAt: -1 });
 
-module.exports = new PurchaseRepository();
-module.exports.PurchaseRepository = PurchaseRepository;
+module.exports = {
+  ...stockLogRepository,
+  listRestocks,
+};

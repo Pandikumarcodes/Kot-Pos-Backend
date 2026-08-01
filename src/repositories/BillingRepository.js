@@ -1,45 +1,38 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const Billing = require("../models/billings");
 
-class BillingRepository extends BaseRepository {
-  constructor() {
-    super(Billing);
-  }
+const baseRepository = createBaseRepository(Billing);
 
-  countCreatedSince(date) {
-    return this.count({ createdAt: { $gte: date } });
-  }
+const countCreatedSince = (date) =>
+  baseRepository.count({ createdAt: { $gte: date } });
 
-  createBillDocument(data) {
-    return this.createDocument(data);
-  }
+const createBillDocument = (data) => baseRepository.createDocument(data);
 
-  createBill(data) {
-    return this.create(data);
-  }
+const createBill = (data) => baseRepository.create(data);
 
-  listScoped(filter) {
-    return this.findMany(filter)
-      .populate("createdBy", "username role")
-      .sort({ createdAt: -1 });
-  }
+const listScoped = (filter) =>
+  baseRepository
+    .findMany(filter)
+    .populate("createdBy", "username role")
+    .sort({ createdAt: -1 });
 
-  findScopedWithCreator(filter) {
-    return this.findOne(filter).populate("createdBy", "username role");
-  }
+const findScopedWithCreator = (filter) =>
+  baseRepository.findOne(filter).populate("createdBy", "username role");
 
-  findScoped(filter) {
-    return this.findOne(filter);
-  }
+const findScoped = (filter) => baseRepository.findOne(filter);
 
-  deleteScoped(filter) {
-    return this.model.findOneAndDelete(filter);
-  }
+const deleteScoped = (filter) => Billing.findOneAndDelete(filter);
 
-  listLean(filter) {
-    return this.findMany(filter).lean();
-  }
-}
+const listLean = (filter) => baseRepository.findMany(filter).lean();
 
-module.exports = new BillingRepository();
-module.exports.BillingRepository = BillingRepository;
+module.exports = {
+  ...baseRepository,
+  countCreatedSince,
+  createBillDocument,
+  createBill,
+  listScoped,
+  findScopedWithCreator,
+  findScoped,
+  deleteScoped,
+  listLean,
+};

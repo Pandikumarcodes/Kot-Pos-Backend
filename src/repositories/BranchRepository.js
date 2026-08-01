@@ -1,33 +1,30 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const Branch = require("../models/Branch");
 
-class BranchRepository extends BaseRepository {
-  constructor() {
-    super(Branch);
-  }
+const baseRepository = createBaseRepository(Branch);
 
-  listWithAdmin() {
-    return this.findMany()
-      .populate("adminUser", "username role")
-      .sort({ createdAt: -1 });
-  }
+const listWithAdmin = () =>
+  baseRepository
+    .findMany()
+    .populate("adminUser", "username role")
+    .sort({ createdAt: -1 });
 
-  createBranch(data) {
-    return this.create(data);
-  }
+const createBranch = (data) => baseRepository.create(data);
 
-  updateBranch(id, update) {
-    return this.updateById(id, update, { new: true, runValidators: true });
-  }
+const updateBranch = (id, update) =>
+  baseRepository.updateById(id, update, { new: true, runValidators: true });
 
-  deactivate(id) {
-    return this.updateById(id, { isActive: false }, { new: true });
-  }
+const deactivate = (id) =>
+  baseRepository.updateById(id, { isActive: false }, { new: true });
 
-  findFirstActive() {
-    return this.findOne({ isActive: true }).lean();
-  }
-}
+const findFirstActive = () =>
+  baseRepository.findOne({ isActive: true }).lean();
 
-module.exports = new BranchRepository();
-module.exports.BranchRepository = BranchRepository;
+module.exports = {
+  ...baseRepository,
+  listWithAdmin,
+  createBranch,
+  updateBranch,
+  deactivate,
+  findFirstActive,
+};

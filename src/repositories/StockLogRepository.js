@@ -1,27 +1,23 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const StockLog = require("../models/StockLog");
 
-class StockLogRepository extends BaseRepository {
-  constructor() {
-    super(StockLog);
-  }
+const baseRepository = createBaseRepository(StockLog);
 
-  createLog(data) {
-    return this.create(data);
-  }
+const createLog = (data) => baseRepository.create(data);
 
-  listForInventory(inventoryId, branchId) {
-    return this.findMany({ inventoryId, branchId })
-      .populate("doneBy", "username role")
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-  }
+const listForInventory = (inventoryId, branchId) =>
+  baseRepository
+    .findMany({ inventoryId, branchId })
+    .populate("doneBy", "username role")
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
 
-  listLean(filter) {
-    return this.findMany(filter).lean();
-  }
-}
+const listLean = (filter) => baseRepository.findMany(filter).lean();
 
-module.exports = new StockLogRepository();
-module.exports.StockLogRepository = StockLogRepository;
+module.exports = {
+  ...baseRepository,
+  createLog,
+  listForInventory,
+  listLean,
+};

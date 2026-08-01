@@ -1,52 +1,49 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const User = require("../models/users");
 
-class UserRepository extends BaseRepository {
-  constructor() {
-    super(User);
-  }
+const baseRepository = createBaseRepository(User);
 
-  findByUsername(username, selection) {
-    const query = this.findOne({ username });
-    return selection && query && typeof query.select === "function"
-      ? query.select(selection)
-      : query;
-  }
+const findByUsername = (username, selection) => {
+  const query = baseRepository.findOne({ username });
+  return selection && query && typeof query.select === "function"
+    ? query.select(selection)
+    : query;
+};
 
-  findByIdWithSelection(id, selection) {
-    const query = this.findById(id);
-    return selection && query && typeof query.select === "function"
-      ? query.select(selection)
-      : query;
-  }
+const findByIdWithSelection = (id, selection) => {
+  const query = baseRepository.findById(id);
+  return selection && query && typeof query.select === "function"
+    ? query.select(selection)
+    : query;
+};
 
-  createUserDocument(data) {
-    return this.createDocument(data);
-  }
+const createUserDocument = (data) => baseRepository.createDocument(data);
 
-  findByScope(filter) {
-    return this.findMany(filter).select("-password");
-  }
+const findByScope = (filter) =>
+  baseRepository.findMany(filter).select("-password");
 
-  updateRole(filter, role) {
-    return this.model.findOneAndUpdate(
-      filter,
-      { role },
-      { new: true, runValidators: true, select: "-password" },
-    );
-  }
+const updateRole = (filter, role) =>
+  User.findOneAndUpdate(
+    filter,
+    { role },
+    { new: true, runValidators: true, select: "-password" },
+  );
 
-  deleteByScope(filter) {
-    return this.model.findOneAndDelete(filter);
-  }
+const deleteByScope = (filter) => User.findOneAndDelete(filter);
 
-  clearRefreshToken(userId) {
-    return this.updateOne(
-      { _id: userId },
-      { $set: { refreshTokenHash: null } },
-    );
-  }
-}
+const clearRefreshToken = (userId) =>
+  baseRepository.updateOne(
+    { _id: userId },
+    { $set: { refreshTokenHash: null } },
+  );
 
-module.exports = new UserRepository();
-module.exports.UserRepository = UserRepository;
+module.exports = {
+  ...baseRepository,
+  findByUsername,
+  findByIdWithSelection,
+  createUserDocument,
+  findByScope,
+  updateRole,
+  deleteByScope,
+  clearRefreshToken,
+};

@@ -1,49 +1,46 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const TableOrder = require("../models/waiter");
 
-class OrderRepository extends BaseRepository {
-  constructor() {
-    super(TableOrder);
-  }
+const baseRepository = createBaseRepository(TableOrder);
 
-  listTableActive(filter) {
-    return this.findMany(filter)
-      .populate("createdBy", "username")
-      .sort({ createdAt: 1 });
-  }
+const listTableActive = (filter) =>
+  baseRepository
+    .findMany(filter)
+    .populate("createdBy", "username")
+    .sort({ createdAt: 1 });
 
-  listScoped(filter) {
-    return this.findMany(filter)
-      .populate("createdBy", "username")
-      .sort({ createdAt: -1 });
-  }
+const listScoped = (filter) =>
+  baseRepository
+    .findMany(filter)
+    .populate("createdBy", "username")
+    .sort({ createdAt: -1 });
 
-  findScopedWithDetails(filter) {
-    return this.findOne(filter)
-      .populate("createdBy", "username")
-      .populate("items.itemId", "ItemName price");
-  }
+const findScopedWithDetails = (filter) =>
+  baseRepository
+    .findOne(filter)
+    .populate("createdBy", "username")
+    .populate("items.itemId", "ItemName price");
 
-  createOrderDocument(data) {
-    return this.createDocument(data);
-  }
+const createOrderDocument = (data) => baseRepository.createDocument(data);
 
-  createOrder(data) {
-    return this.create(data);
-  }
+const createOrder = (data) => baseRepository.create(data);
 
-  updateStatus(filter, status) {
-    return this.model.findOneAndUpdate(filter, { status }, { new: true });
-  }
+const updateStatus = (filter, status) =>
+  TableOrder.findOneAndUpdate(filter, { status }, { new: true });
 
-  updateManyStatus(filter, status) {
-    return this.model.updateMany(filter, { status });
-  }
+const updateManyStatus = (filter, status) =>
+  TableOrder.updateMany(filter, { status });
 
-  countScoped(filter) {
-    return this.count(filter);
-  }
-}
+const countScoped = (filter) => baseRepository.count(filter);
 
-module.exports = new OrderRepository();
-module.exports.OrderRepository = OrderRepository;
+module.exports = {
+  ...baseRepository,
+  listTableActive,
+  listScoped,
+  findScopedWithDetails,
+  createOrderDocument,
+  createOrder,
+  updateStatus,
+  updateManyStatus,
+  countScoped,
+};

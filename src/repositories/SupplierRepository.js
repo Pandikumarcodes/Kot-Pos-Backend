@@ -1,11 +1,9 @@
-const InventoryRepository =
-  require("./InventoryRepository").InventoryRepository;
+const inventoryRepository = require("./InventoryRepository");
 
-class SupplierRepository extends InventoryRepository {
-  listInventoryBySupplier(branchId, supplier) {
-    return this.findMany({ branchId, supplier, isActive: true });
-  }
-}
+const listInventoryBySupplier = (branchId, supplier) =>
+  inventoryRepository.findMany({ branchId, supplier, isActive: true });
 
-module.exports = new SupplierRepository();
-module.exports.SupplierRepository = SupplierRepository;
+module.exports = {
+  ...inventoryRepository,
+  listInventoryBySupplier,
+};

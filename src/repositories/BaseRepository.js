@@ -1,80 +1,76 @@
-class BaseRepository {
-  constructor(model) {
-    this.model = model;
-  }
+const createBaseRepository = (Model) => {
+  const findById = (id, projection, options) => {
+    if (options !== undefined) return Model.findById(id, projection, options);
+    if (projection !== undefined) return Model.findById(id, projection);
+    return Model.findById(id);
+  };
 
-  findById(id, projection, options) {
-    if (options !== undefined) return this.model.findById(id, projection, options);
-    if (projection !== undefined) return this.model.findById(id, projection);
-    return this.model.findById(id);
-  }
+  const findOne = (filter, projection, options) => {
+    if (options !== undefined) return Model.findOne(filter, projection, options);
+    if (projection !== undefined) return Model.findOne(filter, projection);
+    return Model.findOne(filter);
+  };
 
-  findOne(filter, projection, options) {
-    if (options !== undefined) return this.model.findOne(filter, projection, options);
-    if (projection !== undefined) return this.model.findOne(filter, projection);
-    return this.model.findOne(filter);
-  }
+  const findMany = (filter = {}, projection, options) => {
+    if (options !== undefined) return Model.find(filter, projection, options);
+    if (projection !== undefined) return Model.find(filter, projection);
+    return Model.find(filter);
+  };
 
-  findMany(filter = {}, projection, options) {
-    if (options !== undefined) return this.model.find(filter, projection, options);
-    if (projection !== undefined) return this.model.find(filter, projection);
-    return this.model.find(filter);
-  }
+  const create = (data, options) =>
+    options === undefined ? Model.create(data) : Model.create(data, options);
 
-  create(data, options) {
-    return options === undefined
-      ? this.model.create(data)
-      : this.model.create(data, options);
-  }
-
-  async createDocument(data, saveOptions) {
-    const document = new this.model(data);
+  const createDocument = async (data, saveOptions) => {
+    const document = new Model(data);
     if (saveOptions === undefined) await document.save();
     else await document.save(saveOptions);
     return document;
-  }
+  };
 
-  updateById(id, update, options) {
-    return options === undefined
-      ? this.model.findByIdAndUpdate(id, update)
-      : this.model.findByIdAndUpdate(id, update, options);
-  }
+  const updateById = (id, update, options) =>
+    options === undefined
+      ? Model.findByIdAndUpdate(id, update)
+      : Model.findByIdAndUpdate(id, update, options);
 
-  updateOne(filter, update, options) {
-    return options === undefined
-      ? this.model.updateOne(filter, update)
-      : this.model.updateOne(filter, update, options);
-  }
+  const updateOne = (filter, update, options) =>
+    options === undefined
+      ? Model.updateOne(filter, update)
+      : Model.updateOne(filter, update, options);
 
-  deleteById(id, options) {
-    return options === undefined
-      ? this.model.findByIdAndDelete(id)
-      : this.model.findByIdAndDelete(id, options);
-  }
+  const deleteById = (id, options) =>
+    options === undefined
+      ? Model.findByIdAndDelete(id)
+      : Model.findByIdAndDelete(id, options);
 
-  deleteOne(filter, options) {
-    return options === undefined
-      ? this.model.findOneAndDelete(filter)
-      : this.model.findOneAndDelete(filter, options);
-  }
+  const deleteOne = (filter, options) =>
+    options === undefined
+      ? Model.findOneAndDelete(filter)
+      : Model.findOneAndDelete(filter, options);
 
-  exists(filter) {
-    return this.model.exists(filter);
-  }
+  const exists = (filter) => Model.exists(filter);
+  const count = (filter = {}) => Model.countDocuments(filter);
+  const aggregate = (pipeline, options) =>
+    options === undefined
+      ? Model.aggregate(pipeline)
+      : Model.aggregate(pipeline, options);
+  const save = (document, options) =>
+    options === undefined ? document.save() : document.save(options);
 
-  count(filter = {}) {
-    return this.model.countDocuments(filter);
-  }
+  return {
+    findById,
+    findOne,
+    findMany,
+    create,
+    createDocument,
+    updateById,
+    updateOne,
+    deleteById,
+    deleteOne,
+    exists,
+    count,
+    aggregate,
+    save,
+  };
+};
 
-  aggregate(pipeline, options) {
-    return options === undefined
-      ? this.model.aggregate(pipeline)
-      : this.model.aggregate(pipeline, options);
-  }
-
-  save(document, options) {
-    return options === undefined ? document.save() : document.save(options);
-  }
-}
-
-module.exports = BaseRepository;
+module.exports = createBaseRepository;

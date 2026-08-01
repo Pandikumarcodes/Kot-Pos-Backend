@@ -1,10 +1,8 @@
-const MenuRepository = require("./MenuRepository").MenuRepository;
+const menuRepository = require("./MenuRepository");
 
-class CategoryRepository extends MenuRepository {
-  listItemsByCategory(category) {
-    return this.findMany({ category });
-  }
-}
+const listItemsByCategory = (category) => menuRepository.findMany({ category });
 
-module.exports = new CategoryRepository();
-module.exports.CategoryRepository = CategoryRepository;
+module.exports = {
+  ...menuRepository,
+  listItemsByCategory,
+};

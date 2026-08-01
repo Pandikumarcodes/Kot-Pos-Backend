@@ -1,24 +1,27 @@
-const UserRepository = require("./UserRepository").UserRepository;
+const userRepository = require("./UserRepository");
 
-class StaffRepository extends UserRepository {
-  findByIdInBranch(userId, branchId) {
-    return this.findOne({ _id: userId, branchId });
-  }
+const findByIdInBranch = (userId, branchId) =>
+  userRepository.findOne({ _id: userId, branchId });
 
-  listByBranch(branchId) {
-    return this.findMany({ branchId }).select("-password").sort({ role: 1 });
-  }
+const listByBranch = (branchId) =>
+  userRepository
+    .findMany({ branchId })
+    .select("-password")
+    .sort({ role: 1 });
 
-  listUnassigned() {
-    return this.findMany({ branchId: null, role: { $ne: "admin" } })
-      .select("-password")
-      .sort({ role: 1 });
-  }
+const listUnassigned = () =>
+  userRepository
+    .findMany({ branchId: null, role: { $ne: "admin" } })
+    .select("-password")
+    .sort({ role: 1 });
 
-  countActiveByBranch(branchId) {
-    return this.count({ branchId, status: "active" });
-  }
-}
+const countActiveByBranch = (branchId) =>
+  userRepository.count({ branchId, status: "active" });
 
-module.exports = new StaffRepository();
-module.exports.StaffRepository = StaffRepository;
+module.exports = {
+  ...userRepository,
+  findByIdInBranch,
+  listByBranch,
+  listUnassigned,
+  countActiveByBranch,
+};

@@ -1,41 +1,35 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const Kot = require("../models/kot");
 
-class KitchenRepository extends BaseRepository {
-  constructor() {
-    super(Kot);
-  }
+const baseRepository = createBaseRepository(Kot);
 
-  listActive(filter) {
-    return this.findMany(filter).sort({ createdAt: 1 });
-  }
+const listActive = (filter) =>
+  baseRepository.findMany(filter).sort({ createdAt: 1 });
 
-  findScoped(filter) {
-    return this.findOne(filter);
-  }
+const findScoped = (filter) => baseRepository.findOne(filter);
 
-  updateStatus(filter, status) {
-    return this.model.findOneAndUpdate(filter, { status }, { new: true });
-  }
+const updateStatus = (filter, status) =>
+  Kot.findOneAndUpdate(filter, { status }, { new: true });
 
-  createOrder(data) {
-    return this.create(data);
-  }
+const createOrder = (data) => baseRepository.create(data);
 
-  findPublicStatus(id) {
-    return this.findById(id)
-      .select("status totalAmount items createdAt")
-      .lean();
-  }
+const findPublicStatus = (id) =>
+  baseRepository
+    .findById(id)
+    .select("status totalAmount items createdAt")
+    .lean();
 
-  countByFilter(filter) {
-    return this.count(filter);
-  }
+const countByFilter = (filter) => baseRepository.count(filter);
 
-  listLean(filter) {
-    return this.findMany(filter).lean();
-  }
-}
+const listLean = (filter) => baseRepository.findMany(filter).lean();
 
-module.exports = new KitchenRepository();
-module.exports.KitchenRepository = KitchenRepository;
+module.exports = {
+  ...baseRepository,
+  listActive,
+  findScoped,
+  updateStatus,
+  createOrder,
+  findPublicStatus,
+  countByFilter,
+  listLean,
+};

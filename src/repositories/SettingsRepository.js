@@ -1,31 +1,25 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const Settings = require("../models/settings");
 
-class SettingsRepository extends BaseRepository {
-  constructor() {
-    super(Settings);
-  }
+const baseRepository = createBaseRepository(Settings);
 
-  findScoped(filter) {
-    return this.findOne(filter);
-  }
+const findScoped = (filter) => baseRepository.findOne(filter);
 
-  findScopedLean(filter) {
-    return this.findOne(filter).lean();
-  }
+const findScopedLean = (filter) => baseRepository.findOne(filter).lean();
 
-  createSettings(data) {
-    return this.create(data);
-  }
+const createSettings = (data) => baseRepository.create(data);
 
-  updateScoped(filter, update) {
-    return this.model.findOneAndUpdate(
-      filter,
-      { $set: update },
-      { new: true, runValidators: true },
-    );
-  }
-}
+const updateScoped = (filter, update) =>
+  Settings.findOneAndUpdate(
+    filter,
+    { $set: update },
+    { new: true, runValidators: true },
+  );
 
-module.exports = new SettingsRepository();
-module.exports.SettingsRepository = SettingsRepository;
+module.exports = {
+  ...baseRepository,
+  findScoped,
+  findScopedLean,
+  createSettings,
+  updateScoped,
+};

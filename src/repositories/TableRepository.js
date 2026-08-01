@@ -1,39 +1,31 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const Table = require("../models/tables");
 
-class TableRepository extends BaseRepository {
-  constructor() {
-    super(Table);
-  }
+const baseRepository = createBaseRepository(Table);
 
-  findByNumber(tableNumber) {
-    return this.findOne({ tableNumber });
-  }
+const findByNumber = (tableNumber) =>
+  baseRepository.findOne({ tableNumber });
 
-  createTableDocument(data) {
-    return this.createDocument(data);
-  }
+const createTableDocument = (data) => baseRepository.createDocument(data);
 
-  listAll() {
-    return this.findMany();
-  }
+const listAll = () => baseRepository.findMany();
 
-  updateTable(id, update) {
-    return this.updateById(id, update, { new: true, runValidators: true });
-  }
+const updateTable = (id, update) =>
+  baseRepository.updateById(id, update, { new: true, runValidators: true });
 
-  deleteTable(id) {
-    return this.deleteById(id);
-  }
+const deleteTable = (id) => baseRepository.deleteById(id);
 
-  updateState(id, update) {
-    return this.updateById(id, update);
-  }
+const updateState = (id, update) => baseRepository.updateById(id, update);
 
-  findByIdLean(id) {
-    return this.findById(id).lean();
-  }
-}
+const findByIdLean = (id) => baseRepository.findById(id).lean();
 
-module.exports = new TableRepository();
-module.exports.TableRepository = TableRepository;
+module.exports = {
+  ...baseRepository,
+  findByNumber,
+  createTableDocument,
+  listAll,
+  updateTable,
+  deleteTable,
+  updateState,
+  findByIdLean,
+};

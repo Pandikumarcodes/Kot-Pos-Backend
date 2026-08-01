@@ -1,29 +1,26 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const TakeAway = require("../models/takeAway");
 
-class TakeawayOrderRepository extends BaseRepository {
-  constructor() {
-    super(TakeAway);
-  }
+const baseRepository = createBaseRepository(TakeAway);
 
-  createOrderDocument(data) {
-    return this.createDocument(data);
-  }
+const createOrderDocument = (data) => baseRepository.createDocument(data);
 
-  listScoped(filter) {
-    return this.findMany(filter).sort({ createdAt: -1 });
-  }
+const listScoped = (filter) =>
+  baseRepository.findMany(filter).sort({ createdAt: -1 });
 
-  findScopedWithDetails(filter) {
-    return this.findOne(filter)
-      .populate("createdBy", "username")
-      .populate("items.itemId", "ItemName price");
-  }
+const findScopedWithDetails = (filter) =>
+  baseRepository
+    .findOne(filter)
+    .populate("createdBy", "username")
+    .populate("items.itemId", "ItemName price");
 
-  updateStatus(filter, status) {
-    return this.model.findOneAndUpdate(filter, { status }, { new: true });
-  }
-}
+const updateStatus = (filter, status) =>
+  TakeAway.findOneAndUpdate(filter, { status }, { new: true });
 
-module.exports = new TakeawayOrderRepository();
-module.exports.TakeawayOrderRepository = TakeawayOrderRepository;
+module.exports = {
+  ...baseRepository,
+  createOrderDocument,
+  listScoped,
+  findScopedWithDetails,
+  updateStatus,
+};

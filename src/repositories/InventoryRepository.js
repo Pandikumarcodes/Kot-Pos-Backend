@@ -1,50 +1,46 @@
-const BaseRepository = require("./BaseRepository");
+const createBaseRepository = require("./BaseRepository");
 const Inventory = require("../models/Inventory");
 
-class InventoryRepository extends BaseRepository {
-  constructor() {
-    super(Inventory);
-  }
+const baseRepository = createBaseRepository(Inventory);
 
-  findActive(filter) {
-    return this.findMany({ ...filter, isActive: true })
-      .populate("menuItemId", "ItemName available")
-      .sort({ currentStock: 1 })
-      .lean({ virtuals: true });
-  }
+const findActive = (filter) =>
+  baseRepository
+    .findMany({ ...filter, isActive: true })
+    .populate("menuItemId", "ItemName available")
+    .sort({ currentStock: 1 })
+    .lean({ virtuals: true });
 
-  createInventory(data) {
-    return this.create(data);
-  }
+const createInventory = (data) => baseRepository.create(data);
 
-  updateScoped(id, branchFilter, update) {
-    return this.model.findOneAndUpdate(
-      { _id: id, ...branchFilter },
-      update,
-      { new: true, runValidators: true },
-    );
-  }
+const updateScoped = (id, branchFilter, update) =>
+  Inventory.findOneAndUpdate(
+    { _id: id, ...branchFilter },
+    update,
+    { new: true, runValidators: true },
+  );
 
-  findScopedById(id, branchFilter) {
-    return this.findOne({ _id: id, ...branchFilter });
-  }
+const findScopedById = (id, branchFilter) =>
+  baseRepository.findOne({ _id: id, ...branchFilter });
 
-  deactivateScoped(id, branchFilter) {
-    return this.model.findOneAndUpdate(
-      { _id: id, ...branchFilter },
-      { isActive: false },
-      { new: true },
-    );
-  }
+const deactivateScoped = (id, branchFilter) =>
+  Inventory.findOneAndUpdate(
+    { _id: id, ...branchFilter },
+    { isActive: false },
+    { new: true },
+  );
 
-  findActiveByMenuItem(branchId, menuItemId) {
-    return this.findOne({ branchId, menuItemId, isActive: true });
-  }
+const findActiveByMenuItem = (branchId, menuItemId) =>
+  baseRepository.findOne({ branchId, menuItemId, isActive: true });
 
-  listLean(filter) {
-    return this.findMany(filter).lean();
-  }
-}
+const listLean = (filter) => baseRepository.findMany(filter).lean();
 
-module.exports = new InventoryRepository();
-module.exports.InventoryRepository = InventoryRepository;
+module.exports = {
+  ...baseRepository,
+  findActive,
+  createInventory,
+  updateScoped,
+  findScopedById,
+  deactivateScoped,
+  findActiveByMenuItem,
+  listLean,
+};
