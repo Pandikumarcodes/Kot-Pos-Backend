@@ -1,4 +1,8 @@
 const mockExecute = jest.fn();
+const mockAuditCreateContext = jest.fn();
+const mockBillCreated = jest.fn();
+const mockPaymentCollected = jest.fn();
+const mockAuditFailure = jest.fn();
 
 jest.mock("../../infrastructure/transaction/TransactionManager", () =>
   jest.fn().mockImplementation(() => ({ execute: mockExecute })),
@@ -24,6 +28,12 @@ jest.mock("../../services/notificationservices", () => ({
   notify: {
     billingUpdated: jest.fn(),
   },
+}));
+jest.mock("../../modules/billing/BillingAuditLogger", () => ({
+  createContext: mockAuditCreateContext,
+  billCreated: mockBillCreated,
+  paymentCollected: mockPaymentCollected,
+  failure: mockAuditFailure,
 }));
 
 const billingRepository = require("../../repositories/BillingRepository");
@@ -63,6 +73,7 @@ let failure;
 let transactionPhase;
 
 const initialState = () => ({
+  audits: [],
   bills: [],
   orders: [clone(originalOrder)],
   tables: {
@@ -78,6 +89,8 @@ const transactionContext = {
   scopeToBranchMembers,
   branchId: "branch-1",
   userId: "user-1",
+  actorRole: "waiter",
+  correlationId: "billing-correlation-1",
   io: { name: "io" },
 };
 
@@ -86,6 +99,55 @@ beforeEach(() => {
   state = initialState();
   failure = {};
   transactionPhase = "idle";
+
+  mockAuditCreateContext.mockImplementation((values) => ({
+    actor: values.actorId || "billing-service",
+    actorRole: values.actorRole || null,
+    branchId: values.branchId,
+    correlationId: values.correlationId || "generated-correlation",
+  }));
+  mockBillCreated.mockImplementation(async ({ context, bill, tableId, orderIds }, options) => {
+    state.audits.push({
+      action: "BILLING.CREATE",
+      outcome: "SUCCESS",
+      actor: context.actor,
+      actorRole: context.actorRole,
+      branchId: context.branchId,
+      correlationId: context.correlationId,
+      transactionId: options.session.id,
+      entityId: bill._id,
+      tableId,
+      orderIds,
+    });
+    if (failure.auditWrite) throw failure.auditWrite;
+  });
+  mockPaymentCollected.mockImplementation(async ({ context, bill, beforePaymentStatus }, options) => {
+    state.audits.push({
+      action: "PAYMENT.COLLECT",
+      outcome: "SUCCESS",
+      actor: context.actor,
+      branchId: context.branchId,
+      correlationId: context.correlationId,
+      transactionId: options.session.id,
+      entityId: bill._id,
+      amount: bill.totalAmount,
+      paymentMethod: bill.paymentMethod,
+      beforePaymentStatus,
+      afterPaymentStatus: bill.paymentStatus,
+    });
+    if (failure.auditWrite) throw failure.auditWrite;
+  });
+  mockAuditFailure.mockImplementation(async ({ action, context, entityId, error }) => {
+    state.audits.push({
+      action,
+      outcome: "FAILURE",
+      actor: context.actor,
+      branchId: context.branchId,
+      correlationId: context.correlationId,
+      entityId,
+      errorCode: error.code || "BILLING_TRANSACTION_FAILED",
+    });
+  });
 
   mockExecute.mockImplementation(async (work) => {
     const snapshot = clone(state);
@@ -145,6 +207,7 @@ beforeEach(() => {
     if (transactionPhase !== "committed") {
       throw new Error("Notification emitted before transaction commit");
     }
+    if (failure.notification) throw failure.notification;
   });
 });
 
@@ -166,6 +229,20 @@ describe("Send Table to Cashier transaction", () => {
     expect(state.bills).toHaveLength(1);
     expect(state.orders[0].status).toBe("served");
     expect(state.tables[tableId].status).toBe("billing");
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "BILLING.CREATE",
+        outcome: "SUCCESS",
+        actor: "user-1",
+        actorRole: "waiter",
+        branchId: "branch-1",
+        correlationId: "billing-correlation-1",
+        transactionId: session.id,
+        entityId: "bill-1",
+        tableId,
+        orderIds: ["order-1"],
+      }),
+    ]);
     expect(notify.billingUpdated).toHaveBeenCalledTimes(1);
     expect(transactionPhase).toBe("committed");
     expect(tableRepository.findById).toHaveBeenCalledWith(
@@ -202,9 +279,58 @@ describe("Send Table to Cashier transaction", () => {
       waiterOrderService.sendToCashier(tableId, input, transactionContext),
     ).rejects.toBe(originalError);
 
-    expect(state).toEqual(before);
+    expect(state.bills).toEqual(before.bills);
+    expect(state.orders).toEqual(before.orders);
+    expect(state.tables).toEqual(before.tables);
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "BILLING.CREATE",
+        outcome: "FAILURE",
+        correlationId: "billing-correlation-1",
+      }),
+    ]);
     expect(transactionPhase).toBe("rolled_back");
     expect(notify.billingUpdated).not.toHaveBeenCalled();
+  });
+
+  test("rolls back business writes and the success audit when audit persistence fails", async () => {
+    const before = clone(state);
+    failure.auditWrite = Object.assign(new Error("audit failed"), {
+      code: "AUDIT_WRITE_ERROR",
+    });
+
+    await expect(
+      waiterOrderService.sendToCashier(tableId, input, transactionContext),
+    ).rejects.toBe(failure.auditWrite);
+
+    expect(state.bills).toEqual(before.bills);
+    expect(state.orders).toEqual(before.orders);
+    expect(state.tables).toEqual(before.tables);
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "BILLING.CREATE",
+        outcome: "FAILURE",
+        errorCode: "AUDIT_WRITE_ERROR",
+      }),
+    ]);
+  });
+
+  test("does not write a failure audit for a post-commit notification error", async () => {
+    failure.notification = new Error("socket unavailable");
+
+    await expect(
+      waiterOrderService.sendToCashier(tableId, input, transactionContext),
+    ).rejects.toBe(failure.notification);
+
+    expect(transactionPhase).toBe("committed");
+    expect(state.bills).toHaveLength(1);
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "BILLING.CREATE",
+        outcome: "SUCCESS",
+      }),
+    ]);
+    expect(mockAuditFailure).not.toHaveBeenCalled();
   });
 });
 
@@ -216,6 +342,8 @@ describe("Pay Bill transaction", () => {
       paymentStatus: "unpaid",
       paymentMethod: "none",
       paidAt: null,
+      totalAmount: 250,
+      createdBy: "cashier-1",
     });
   });
 
@@ -224,6 +352,9 @@ describe("Pay Bill transaction", () => {
       scopeToBranchMembers,
       branchId: "branch-1",
       io: transactionContext.io,
+      userId: "cashier-1",
+      actorRole: "cashier",
+      correlationId: "payment-correlation-1",
     });
 
     expect(bill.paymentStatus).toBe("paid");
@@ -232,6 +363,21 @@ describe("Pay Bill transaction", () => {
     expect(state.tables[tableId]).toEqual(
       expect.objectContaining({ status: "available", currentCustomer: null }),
     );
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "PAYMENT.COLLECT",
+        outcome: "SUCCESS",
+        actor: "cashier-1",
+        branchId: "branch-1",
+        correlationId: "payment-correlation-1",
+        transactionId: session.id,
+        entityId: billId,
+        amount: 250,
+        paymentMethod: "upi",
+        beforePaymentStatus: "unpaid",
+        afterPaymentStatus: "paid",
+      }),
+    ]);
     expect(billingRepository.save).toHaveBeenCalledWith(
       expect.any(Object),
       { session },
@@ -261,8 +407,70 @@ describe("Pay Bill transaction", () => {
       }),
     ).rejects.toBe(originalError);
 
-    expect(state).toEqual(before);
+    expect(state.bills).toEqual(before.bills);
+    expect(state.orders).toEqual(before.orders);
+    expect(state.tables).toEqual(before.tables);
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "PAYMENT.COLLECT",
+        outcome: "FAILURE",
+      }),
+    ]);
     expect(transactionPhase).toBe("rolled_back");
     expect(notify.billingUpdated).not.toHaveBeenCalled();
+  });
+
+  test("generates failure audit outside a rolled-back payment transaction", async () => {
+    failure.auditWrite = Object.assign(new Error("payment audit failed"), {
+      code: "AUDIT_WRITE_ERROR",
+    });
+
+    await expect(
+      billingService.payBill(billId, "cash", {
+        scopeToBranchMembers,
+        branchId: "branch-1",
+        io: transactionContext.io,
+        userId: "cashier-1",
+        actorRole: "cashier",
+        correlationId: "payment-failure-correlation",
+      }),
+    ).rejects.toBe(failure.auditWrite);
+
+    expect(state.bills[0].paymentStatus).toBe("unpaid");
+    expect(state.tables[tableId].status).toBe("occupied");
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "PAYMENT.COLLECT",
+        outcome: "FAILURE",
+        actor: "cashier-1",
+        branchId: "branch-1",
+        correlationId: "payment-failure-correlation",
+        errorCode: "AUDIT_WRITE_ERROR",
+      }),
+    ]);
+  });
+
+  test("does not misclassify a post-commit payment notification error", async () => {
+    failure.notification = new Error("socket unavailable");
+
+    await expect(
+      billingService.payBill(billId, "cash", {
+        scopeToBranchMembers,
+        branchId: "branch-1",
+        io: transactionContext.io,
+        userId: "cashier-1",
+        correlationId: "payment-notification-correlation",
+      }),
+    ).rejects.toBe(failure.notification);
+
+    expect(transactionPhase).toBe("committed");
+    expect(state.bills[0].paymentStatus).toBe("paid");
+    expect(state.audits).toEqual([
+      expect.objectContaining({
+        action: "PAYMENT.COLLECT",
+        outcome: "SUCCESS",
+      }),
+    ]);
+    expect(mockAuditFailure).not.toHaveBeenCalled();
   });
 });

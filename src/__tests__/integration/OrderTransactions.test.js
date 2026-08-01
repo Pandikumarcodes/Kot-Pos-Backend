@@ -17,6 +17,9 @@ jest.mock("../../repositories/TableRepository", () => ({
 jest.mock("../../repositories/KitchenRepository", () => ({
   createOrder: jest.fn(),
 }));
+jest.mock("../../repositories/UserRepository", () => ({
+  findByIdWithSelection: jest.fn(),
+}));
 jest.mock("../../repositories/MenuRepository", () => ({}));
 jest.mock("../../repositories/BillingRepository", () => ({}));
 jest.mock("../../services/billingService", () => ({}));
@@ -28,11 +31,23 @@ jest.mock("../../services/notificationservices", () => ({
     newOrder: jest.fn(),
   },
 }));
+jest.mock("../../modules/orders/OrderAuditLogger", () => ({
+  createContext: jest.fn((values) => ({
+    actor: values.actorId || "order-service",
+    actorRole: values.actorRole || null,
+    branchId: values.branchId,
+    correlationId: values.correlationId || "order-correlation-1",
+  })),
+  sentToKitchen: jest.fn(),
+  failure: jest.fn(),
+}));
 
 const orderRepository = require("../../repositories/OrderRepository");
 const takeawayOrderRepository = require("../../repositories/TakeawayOrderRepository");
 const tableRepository = require("../../repositories/TableRepository");
 const kitchenRepository = require("../../repositories/KitchenRepository");
+const userRepository = require("../../repositories/UserRepository");
+const orderAudit = require("../../modules/orders/OrderAuditLogger");
 const { notify } = require("../../services/notificationservices");
 const waiterOrderService = require("../../services/waiterOrderService");
 const takeawayOrderService = require("../../services/takeawayOrderService");
@@ -69,6 +84,7 @@ const takeawayOrder = {
 let state;
 let failure;
 let transactionPhase;
+let failureAudits;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -77,8 +93,10 @@ beforeEach(() => {
     takeawayOrders: [clone(takeawayOrder)],
     tables: { "table-1": { _id: "table-1", tableNumber: 7 } },
     kots: [],
+    audits: [],
   };
   failure = {};
+  failureAudits = [];
   transactionPhase = "idle";
 
   mockExecute.mockImplementation(async (work) => {
@@ -118,6 +136,13 @@ beforeEach(() => {
     if (failure.kotCreate) throw failure.kotCreate;
     return kot;
   });
+  userRepository.findByIdWithSelection.mockResolvedValue({ role: "waiter" });
+  orderAudit.sentToKitchen.mockImplementation(async (intent, options) => {
+    state.audits.push({ ...intent, session: options.session });
+  });
+  orderAudit.failure.mockImplementation(async (intent) => {
+    failureAudits.push(intent);
+  });
   notify.newOrder.mockImplementation(() => {
     if (transactionPhase !== "committed") {
       throw new Error("Notification emitted before transaction commit");
@@ -135,6 +160,19 @@ describe("Dine-in order to kitchen transaction", () => {
     expect(order.status).toBe("sent_to_kitchen");
     expect(state.dineInOrders[0].status).toBe("sent_to_kitchen");
     expect(state.kots).toHaveLength(1);
+    expect(state.audits).toHaveLength(1);
+    expect(state.audits[0]).toMatchObject({
+      previousStatus: "pending",
+      orderType: "dine-in",
+      tableId: "table-1",
+      session,
+      context: {
+        actor: "branch-user-1",
+        actorRole: "waiter",
+        branchId,
+        correlationId: "order-correlation-1",
+      },
+    });
     expect(state.kots[0]).toEqual(
       expect.objectContaining({ branchId, orderType: "dine-in", tableId: "table-1" }),
     );
@@ -177,6 +215,12 @@ describe("Dine-in order to kitchen transaction", () => {
     expect(state).toEqual(before);
     expect(transactionPhase).toBe("rolled_back");
     expect(notify.newOrder).not.toHaveBeenCalled();
+    expect(state.audits).toHaveLength(0);
+    expect(failureAudits).toHaveLength(1);
+    expect(failureAudits[0]).toMatchObject({
+      entityId: dineInOrder._id,
+      context: expect.objectContaining({ branchId, correlationId: "order-correlation-1" }),
+    });
   });
 
   test("emits order:new only after commit", async () => {
@@ -198,6 +242,18 @@ describe("Takeaway order to kitchen transaction", () => {
     expect(order.status).toBe("sent_to_kitchen");
     expect(state.takeawayOrders[0].status).toBe("sent_to_kitchen");
     expect(state.kots).toHaveLength(1);
+    expect(state.audits).toHaveLength(1);
+    expect(state.audits[0]).toMatchObject({
+      previousStatus: "pending",
+      orderType: "takeaway",
+      session,
+      context: {
+        actor: "branch-user-1",
+        actorRole: "waiter",
+        branchId,
+        correlationId: "order-correlation-1",
+      },
+    });
     expect(state.kots[0]).toEqual(
       expect.objectContaining({ branchId, orderType: "takeaway", totalAmount: 120 }),
     );
@@ -237,5 +293,7 @@ describe("Takeaway order to kitchen transaction", () => {
     expect(state).toEqual(before);
     expect(transactionPhase).toBe("rolled_back");
     expect(notify.newOrder).not.toHaveBeenCalled();
+    expect(state.audits).toHaveLength(0);
+    expect(failureAudits).toHaveLength(1);
   });
 });

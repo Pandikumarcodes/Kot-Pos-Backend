@@ -31,6 +31,14 @@ jest.mock("../../services/notificationservices", () => ({
     billingUpdated: jest.fn(),
   },
 }));
+jest.mock("../../modules/billing/BillingAuditLogger", () => ({
+  createContext: jest.fn((values) => ({
+    actor: values.actorId || "billing-service",
+    correlationId: values.correlationId || "test-correlation",
+  })),
+  paymentCollected: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 
 const User = require("../../models/users");
 const Billing = require("../../models/billings");

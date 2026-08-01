@@ -4,6 +4,8 @@ const tableRepository = require("../repositories/TableRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { notify } = require("./notificationservices");
+const billingAudit = require("../modules/billing/BillingAuditLogger");
+const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 
 const transactionManager = new TransactionManager();
 
@@ -79,35 +81,86 @@ const getBill = async (billId, scopeToBranchMembers) => {
 const payBill = async (
   billId,
   paymentMethod,
-  { scopeToBranchMembers, branchId, io },
+  {
+    scopeToBranchMembers,
+    branchId,
+    userId = null,
+    actorRole = null,
+    correlationId = null,
+    io,
+  },
 ) => {
-  const bill = await transactionManager.execute(async (session) => {
-    const billToPay = await billingRepository.findScoped(
-      scopeToBranchMembers({ _id: billId }),
-      { session },
-    );
-    if (!billToPay) throw new AppError("Bill not found", 404);
-    if (billToPay.paymentStatus === "paid")
-      throw new AppError("Bill is already paid", 400);
+  let auditContext = billingAudit.createContext({
+    actorId: userId,
+    actorRole,
+    branchId,
+    correlationId,
+  });
+  let tableId = null;
+  let bill;
+  try {
+    bill = await transactionManager.execute(async (session) => {
+      const billToPay = await billingRepository.findScoped(
+        scopeToBranchMembers({ _id: billId }),
+        { session },
+      );
+      if (!billToPay) throw new AppError("Bill not found", 404);
+      if (billToPay.paymentStatus === "paid")
+        throw new AppError("Bill is already paid", 400);
 
-    billToPay.paymentStatus = "paid";
-    billToPay.paidAt = new Date();
-    if (paymentMethod) billToPay.paymentMethod = paymentMethod;
-    await billingRepository.save(billToPay, { session });
+      if (!userId && billToPay.createdBy) {
+        auditContext = billingAudit.createContext({
+          actorId: billToPay.createdBy,
+          actorRole,
+          branchId,
+          correlationId: auditContext.correlationId,
+        });
+      }
+      const beforePaymentStatus = billToPay.paymentStatus;
+      const beforePaymentMethod = billToPay.paymentMethod;
+      tableId = billToPay.tableId;
+      billToPay.paymentStatus = "paid";
+      billToPay.paidAt = new Date();
+      if (paymentMethod) billToPay.paymentMethod = paymentMethod;
+      await billingRepository.save(billToPay, { session });
 
-    if (billToPay.tableId) {
-      await tableRepository.updateState(
-        billToPay.tableId,
+      if (billToPay.tableId) {
+        await tableRepository.updateState(
+          billToPay.tableId,
+          {
+            status: "available",
+            currentCustomer: null,
+          },
+          { session },
+        );
+      }
+
+      await billingAudit.paymentCollected(
         {
-          status: "available",
-          currentCustomer: null,
+          context: auditContext,
+          bill: billToPay,
+          beforePaymentStatus,
+          beforePaymentMethod,
         },
         { session },
       );
-    }
 
-    return billToPay;
-  });
+      return billToPay;
+    });
+  } catch (error) {
+    try {
+      await billingAudit.failure({
+        action: AUDIT_ACTIONS.PAYMENT_COLLECT,
+        context: auditContext,
+        entityId: billId,
+        tableId,
+        error,
+      });
+    } catch (_auditFailure) {
+      // A secondary audit outage must not replace the workflow error.
+    }
+    throw error;
+  }
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };

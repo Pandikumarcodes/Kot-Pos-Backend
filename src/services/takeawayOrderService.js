@@ -5,6 +5,9 @@ const TransactionManager = require("../infrastructure/transaction/TransactionMan
 const AppError = require("../utils/AppError");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
+const userRepository = require("../repositories/UserRepository");
+const orderAudit = require("../modules/orders/OrderAuditLogger");
+const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 
 const transactionManager = new TransactionManager();
 
@@ -57,19 +60,47 @@ const getTakeawayOrder = async (orderId, scopeToBranchMembers) => {
 
 const sendToKitchen = async (
   orderId,
-  { scopeToBranchMembers, branchId, io },
+  {
+    scopeToBranchMembers,
+    branchId,
+    userId = null,
+    actorRole = null,
+    correlationId = null,
+    io,
+  },
 ) => {
   const filter = scopeToBranchMembers({ _id: orderId });
-  const { order, kot } = await transactionManager.execute(async (session) => {
+  let auditContext = orderAudit.createContext({
+    actorId: userId,
+    actorRole,
+    branchId,
+    correlationId,
+  });
+  let kotId = null;
+  let result;
+  try {
+    result = await transactionManager.execute(async (session) => {
     const existing = await takeawayOrderRepository.findOne(
       filter,
       undefined,
       { session },
     );
     if (!existing) throw new AppError("Order not found", 404);
+
+    const actorId = userId || existing.createdBy;
+    const actor = actorRole
+      ? null
+      : await userRepository.findByIdWithSelection(actorId, "role", { session });
+    auditContext = orderAudit.createContext({
+      actorId,
+      actorRole: actorRole || actor?.role || null,
+      branchId,
+      correlationId: auditContext.correlationId,
+    });
     if (existing.status === "sent_to_kitchen") {
       throw new AppError("Order has already been sent to kitchen", 409);
     }
+    const previousStatus = existing.status;
 
     const updatedOrder = await takeawayOrderRepository.updateStatus(
       filter,
@@ -95,9 +126,36 @@ const sendToKitchen = async (
       { session },
     );
 
-    return { order: updatedOrder, kot: createdKot };
-  });
+    kotId = createdKot._id;
+    await orderAudit.sentToKitchen(
+      {
+        context: auditContext,
+        order: updatedOrder,
+        kot: createdKot,
+        previousStatus,
+        orderType: "takeaway",
+      },
+      { session },
+    );
 
+    return { order: updatedOrder, kot: createdKot };
+    });
+  } catch (error) {
+    try {
+      await orderAudit.failure({
+        action: AUDIT_ACTIONS.ORDER_SEND_TO_KITCHEN,
+        context: auditContext,
+        entityId: orderId,
+        error,
+        parentEntityId: kotId,
+      });
+    } catch (_auditFailure) {
+      // A secondary audit outage must not replace the workflow error.
+    }
+    throw error;
+  }
+
+  const { order, kot } = result;
   notify.newOrder(io, kot);
   return order;
 };

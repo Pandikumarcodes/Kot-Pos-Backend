@@ -41,6 +41,16 @@ jest.mock("../../services/notificationservices", () => ({
     tableUpdated: jest.fn(),
   },
 }));
+jest.mock("../../modules/billing/BillingAuditLogger", () => ({
+  createContext: jest.fn((values) => ({
+    actor: values.actorId,
+    actorRole: values.actorRole,
+    branchId: values.branchId,
+    correlationId: values.correlationId || "test-correlation",
+  })),
+  billCreated: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 
 const User = require("../../models/users");
 const TableOrder = require("../../models/waiter");

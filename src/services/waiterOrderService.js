@@ -3,11 +3,15 @@ const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const tableRepository = require("../repositories/TableRepository");
 const billingRepository = require("../repositories/BillingRepository");
+const userRepository = require("../repositories/UserRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { generateBillNumber } = require("./billingService");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
+const billingAudit = require("../modules/billing/BillingAuditLogger");
+const { AUDIT_ACTIONS } = require("../infrastructure/audit");
+const orderAudit = require("../modules/orders/OrderAuditLogger");
 
 const transactionManager = new TransactionManager();
 
@@ -35,8 +39,27 @@ const getTableOrders = async (tableId, scopeToBranchMembers) => {
 
 const sendToCashier = async (tableId, input, context) => {
   const { customerName, customerPhone, tableNumber } = input;
-  const { scopeToBranchMembers, branchId, userId, io } = context;
-  const bill = await transactionManager.execute(async (session) => {
+  const {
+    scopeToBranchMembers,
+    branchId,
+    userId,
+    actorRole = null,
+    correlationId,
+    io,
+  } = context;
+  const actor = actorRole
+    ? null
+    : await userRepository.findByIdWithSelection(userId, "role");
+  const auditContext = billingAudit.createContext({
+    actorId: userId,
+    actorRole: actorRole || actor?.role || null,
+    branchId,
+    correlationId,
+  });
+  let createdBillId = null;
+  let bill;
+  try {
+    bill = await transactionManager.execute(async (session) => {
     const table = await tableRepository.findById(tableId, undefined, {
       session,
     });
@@ -66,6 +89,11 @@ const sendToCashier = async (tableId, input, context) => {
       );
     }
 
+    const orderStatusBefore =
+      new Set(orders.map((order) => order.status)).size === 1
+        ? orders[0].status
+        : "active";
+
     const phone = (customerPhone || "").replace(/\D/g, "");
     const validPhone = phone.length === 10 ? phone : "0000000000";
     const allItems = orders.flatMap((order) => order.items);
@@ -90,6 +118,7 @@ const sendToCashier = async (tableId, input, context) => {
       },
       { session },
     );
+    createdBillId = createdBill._id;
     await orderRepository.updateManyStatus(
       scopedActiveFilter,
       "served",
@@ -100,8 +129,33 @@ const sendToCashier = async (tableId, input, context) => {
       { status: "billing" },
       { session },
     );
+    await billingAudit.billCreated(
+      {
+        context: auditContext,
+        bill: createdBill,
+        tableId,
+        orderIds: orders.map((order) => order._id),
+        orderStatusBefore,
+        tableStatusBefore: table.status,
+      },
+      { session },
+    );
     return createdBill;
-  });
+    });
+  } catch (error) {
+    try {
+      await billingAudit.failure({
+        action: AUDIT_ACTIONS.BILLING_CREATE,
+        context: auditContext,
+        entityId: createdBillId || `table:${tableId}`,
+        tableId,
+        error,
+      });
+    } catch (_auditFailure) {
+      // A secondary audit outage must not replace the workflow error.
+    }
+    throw error;
+  }
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };
@@ -156,14 +210,41 @@ const getOrder = async (orderId, scopeToBranchMembers) => {
 
 const sendToKitchen = async (
   orderId,
-  { scopeToBranchMembers, branchId, io },
+  {
+    scopeToBranchMembers,
+    branchId,
+    userId = null,
+    actorRole = null,
+    correlationId = null,
+    io,
+  },
 ) => {
   const filter = scopeToBranchMembers({ _id: orderId });
-  const { order, kot } = await transactionManager.execute(async (session) => {
+  let auditContext = orderAudit.createContext({
+    actorId: userId,
+    actorRole,
+    branchId,
+    correlationId,
+  });
+  let kotId = null;
+  let result;
+  try {
+    result = await transactionManager.execute(async (session) => {
     const existing = await orderRepository.findOne(filter, undefined, {
       session,
     });
     if (!existing) throw new AppError("Order not found", 404);
+
+    const actorId = userId || existing.createdBy;
+    const actor = actorRole
+      ? null
+      : await userRepository.findByIdWithSelection(actorId, "role", { session });
+    auditContext = orderAudit.createContext({
+      actorId,
+      actorRole: actorRole || actor?.role || null,
+      branchId,
+      correlationId: auditContext.correlationId,
+    });
 
     const table = await tableRepository.findById(
       existing.tableId,
@@ -175,6 +256,7 @@ const sendToKitchen = async (
     if (existing.status === "sent_to_kitchen") {
       throw new AppError("Order has already been sent to kitchen", 409);
     }
+    const previousStatus = existing.status;
 
     const updatedOrder = await orderRepository.updateStatus(
       filter,
@@ -198,9 +280,37 @@ const sendToKitchen = async (
       { session },
     );
 
-    return { order: updatedOrder, kot: createdKot };
-  });
+    kotId = createdKot._id;
+    await orderAudit.sentToKitchen(
+      {
+        context: auditContext,
+        order: updatedOrder,
+        kot: createdKot,
+        previousStatus,
+        orderType: "dine-in",
+        tableId: updatedOrder.tableId,
+      },
+      { session },
+    );
 
+    return { order: updatedOrder, kot: createdKot };
+    });
+  } catch (error) {
+    try {
+      await orderAudit.failure({
+        action: AUDIT_ACTIONS.ORDER_SEND_TO_KITCHEN,
+        context: auditContext,
+        entityId: orderId,
+        error,
+        parentEntityId: kotId,
+      });
+    } catch (_auditFailure) {
+      // A secondary audit outage must not replace the workflow error.
+    }
+    throw error;
+  }
+
+  const { order, kot } = result;
   notify.newOrder(io, kot);
   return order;
 };
