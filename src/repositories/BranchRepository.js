@@ -3,22 +3,27 @@ const Branch = require("../models/Branch");
 
 const baseRepository = createBaseRepository(Branch);
 
-const listWithAdmin = () =>
+const listWithAdmin = (options = {}) =>
   baseRepository
-    .findMany()
+    .findMany({}, undefined, options)
     .populate("adminUser", "username role")
     .sort({ createdAt: -1 });
 
-const createBranch = (data) => baseRepository.create(data);
+const createBranch = (data, options = {}) =>
+  baseRepository.create(data, options);
 
-const updateBranch = (id, update) =>
-  baseRepository.updateById(id, update, { new: true, runValidators: true });
+const updateBranch = (id, update, options = {}) =>
+  baseRepository.updateById(id, update, {
+    new: true,
+    runValidators: true,
+    ...options,
+  });
 
-const deactivate = (id) =>
-  baseRepository.updateById(id, { isActive: false }, { new: true });
+const deactivate = (id, options = {}) =>
+  baseRepository.updateById(id, { isActive: false }, { new: true, ...options });
 
-const findFirstActive = () =>
-  baseRepository.findOne({ isActive: true }).lean();
+const findFirstActive = (options = {}) =>
+  baseRepository.findOne({ isActive: true }, undefined, options).lean();
 
 module.exports = {
   ...baseRepository,

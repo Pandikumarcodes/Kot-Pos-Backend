@@ -3,38 +3,41 @@ const User = require("../models/users");
 
 const baseRepository = createBaseRepository(User);
 
-const findByUsername = (username, selection) => {
-  const query = baseRepository.findOne({ username });
+const findByUsername = (username, selection, options = {}) => {
+  const query = baseRepository.findOne({ username }, undefined, options);
   return selection && query && typeof query.select === "function"
     ? query.select(selection)
     : query;
 };
 
-const findByIdWithSelection = (id, selection) => {
-  const query = baseRepository.findById(id);
+const findByIdWithSelection = (id, selection, options = {}) => {
+  const query = baseRepository.findById(id, undefined, options);
   return selection && query && typeof query.select === "function"
     ? query.select(selection)
     : query;
 };
 
-const createUserDocument = (data) => baseRepository.createDocument(data);
+const createUserDocument = (data, options = {}) =>
+  baseRepository.createDocument(data, options);
 
-const findByScope = (filter) =>
-  baseRepository.findMany(filter).select("-password");
+const findByScope = (filter, options = {}) =>
+  baseRepository.findMany(filter, undefined, options).select("-password");
 
-const updateRole = (filter, role) =>
+const updateRole = (filter, role, options = {}) =>
   User.findOneAndUpdate(
     filter,
     { role },
-    { new: true, runValidators: true, select: "-password" },
+    { new: true, runValidators: true, select: "-password", ...options },
   );
 
-const deleteByScope = (filter) => User.findOneAndDelete(filter);
+const deleteByScope = (filter, options = {}) =>
+  baseRepository.deleteOne(filter, options);
 
-const clearRefreshToken = (userId) =>
+const clearRefreshToken = (userId, options = {}) =>
   baseRepository.updateOne(
     { _id: userId },
     { $set: { refreshTokenHash: null } },
+    options,
   );
 
 module.exports = {

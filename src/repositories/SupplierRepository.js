@@ -1,7 +1,11 @@
 const inventoryRepository = require("./InventoryRepository");
 
-const listInventoryBySupplier = (branchId, supplier) =>
-  inventoryRepository.findMany({ branchId, supplier, isActive: true });
+const listInventoryBySupplier = (branchId, supplier, options = {}) =>
+  inventoryRepository.findMany(
+    { branchId, supplier, isActive: true },
+    undefined,
+    options,
+  );
 
 module.exports = {
   ...inventoryRepository,

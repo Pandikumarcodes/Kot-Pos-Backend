@@ -3,36 +3,42 @@ const Inventory = require("../models/Inventory");
 
 const baseRepository = createBaseRepository(Inventory);
 
-const findActive = (filter) =>
+const findActive = (filter, options = {}) =>
   baseRepository
-    .findMany({ ...filter, isActive: true })
+    .findMany({ ...filter, isActive: true }, undefined, options)
     .populate("menuItemId", "ItemName available")
     .sort({ currentStock: 1 })
     .lean({ virtuals: true });
 
-const createInventory = (data) => baseRepository.create(data);
+const createInventory = (data, options = {}) =>
+  baseRepository.create(data, options);
 
-const updateScoped = (id, branchFilter, update) =>
+const updateScoped = (id, branchFilter, update, options = {}) =>
   Inventory.findOneAndUpdate(
     { _id: id, ...branchFilter },
     update,
-    { new: true, runValidators: true },
+    { new: true, runValidators: true, ...options },
   );
 
-const findScopedById = (id, branchFilter) =>
-  baseRepository.findOne({ _id: id, ...branchFilter });
+const findScopedById = (id, branchFilter, options = {}) =>
+  baseRepository.findOne({ _id: id, ...branchFilter }, undefined, options);
 
-const deactivateScoped = (id, branchFilter) =>
+const deactivateScoped = (id, branchFilter, options = {}) =>
   Inventory.findOneAndUpdate(
     { _id: id, ...branchFilter },
     { isActive: false },
-    { new: true },
+    { new: true, ...options },
   );
 
-const findActiveByMenuItem = (branchId, menuItemId) =>
-  baseRepository.findOne({ branchId, menuItemId, isActive: true });
+const findActiveByMenuItem = (branchId, menuItemId, options = {}) =>
+  baseRepository.findOne(
+    { branchId, menuItemId, isActive: true },
+    undefined,
+    options,
+  );
 
-const listLean = (filter) => baseRepository.findMany(filter).lean();
+const listLean = (filter, options = {}) =>
+  baseRepository.findMany(filter, undefined, options).lean();
 
 module.exports = {
   ...baseRepository,

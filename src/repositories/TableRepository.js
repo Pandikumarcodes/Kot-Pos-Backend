@@ -3,21 +3,30 @@ const Table = require("../models/tables");
 
 const baseRepository = createBaseRepository(Table);
 
-const findByNumber = (tableNumber) =>
-  baseRepository.findOne({ tableNumber });
+const findByNumber = (tableNumber, options = {}) =>
+  baseRepository.findOne({ tableNumber }, undefined, options);
 
-const createTableDocument = (data) => baseRepository.createDocument(data);
+const createTableDocument = (data, options = {}) =>
+  baseRepository.createDocument(data, options);
 
-const listAll = () => baseRepository.findMany();
+const listAll = (options = {}) =>
+  baseRepository.findMany({}, undefined, options);
 
-const updateTable = (id, update) =>
-  baseRepository.updateById(id, update, { new: true, runValidators: true });
+const updateTable = (id, update, options = {}) =>
+  baseRepository.updateById(id, update, {
+    new: true,
+    runValidators: true,
+    ...options,
+  });
 
-const deleteTable = (id) => baseRepository.deleteById(id);
+const deleteTable = (id, options = {}) =>
+  baseRepository.deleteById(id, options);
 
-const updateState = (id, update) => baseRepository.updateById(id, update);
+const updateState = (id, update, options = {}) =>
+  baseRepository.updateById(id, update, options);
 
-const findByIdLean = (id) => baseRepository.findById(id).lean();
+const findByIdLean = (id, options = {}) =>
+  baseRepository.findById(id, undefined, options).lean();
 
 module.exports = {
   ...baseRepository,

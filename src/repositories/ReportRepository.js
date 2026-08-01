@@ -2,8 +2,18 @@ const Billing = require("../models/billings");
 const Kot = require("../models/kot");
 const TableOrder = require("../models/waiter");
 
-const getRevenueSummary = (filter) =>
-  Billing.aggregate([
+const aggregate = (Model, pipeline, options) =>
+  Object.keys(options).length > 0
+    ? Model.aggregate(pipeline, options)
+    : Model.aggregate(pipeline);
+
+const countDocuments = (Model, filter, options) =>
+  Object.keys(options).length > 0
+    ? Model.countDocuments(filter, options)
+    : Model.countDocuments(filter);
+
+const getRevenueSummary = (filter, options = {}) =>
+  aggregate(Billing, [
     { $match: filter },
     {
       $group: {
@@ -12,14 +22,16 @@ const getRevenueSummary = (filter) =>
         count: { $sum: 1 },
       },
     },
-  ]);
+  ], options);
 
-const countDineInOrders = (filter) => TableOrder.countDocuments(filter);
+const countDineInOrders = (filter, options = {}) =>
+  countDocuments(TableOrder, filter, options);
 
-const countKitchenOrders = (filter) => Kot.countDocuments(filter);
+const countKitchenOrders = (filter, options = {}) =>
+  countDocuments(Kot, filter, options);
 
-const getTopItems = (filter) =>
-  Kot.aggregate([
+const getTopItems = (filter, options = {}) =>
+  aggregate(Kot, [
     { $match: filter },
     { $unwind: "$items" },
     {
@@ -32,10 +44,10 @@ const getTopItems = (filter) =>
     { $sort: { quantity: -1 } },
     { $limit: 10 },
     { $project: { name: "$_id", quantity: 1, revenue: 1, _id: 0 } },
-  ]);
+  ], options);
 
-const getPayments = (filter) =>
-  Billing.aggregate([
+const getPayments = (filter, options = {}) =>
+  aggregate(Billing, [
     { $match: filter },
     {
       $group: {
@@ -45,10 +57,10 @@ const getPayments = (filter) =>
       },
     },
     { $project: { method: "$_id", count: 1, amount: 1, _id: 0 } },
-  ]);
+  ], options);
 
-const getHourlySales = (filter) =>
-  Billing.aggregate([
+const getHourlySales = (filter, options = {}) =>
+  aggregate(Billing, [
     { $match: filter },
     {
       $group: {
@@ -61,13 +73,13 @@ const getHourlySales = (filter) =>
     },
     { $sort: { _id: 1 } },
     { $project: { hour: "$_id", orders: 1, revenue: 1, _id: 0 } },
-  ]);
+  ], options);
 
-const getCashierIncome = (filter) =>
-  Billing.aggregate([
+const getCashierIncome = (filter, options = {}) =>
+  aggregate(Billing, [
     { $match: filter },
     { $group: { _id: null, totalIncome: { $sum: "$totalAmount" } } },
-  ]);
+  ], options);
 
 module.exports = {
   getRevenueSummary,

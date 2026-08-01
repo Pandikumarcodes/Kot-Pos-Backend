@@ -3,17 +3,24 @@ const Customer = require("../models/customer");
 
 const baseRepository = createBaseRepository(Customer);
 
-const listByLastVisit = () =>
-  baseRepository.findMany().sort({ lastVisit: -1 });
+const listByLastVisit = (options = {}) =>
+  baseRepository.findMany({}, undefined, options).sort({ lastVisit: -1 });
 
-const findByPhone = (phone) => baseRepository.findOne({ phone });
+const findByPhone = (phone, options = {}) =>
+  baseRepository.findOne({ phone }, undefined, options);
 
-const createCustomer = (data) => baseRepository.create(data);
+const createCustomer = (data, options = {}) =>
+  baseRepository.create(data, options);
 
-const updateCustomer = (id, update) =>
-  baseRepository.updateById(id, update, { new: true, runValidators: true });
+const updateCustomer = (id, update, options = {}) =>
+  baseRepository.updateById(id, update, {
+    new: true,
+    runValidators: true,
+    ...options,
+  });
 
-const deleteCustomer = (id) => baseRepository.deleteById(id);
+const deleteCustomer = (id, options = {}) =>
+  baseRepository.deleteById(id, options);
 
 module.exports = {
   ...baseRepository,

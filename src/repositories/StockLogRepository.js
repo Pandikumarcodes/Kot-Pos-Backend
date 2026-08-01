@@ -3,17 +3,18 @@ const StockLog = require("../models/StockLog");
 
 const baseRepository = createBaseRepository(StockLog);
 
-const createLog = (data) => baseRepository.create(data);
+const createLog = (data, options = {}) => baseRepository.create(data, options);
 
-const listForInventory = (inventoryId, branchId) =>
+const listForInventory = (inventoryId, branchId, options = {}) =>
   baseRepository
-    .findMany({ inventoryId, branchId })
+    .findMany({ inventoryId, branchId }, undefined, options)
     .populate("doneBy", "username role")
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
 
-const listLean = (filter) => baseRepository.findMany(filter).lean();
+const listLean = (filter, options = {}) =>
+  baseRepository.findMany(filter, undefined, options).lean();
 
 module.exports = {
   ...baseRepository,
