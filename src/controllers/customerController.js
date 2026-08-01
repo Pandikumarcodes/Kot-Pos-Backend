@@ -3,8 +3,12 @@ const { forwardError } = require("./controllerUtils");
 
 const listCustomers = async (req, res, next) => {
   try {
-    const customers = await customerService.listCustomers();
-    res.status(200).json({ customers: customers || [] });
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await customerService.listCustomers(query);
+    res.status(200).json({
+      customers: result.items || [],
+      ...(result.pagination && { pagination: result.pagination }),
+    });
   } catch (err) {
     forwardError(next, err);
   }

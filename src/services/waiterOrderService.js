@@ -12,6 +12,42 @@ const { notify } = require("./notificationservices");
 const billingAudit = require("../modules/billing/BillingAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 const orderAudit = require("../modules/orders/OrderAuditLogger");
+const {
+  buildOperationalPlan,
+  hasQueryControls,
+  paginationFor,
+  repositoryOptions,
+  usesPagination,
+} = require("./operationalQuery");
+
+const ORDER_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [],
+  filters: {
+    status: {
+      field: "status",
+      type: "enum",
+      values: ["pending", "sent_to_kitchen", "served", "cancelled"],
+    },
+  },
+  sorting: {
+    fields: { createdAt: "createdAt", status: "status" },
+    defaultField: "createdAt",
+    defaultOrder: "desc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id", tableNumber: "tableNumber", customerName: "customerName",
+      tableId: "tableId", createdBy: "createdBy", items: "items",
+      totalAmount: "totalAmount", status: "status", createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id", "tableNumber", "customerName", "tableId", "createdBy", "items",
+      "totalAmount", "status", "createdAt", "updatedAt",
+    ],
+  },
+});
 
 const transactionManager = new TransactionManager();
 
@@ -197,8 +233,28 @@ const createOrder = async (input, { branchId, userId }) => {
   return order;
 };
 
-const listOrders = (branchMemberFilter) =>
-  orderRepository.listScoped(branchMemberFilter);
+const listOrders = async (branchMemberFilter, query = {}) => {
+  if (!hasQueryControls(query)) {
+    return { items: await orderRepository.listScoped(branchMemberFilter) };
+  }
+  const paginated = usesPagination(query);
+  const plan = buildOperationalPlan({
+    query,
+    policy: ORDER_QUERY_POLICY,
+    trustedConstraints: [branchMemberFilter],
+  });
+  const dataPromise = orderRepository.listScoped(
+    plan.filter,
+    repositoryOptions(plan, paginated),
+  );
+  const [items, total] = paginated
+    ? await Promise.all([dataPromise, orderRepository.countScoped(plan.filter)])
+    : [await dataPromise, null];
+  return {
+    items,
+    ...(paginated && { pagination: paginationFor(plan, total) }),
+  };
+};
 
 const getOrder = async (orderId, scopeToBranchMembers) => {
   const order = await orderRepository.findScopedWithDetails(

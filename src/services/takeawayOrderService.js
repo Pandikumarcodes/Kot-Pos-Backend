@@ -8,6 +8,41 @@ const { notify } = require("./notificationservices");
 const userRepository = require("../repositories/UserRepository");
 const orderAudit = require("../modules/orders/OrderAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
+const {
+  buildOperationalPlan,
+  hasQueryControls,
+  paginationFor,
+  repositoryOptions,
+  usesPagination,
+} = require("./operationalQuery");
+
+const TAKEAWAY_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [],
+  filters: {
+    status: {
+      field: "status",
+      type: "enum",
+      values: ["pending", "sent_to_kitchen", "received", "cancelled"],
+    },
+  },
+  sorting: {
+    fields: { createdAt: "createdAt", status: "status" },
+    defaultField: "createdAt",
+    defaultOrder: "desc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id", customerName: "customerName", customerPhone: "customerPhone",
+      items: "items", status: "status", createdBy: "createdBy",
+      createdAt: "createdAt", updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id", "customerName", "customerPhone", "items", "status", "createdBy",
+      "createdAt", "updatedAt",
+    ],
+  },
+});
 
 const transactionManager = new TransactionManager();
 
@@ -47,8 +82,28 @@ const createTakeawayOrder = async (input, { userId, branchId }) => {
   return order;
 };
 
-const listTakeawayOrders = (branchMemberFilter) =>
-  takeawayOrderRepository.listScoped(branchMemberFilter);
+const listTakeawayOrders = async (branchMemberFilter, query = {}) => {
+  if (!hasQueryControls(query)) {
+    return { items: await takeawayOrderRepository.listScoped(branchMemberFilter) };
+  }
+  const paginated = usesPagination(query);
+  const plan = buildOperationalPlan({
+    query,
+    policy: TAKEAWAY_QUERY_POLICY,
+    trustedConstraints: [branchMemberFilter],
+  });
+  const dataPromise = takeawayOrderRepository.listScoped(
+    plan.filter,
+    repositoryOptions(plan, paginated),
+  );
+  const [items, total] = paginated
+    ? await Promise.all([dataPromise, takeawayOrderRepository.count(plan.filter)])
+    : [await dataPromise, null];
+  return {
+    items,
+    ...(paginated && { pagination: paginationFor(plan, total) }),
+  };
+};
 
 const getTakeawayOrder = async (orderId, scopeToBranchMembers) => {
   const order = await takeawayOrderRepository.findScopedWithDetails(

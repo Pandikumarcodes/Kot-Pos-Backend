@@ -13,7 +13,12 @@ const createMenuItem = async (req, res, next) => {
 };
 const listMenuItems = async (req, res, next) => {
   try {
-    res.status(200).json({ menuItems: await menuService.listMenuItems() });
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await menuService.listMenuItems(query);
+    res.status(200).json({
+      menuItems: result.items,
+      ...(result.pagination && { pagination: result.pagination }),
+    });
   } catch (err) {
     forwardError(next, err, "Failed to fetch menu items");
   }

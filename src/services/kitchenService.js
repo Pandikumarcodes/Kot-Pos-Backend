@@ -5,13 +5,70 @@ const userRepository = require("../repositories/UserRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const orderAudit = require("../modules/orders/OrderAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
+const {
+  buildOperationalPlan,
+  hasQueryControls,
+  paginationFor,
+  repositoryOptions,
+  usesPagination,
+} = require("./operationalQuery");
+
+const ACTIVE_KITCHEN_STATUSES = Object.freeze(["pending", "preparing", "ready"]);
+const KITCHEN_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [],
+  filters: {
+    status: {
+      field: "status", type: "enum", values: ACTIVE_KITCHEN_STATUSES,
+    },
+  },
+  mandatoryFilter: { status: { $in: ACTIVE_KITCHEN_STATUSES } },
+  sorting: {
+    fields: { createdAt: "createdAt", status: "status" },
+    defaultField: "createdAt",
+    defaultOrder: "asc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id", branchId: "branchId", orderType: "orderType",
+      tableNumber: "tableNumber", tableId: "tableId", customerName: "customerName",
+      customerPhone: "customerPhone", createdBy: "createdBy", items: "items",
+      totalAmount: "totalAmount", status: "status", createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id", "branchId", "orderType", "tableNumber", "tableId", "customerName",
+      "customerPhone", "createdBy", "items", "totalAmount", "status",
+      "createdAt", "updatedAt",
+    ],
+  },
+});
 
 const transactionManager = new TransactionManager();
 
-const listActiveOrders = (scopeToBranch) =>
-  kitchenRepository.listActive(
-    scopeToBranch({ status: { $in: ["pending", "preparing", "ready"] } }),
+const listActiveOrders = async (scopeToBranch, query = {}) => {
+  const activeFilter = scopeToBranch({ status: { $in: ACTIVE_KITCHEN_STATUSES } });
+  if (!hasQueryControls(query)) {
+    return { items: await kitchenRepository.listActive(activeFilter) };
+  }
+  const paginated = usesPagination(query);
+  const plan = buildOperationalPlan({
+    query,
+    policy: KITCHEN_QUERY_POLICY,
+    trustedConstraints: [scopeToBranch({})],
+  });
+  const dataPromise = kitchenRepository.listActive(
+    plan.filter,
+    repositoryOptions(plan, paginated),
   );
+  const [items, total] = paginated
+    ? await Promise.all([dataPromise, kitchenRepository.countByFilter(plan.filter)])
+    : [await dataPromise, null];
+  return {
+    items,
+    ...(paginated && { pagination: paginationFor(plan, total) }),
+  };
+};
 
 const getOrder = async (orderId, scopeToBranch) => {
   const order = await kitchenRepository.findScoped(

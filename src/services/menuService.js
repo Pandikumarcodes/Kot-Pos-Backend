@@ -1,5 +1,48 @@
 const menuRepository = require("../repositories/MenuRepository");
 const AppError = require("../utils/AppError");
+const {
+  buildMasterDataPlan,
+  hasQueryControls,
+  paginationFor,
+  repositoryOptions,
+  usesPagination,
+} = require("./masterDataQuery");
+
+const MENU_CATEGORIES = Object.freeze([
+  "starter", "main_course", "dessert", "beverage", "snacks",
+  "side_dish", "bread", "rice", "combo", "special",
+]);
+
+const MENU_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [
+    { field: "ItemName", mode: "partial" },
+    { field: "category", mode: "partial" },
+  ],
+  filters: {
+    category: { field: "category", type: "enum", values: MENU_CATEGORIES },
+    availability: { field: "available", type: "boolean" },
+  },
+  sorting: {
+    fields: { name: "ItemName", price: "price", category: "category" },
+    defaultField: "name",
+    defaultOrder: "asc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id",
+      name: "ItemName",
+      category: "category",
+      price: "price",
+      available: "available",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id", "name", "category", "price", "available", "createdAt", "updatedAt",
+    ],
+  },
+});
 
 const toMenuResponse = (menuItem) => ({
   _id: menuItem._id,
@@ -21,7 +64,25 @@ const createMenuItem = async ({ ItemName, category, price, available }) => {
   return toMenuResponse(menuItem);
 };
 
-const listMenuItems = () => menuRepository.listAll();
+const listMenuItems = async (query = {}) => {
+  if (!hasQueryControls(query)) {
+    return { items: await menuRepository.listAll() };
+  }
+
+  const paginated = usesPagination(query);
+  const plan = buildMasterDataPlan({ query, policy: MENU_QUERY_POLICY });
+  const dataPromise = menuRepository.listAll({
+    ...repositoryOptions(plan, paginated),
+    filter: plan.filter,
+  });
+  const [items, total] = paginated
+    ? await Promise.all([dataPromise, menuRepository.count(plan.filter)])
+    : [await dataPromise, null];
+  return {
+    items,
+    ...(paginated && { pagination: paginationFor(plan, total) }),
+  };
+};
 
 const updateMenuItem = async (ItemId, { price, available }) => {
   const updateFields = {};

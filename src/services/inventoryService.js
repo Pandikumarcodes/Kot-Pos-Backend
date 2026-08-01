@@ -80,6 +80,50 @@ const INVENTORY_QUERY_POLICY = Object.freeze({
   mandatoryFilter: { isActive: true },
 });
 
+const STOCK_LOG_TYPES = Object.freeze([
+  "restock",
+  "kot_deduct",
+  "adjustment",
+  "return",
+]);
+
+const STOCK_LOG_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [],
+  filters: {
+    type: { field: "type", type: "enum", values: STOCK_LOG_TYPES },
+  },
+  sorting: {
+    fields: { createdAt: "createdAt", quantity: "quantity" },
+    defaultField: "createdAt",
+    defaultOrder: "desc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id",
+      branchId: "branchId",
+      inventoryId: "inventoryId",
+      type: "type",
+      quantity: "quantity",
+      stockBefore: "stockBefore",
+      stockAfter: "stockAfter",
+      note: "note",
+      kotId: "kotId",
+      doneBy: "doneBy",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id", "branchId", "inventoryId", "type", "quantity", "stockBefore",
+      "stockAfter", "note", "kotId", "doneBy", "createdAt", "updatedAt",
+    ],
+  },
+});
+
+const STOCK_LOG_QUERY_PARAMETERS = new Set([
+  "page", "limit", "sort", "order", "type",
+]);
+
 const normalizeLowStockFilter = (value) => {
   if (value === undefined || value === null || value === "") return null;
   if (value === false || value === "false") return null;
@@ -105,6 +149,30 @@ const buildInventoryQueryPlan = ({ branchFilter, query = {} }) => {
     });
   } catch (error) {
     if (error instanceof QueryValidationError) {
+      throw new AppError(error.message, 400);
+    }
+    throw error;
+  }
+};
+
+const buildStockLogQueryPlan = ({ inventoryId, branchId, query }) => {
+  try {
+    const unsupported = Object.keys(query).find(
+      (key) => !STOCK_LOG_QUERY_PARAMETERS.has(key),
+    );
+    if (unsupported) {
+      throw new QueryValidationError(
+        `query parameter ${unsupported} is not allowed`,
+        unsupported,
+      );
+    }
+    return QueryBuilder.build({
+      query,
+      policy: STOCK_LOG_QUERY_POLICY,
+      trustedConstraints: [{ inventoryId, branchId }],
+    });
+  } catch (error) {
+    if (error instanceof QueryValidationError || error instanceof RangeError) {
       throw new AppError(error.message, 400);
     }
     throw error;
@@ -436,8 +504,45 @@ const adjustStock = async (
   }
 };
 
-const getStockLogs = (inventoryId, branchId) =>
-  stockLogRepository.listForInventory(inventoryId, branchId);
+const getStockLogs = async (inventoryId, branchId, query = {}) => {
+  const hasQueryControls = Object.values(query).some(
+    (value) => value !== undefined,
+  );
+  if (!hasQueryControls) {
+    return {
+      items: await stockLogRepository.listForInventory(inventoryId, branchId),
+    };
+  }
+
+  const paginated = query.page !== undefined || query.limit !== undefined;
+  const plan = buildStockLogQueryPlan({ inventoryId, branchId, query });
+  const repositoryOptions = {
+    filter: plan.filter,
+    projection: plan.projection,
+    sort: plan.sort,
+    skip: paginated ? plan.pagination.skip : 0,
+    limit: paginated ? plan.pagination.limit : 50,
+    lean: true,
+  };
+  const dataPromise = stockLogRepository.listForInventory(
+    inventoryId,
+    branchId,
+    repositoryOptions,
+  );
+  const [items, total] = paginated
+    ? await Promise.all([dataPromise, stockLogRepository.count(plan.filter)])
+    : [await dataPromise, null];
+  return {
+    items,
+    ...(paginated && {
+      pagination: buildPaginationMetadata({
+        page: plan.pagination.page,
+        limit: plan.pagination.limit,
+        total,
+      }),
+    }),
+  };
+};
 
 const deleteInventory = async (id, branchFilter) => {
   const item = await inventoryRepository.deactivateScoped(id, branchFilter);

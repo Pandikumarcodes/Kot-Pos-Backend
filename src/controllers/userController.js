@@ -11,9 +11,12 @@ const createUser = async (req, res, next) => {
 };
 const listUsers = async (req, res, next) => {
   try {
-    res
-      .status(200)
-      .json({ users: await userService.listUsers(req.branchFilter) });
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await userService.listUsers(req.branchFilter, query);
+    res.status(200).json({
+      users: result.items,
+      ...(result.pagination && { pagination: result.pagination }),
+    });
   } catch (err) {
     forwardError(next, err, "Failed to fetch users");
   }

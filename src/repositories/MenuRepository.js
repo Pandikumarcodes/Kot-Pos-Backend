@@ -9,8 +9,17 @@ const findByName = (ItemName, options = {}) =>
 const createMenuDocument = (data, options = {}) =>
   baseRepository.createDocument(data, options);
 
-const listAll = (options = {}) =>
-  baseRepository.findMany({}, undefined, options).lean();
+const listAll = (options = {}) => {
+  if (!Object.keys(options).length) {
+    return baseRepository.findMany({}).lean();
+  }
+  const { filter = {}, projection, sort, skip, limit, lean, ...queryOptions } = options;
+  let query = baseRepository.findMany(filter, projection, queryOptions);
+  if (sort) query = query.sort(sort);
+  if (skip !== undefined) query = query.skip(skip);
+  if (limit !== undefined) query = query.limit(limit);
+  return lean ? query.lean() : query;
+};
 
 const updateMenuItem = (id, update, options = {}) =>
   baseRepository.updateById(id, update, {

@@ -3,7 +3,12 @@ const { forwardError } = require("./controllerUtils");
 
 const listActiveOrders = async (req, res, next) => {
   try {
-    res.json({ KotOrders: await service.listActiveOrders(req.scopeToBranch) });
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await service.listActiveOrders(req.scopeToBranch, query);
+    res.json({
+      KotOrders: result.items,
+      ...(result.pagination && { pagination: result.pagination }),
+    });
   } catch (err) {
     forwardError(next, err, err.message, 400);
   }

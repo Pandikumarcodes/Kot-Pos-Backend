@@ -6,6 +6,48 @@ const AppError = require("../utils/AppError");
 const { notify } = require("./notificationservices");
 const billingAudit = require("../modules/billing/BillingAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
+const {
+  buildOperationalPlan,
+  hasQueryControls,
+  paginationFor,
+  repositoryOptions,
+  usesPagination,
+} = require("./operationalQuery");
+
+const BILLING_QUERY_POLICY = Object.freeze({
+  pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
+  searchableFields: [
+    { field: "customerName", mode: "partial" },
+    { field: "customerPhone", mode: "partial" },
+    { field: "billNumber", mode: "partial" },
+  ],
+  filters: {
+    status: {
+      field: "paymentStatus",
+      type: "enum",
+      values: ["unpaid", "paid"],
+    },
+  },
+  sorting: {
+    fields: { billDate: "createdAt", paymentStatus: "paymentStatus" },
+    defaultField: "billDate",
+    defaultOrder: "desc",
+  },
+  fieldSelection: {
+    fields: {
+      id: "_id", customerName: "customerName", customerPhone: "customerPhone",
+      billNumber: "billNumber", tableId: "tableId", tableNumber: "tableNumber",
+      items: "items", totalAmount: "totalAmount", paymentStatus: "paymentStatus",
+      paymentMethod: "paymentMethod", paidAt: "paidAt", createdBy: "createdBy",
+      createdAt: "createdAt", updatedAt: "updatedAt",
+    },
+    defaultFields: [
+      "id", "customerName", "customerPhone", "billNumber", "tableId",
+      "tableNumber", "items", "totalAmount", "paymentStatus", "paymentMethod",
+      "paidAt", "createdBy", "createdAt", "updatedAt",
+    ],
+  },
+});
 
 const transactionManager = new TransactionManager();
 
@@ -53,21 +95,30 @@ const createBill = async (input, { userId, branchId, io }) => {
   return bill;
 };
 
-const listBills = async ({ status, search, scopeToBranchMembers }) => {
-  const filter = {};
-  if (status) filter.paymentStatus = status;
-  if (search) {
-    filter.$or = [
-      { customerName: { $regex: search, $options: "i" } },
-      { customerPhone: { $regex: search, $options: "i" } },
-      { billNumber: { $regex: search, $options: "i" } },
-    ];
+const listBills = async ({ query = {}, scopeToBranchMembers }) => {
+  if (!hasQueryControls(query)) {
+    const bills = await billingRepository.listScoped(scopeToBranchMembers({}));
+    if (!bills.length) throw new AppError("No Bills found", 404);
+    return { items: bills };
   }
-  const bills = await billingRepository.listScoped(
-    scopeToBranchMembers(filter),
+  const paginated = usesPagination(query);
+  const plan = buildOperationalPlan({
+    query,
+    policy: BILLING_QUERY_POLICY,
+    trustedConstraints: [scopeToBranchMembers({})],
+  });
+  const dataPromise = billingRepository.listScoped(
+    plan.filter,
+    repositoryOptions(plan, paginated),
   );
+  const [bills, total] = paginated
+    ? await Promise.all([dataPromise, billingRepository.count(plan.filter)])
+    : [await dataPromise, null];
   if (!bills.length) throw new AppError("No Bills found", 404);
-  return bills;
+  return {
+    items: bills,
+    ...(paginated && { pagination: paginationFor(plan, total) }),
+  };
 };
 
 const getBill = async (billId, scopeToBranchMembers) => {

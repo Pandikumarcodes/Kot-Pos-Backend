@@ -20,8 +20,20 @@ const findByIdWithSelection = (id, selection, options = {}) => {
 const createUserDocument = (data, options = {}) =>
   baseRepository.createDocument(data, options);
 
-const findByScope = (filter, options = {}) =>
-  baseRepository.findMany(filter, undefined, options).select("-password");
+const findByScope = (filter, options = {}) => {
+  if (!Object.keys(options).length) {
+    return baseRepository.findMany(filter).select("-password");
+  }
+  const { projection, sort, skip, limit, lean, ...queryOptions } = options;
+  let query = baseRepository.findMany(filter, projection, queryOptions);
+  if (!projection || !Object.keys(projection).length) {
+    query = query.select("-password -refreshTokenHash");
+  }
+  if (sort) query = query.sort(sort);
+  if (skip !== undefined) query = query.skip(skip);
+  if (limit !== undefined) query = query.limit(limit);
+  return lean ? query.lean() : query;
+};
 
 const updateRole = (filter, role, options = {}) =>
   User.findOneAndUpdate(

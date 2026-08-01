@@ -50,9 +50,12 @@ const createOrder = async (req, res, next) => {
 };
 const getOrders = async (req, res, next) => {
   try {
-    res
-      .status(200)
-      .json({ myOrders: await service.listOrders(req.branchMemberFilter) });
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await service.listOrders(req.branchMemberFilter, query);
+    res.status(200).json({
+      myOrders: result.items,
+      ...(result.pagination && { pagination: result.pagination }),
+    });
   } catch (err) {
     forwardError(next, err, err.message, 400);
   }

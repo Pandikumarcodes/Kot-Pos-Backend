@@ -70,8 +70,15 @@ const adjustStock = async (req, res, next) => {
 
 const getStockLogs = async (req, res, next) => {
   try {
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await inventoryService.getStockLogs(
+      req.params.id,
+      req.branchId,
+      query,
+    );
     res.json({
-      logs: await inventoryService.getStockLogs(req.params.id, req.branchId),
+      logs: result.items,
+      ...(result.pagination && { pagination: result.pagination }),
     });
   } catch (err) {
     forwardError(next, err, "Failed to fetch stock logs");

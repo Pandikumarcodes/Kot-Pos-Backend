@@ -16,12 +16,15 @@ const createBill = async (req, res, next) => {
 
 const getBills = async (req, res, next) => {
   try {
-    const myBills = await billingService.listBills({
-      status: req.query.status,
-      search: req.query.search,
+    const { branchId: _branchId, ...query } = req.query;
+    const result = await billingService.listBills({
+      query,
       scopeToBranchMembers: req.scopeToBranchMembers,
     });
-    res.status(200).json({ myBills });
+    res.status(200).json({
+      myBills: result.items,
+      ...(result.pagination && { pagination: result.pagination }),
+    });
   } catch (err) {
     forwardError(next, err, "Failed to fetch Bills");
   }
