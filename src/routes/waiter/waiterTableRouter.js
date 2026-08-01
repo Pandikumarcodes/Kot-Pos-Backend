@@ -1,71 +1,14 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
-const Table = require("../../models/tables");
+const controller = require("../../controllers/waiterTableController");
+const { handleControllerError } = require("../../controllers/controllerUtils");
+const { validateTableAllocate, validateWaiterTableId } = require("../../validators/tables");
+
 const waiterTableRouter = express.Router();
-
-// ── Notification service ──────────────────────────────────────
-const { notify } = require("../../services/notificationservices");
-const {
-  validateTableAllocate,
-  validateWaiterTableId,
-} = require("../../validators/tables");
-
-waiterTableRouter.use(
-  userAuth,
-  allowRoles(["waiter", "manager", "admin"]),
-  branchScope,
-);
-
-// ── ALLOCATE TABLE ────────────────────────────────────────────
-waiterTableRouter.post(
-  "/allocate/:tableId",
-  validateTableAllocate,
-  async (req, res) => {
-  try {
-    const { name, phone } = req.body;
-    const table = await Table.findById(req.params.tableId);
-    if (!table) return res.status(404).json({ error: "Table not found" });
-    if (table.status === "occupied")
-      return res.status(400).json({ error: "Table is already occupied" });
-
-    table.status = "occupied";
-    table.currentCustomer = { name, phone };
-    await table.save();
-
-    // ── Notify admin + waiters ────────────────────────────────
-    const io = req.app.get("io");
-    notify.tableUpdated(io, table, req.user.branchId);
-
-    res.status(200).json({ message: "Table allocated successfully", table });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  },
-);
-
-// ── FREE TABLE ────────────────────────────────────────────────
-waiterTableRouter.put(
-  "/free/:tableId",
-  validateWaiterTableId,
-  async (req, res) => {
-  try {
-    const table = await Table.findById(req.params.tableId);
-    if (!table) return res.status(404).json({ error: "Table not found" });
-
-    table.status = "available";
-    table.currentCustomer = null;
-    await table.save();
-
-    // ── Notify admin + waiters ────────────────────────────────
-    const io = req.app.get("io");
-    notify.tableUpdated(io, table, req.user.branchId);
-
-    res.status(200).json({ message: "Table is now available", table });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  },
-);
+waiterTableRouter.use(userAuth, allowRoles(["waiter", "manager", "admin"]), branchScope);
+waiterTableRouter.post("/allocate/:tableId", validateTableAllocate, controller.allocateTable);
+waiterTableRouter.put("/free/:tableId", validateWaiterTableId, controller.freeTable);
+waiterTableRouter.use(handleControllerError);
 
 module.exports = { waiterTableRouter };

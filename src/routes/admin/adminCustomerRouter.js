@@ -1,101 +1,17 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
-const Customer = require("../../models/customer");
-const {
-  validateCustomerCreate,
-  validateCustomerId,
-  validateCustomerUpdate,
-} = require("../../validators/customers");
+const controller = require("../../controllers/customerController");
+const { handleControllerError } = require("../../controllers/controllerUtils");
+const { validateCustomerCreate, validateCustomerId, validateCustomerUpdate } = require("../../validators/customers");
+
 const adminCustomerRouter = express.Router();
-
-adminCustomerRouter.use(
-  userAuth,
-  allowRoles(["admin", "manager"]),
-  branchScope,
-);
-
-// ── GET ALL CUSTOMERS ─────────────────────────────────────────
-adminCustomerRouter.get("/customers", async (req, res) => {
-  try {
-    const customers = await Customer.find().sort({ lastVisit: -1 });
-    res.status(200).json({ customers: customers || [] });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── GET SINGLE CUSTOMER ───────────────────────────────────────
-adminCustomerRouter.get(
-  "/customers/:customerId",
-  validateCustomerId,
-  async (req, res) => {
-  try {
-    const customer = await Customer.findById(req.params.customerId);
-    if (!customer) return res.status(404).json({ error: "Customer not found" });
-    res.status(200).json({ customer });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  },
-);
-
-// ── CREATE CUSTOMER ───────────────────────────────────────────
-adminCustomerRouter.post(
-  "/customers",
-  validateCustomerCreate,
-  async (req, res) => {
-  try {
-    const { name, phone, email, address } = req.body;
-    const existing = await Customer.findOne({ phone });
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "Customer with this phone already exists" });
-    }
-    const customer = await Customer.create({ name, phone, email, address });
-    res.status(201).json({ message: "Customer created", customer });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  },
-);
-
-// ── UPDATE CUSTOMER ───────────────────────────────────────────
-adminCustomerRouter.put(
-  "/customers/:customerId",
-  validateCustomerUpdate,
-  async (req, res) => {
-  try {
-    const { name, phone, email, address } = req.body;
-    const customer = await Customer.findByIdAndUpdate(
-      req.params.customerId,
-      { name, phone, email, address },
-      { new: true, runValidators: true },
-    );
-    if (!customer) return res.status(404).json({ error: "Customer not found" });
-    res.status(200).json({ message: "Customer updated", customer });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-  },
-);
-
-// ── DELETE CUSTOMER — admin only ──────────────────────────────
-adminCustomerRouter.delete(
-  "/customers/:customerId",
-  allowRoles(["admin"]),
-  validateCustomerId,
-  async (req, res) => {
-    try {
-      const customer = await Customer.findByIdAndDelete(req.params.customerId);
-      if (!customer)
-        return res.status(404).json({ error: "Customer not found" });
-      res.status(200).json({ message: "Customer deleted", customer });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  },
-);
+adminCustomerRouter.use(userAuth, allowRoles(["admin", "manager"]), branchScope);
+adminCustomerRouter.get("/customers", controller.listCustomers);
+adminCustomerRouter.get("/customers/:customerId", validateCustomerId, controller.getCustomer);
+adminCustomerRouter.post("/customers", validateCustomerCreate, controller.createCustomer);
+adminCustomerRouter.put("/customers/:customerId", validateCustomerUpdate, controller.updateCustomer);
+adminCustomerRouter.delete("/customers/:customerId", allowRoles(["admin"]), validateCustomerId, controller.deleteCustomer);
+adminCustomerRouter.use(handleControllerError);
 
 module.exports = { adminCustomerRouter };

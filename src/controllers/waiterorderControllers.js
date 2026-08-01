@@ -1,58 +1,15 @@
-const Kot = require("../models/kot");
-const { getPagination, paginate } = require("../middleware/paginate");
-const { serverError } = require("../utils/apiResponse");
+const service = require("../services/waiterOrderService");
+const menuService = require("../services/menuService");
+const { forwardError } = require("./controllerUtils");
 
-// GET /waiter/orders
-async function getOrders(req, res) {
-  try {
-    const { skip, limit, page } = getPagination(req);
+const getMenu = async (req, res, next) => { try { const menuItems = await menuService.listAvailableMenu(req.query); res.status(200).json({ menuItems }); } catch (err) { forwardError(next, err); } };
+const getTableOrders = async (req, res, next) => { try { res.status(200).json(await service.getTableOrders(req.params.tableId, req.scopeToBranchMembers)); } catch (err) { forwardError(next, err, err.message, 400); } };
+const sendToCashier = async (req, res, next) => { try { const bill = await service.sendToCashier(req.params.tableId, req.body, { scopeToBranchMembers: req.scopeToBranchMembers, branchId: req.branchId, userId: req.user._id, io: req.app.get("io") }); res.status(201).json({ message: "Bill sent to cashier", bill }); } catch (err) { forwardError(next, err, err.message, 400); } };
+const createOrder = async (req, res, next) => { try { const order = await service.createOrder(req.body, { branchId: req.branchId, userId: req.user._id }); res.status(201).json({ message: "Order created successfully", order }); } catch (err) { forwardError(next, err, err.message, 400); } };
+const getOrders = async (req, res, next) => { try { res.status(200).json({ myOrders: await service.listOrders(req.branchMemberFilter) }); } catch (err) { forwardError(next, err, err.message, 400); } };
+const getOrder = async (req, res, next) => { try { res.status(200).json({ order: await service.getOrder(req.params.orderId, req.scopeToBranchMembers) }); } catch (err) { forwardError(next, err, err.message, 400); } };
+const sendToKitchen = async (req, res, next) => { try { const order = await service.sendToKitchen(req.params.orderId, { scopeToBranchMembers: req.scopeToBranchMembers, branchId: req.branchId, io: req.app.get("io") }); res.status(200).json({ message: "Order sent to kitchen (KOT)", order }); } catch (err) { forwardError(next, err, err.message, 400); } };
+const markServed = async (req, res, next) => { try { const order = await service.updateStatus(req.params.orderId, "served", req.scopeToBranchMembers); res.status(200).json({ message: "Order marked as served", order }); } catch (err) { forwardError(next, err, err.message, 400); } };
+const cancelOrder = async (req, res, next) => { try { const order = await service.updateStatus(req.params.orderId, "cancelled", req.scopeToBranchMembers); res.status(200).json({ message: "Order has been cancelled", order }); } catch (err) { forwardError(next, err, err.message, 400); } };
 
-    // ── Build filter ──────────────────────────────────────────
-    const filter = { ...req.branchFilter }; // from branchScope middleware
-
-    if (req.query.status && req.query.status !== "all") {
-      filter.status = req.query.status;
-    }
-
-    if (req.query.orderType) {
-      filter.orderType = req.query.orderType;
-    }
-
-    if (req.query.tableNumber) {
-      filter.tableNumber = parseInt(req.query.tableNumber);
-    }
-
-    // Date range
-    if (req.query.from || req.query.to) {
-      filter.createdAt = {};
-      if (req.query.from) filter.createdAt.$gte = new Date(req.query.from);
-      if (req.query.to) {
-        const to = new Date(req.query.to);
-        to.setHours(23, 59, 59, 999); // include full end day
-        filter.createdAt.$lte = to;
-      }
-    }
-
-    // Text search — uses the text index on customerName + customerPhone
-    if (req.query.search) {
-      filter.$text = { $search: req.query.search };
-    }
-
-    // ── Query with pagination ─────────────────────────────────
-    const [orders, total] = await Promise.all([
-      Kot.find(filter)
-        .sort({ createdAt: -1 }) // newest first — uses { branchId, createdAt } index
-        .skip(skip)
-        .limit(limit)
-        .populate("createdBy", "username") // only fetch username, not password
-        .lean(), // plain JS objects — faster than Mongoose docs
-      Kot.countDocuments(filter),
-    ]);
-
-    res.json(paginate(orders, total, page, limit));
-  } catch (err) {
-    return serverError(res, "Failed to fetch orders");
-  }
-}
-
-module.exports = { getOrders };
+module.exports = { getMenu, getTableOrders, sendToCashier, createOrder, getOrders, getOrder, sendToKitchen, markServed, cancelOrder };

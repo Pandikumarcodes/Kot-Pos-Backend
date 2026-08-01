@@ -12,6 +12,7 @@ const {
   getStockLogs,
   deleteInventory,
 } = require("../../controllers/inventoryController");
+const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
   validateInventoryAdjust,
   validateInventoryCreate,
@@ -40,5 +41,6 @@ router.post(
 );
 router.get("/:id/logs", requireBranch, validateInventoryId, getStockLogs);
 router.delete("/:id", validateInventoryId, deleteInventory);
+router.use(handleControllerError);
 
 module.exports = router;

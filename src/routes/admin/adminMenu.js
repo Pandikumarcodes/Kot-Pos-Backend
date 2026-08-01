@@ -1,114 +1,16 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
-const MenuItem = require("../../models/menuItems");
-const {
-  validateMenuCreate,
-  validateMenuId,
-  validateMenuUpdate,
-} = require("../../validators/menu");
+const controller = require("../../controllers/menuController");
+const { handleControllerError } = require("../../controllers/controllerUtils");
+const { validateMenuCreate, validateMenuId, validateMenuUpdate } = require("../../validators/menu");
 
 const adminMenuRouter = express.Router();
 adminMenuRouter.use(userAuth, branchScope);
-
-// ── CREATE — admin + manager only ────────────────────────────
-
-adminMenuRouter.post(
-  "/menu",
-  allowRoles(["admin", "manager"]),
-  validateMenuCreate,
-  async (req, res) => {
-    try {
-      const { ItemName, category, price, available } = req.body;
-      const existingItem = await MenuItem.findOne({ ItemName });
-      if (existingItem) {
-        return res.status(400).json({ error: "This Item already Exists" });
-      }
-      const menuItem = new MenuItem({ ItemName, category, price, available });
-      await menuItem.save();
-      res.status(201).json({
-        message: "Menu item created successfully",
-        menuItem: {
-          _id: menuItem._id,
-          ItemName: menuItem.ItemName,
-          category: menuItem.category,
-          price: menuItem.price,
-          available: menuItem.available,
-        },
-      });
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  },
-);
-
-// ── READ ALL — all roles ──────────────────────────────────────
-adminMenuRouter.get(
-  "/menuItems",
-  allowRoles(["admin", "manager", "waiter", "chef", "cashier"]),
-  async (req, res) => {
-    try {
-      const menuItems = await MenuItem.find().lean();
-      res.status(200).json({ menuItems });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch menu items" });
-    }
-  },
-);
-
-// ── UPDATE — admin + manager only ────────────────────────────
-adminMenuRouter.put(
-  "/menu-item/:ItemId",
-  allowRoles(["admin", "manager"]),
-  validateMenuUpdate,
-  async (req, res) => {
-    try {
-      const { ItemId } = req.params;
-      const { price, available } = req.body;
-      const updateFields = {};
-      if (price !== undefined) updateFields.price = price;
-      if (available !== undefined) updateFields.available = available;
-      const menuItem = await MenuItem.findByIdAndUpdate(ItemId, updateFields, {
-        new: true,
-        runValidators: true,
-      });
-      if (!menuItem)
-        return res.status(404).json({ error: "Menu item not found" });
-      return res.status(200).json({
-        message: "Menu item updated successfully",
-        menuItem: {
-          _id: menuItem._id,
-          ItemName: menuItem.ItemName,
-          category: menuItem.category,
-          price: menuItem.price,
-          available: menuItem.available,
-        },
-      });
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  },
-);
-
-// ── DELETE — admin only ───────────────────────────────────────
-adminMenuRouter.delete(
-  "/delete/:ItemId",
-  allowRoles(["admin"]),
-  validateMenuId,
-  async (req, res) => {
-    try {
-      const { ItemId } = req.params;
-      const deletedItem = await MenuItem.findByIdAndDelete(ItemId);
-      if (!deletedItem)
-        return res.status(404).json({ error: "Menu item not found" });
-      res.status(200).json({
-        message: "Menu item deleted successfully",
-        item: { _id: deletedItem._id, ItemName: deletedItem.ItemName },
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  },
-);
+adminMenuRouter.post("/menu", allowRoles(["admin", "manager"]), validateMenuCreate, controller.createMenuItem);
+adminMenuRouter.get("/menuItems", allowRoles(["admin", "manager", "waiter", "chef", "cashier"]), controller.listMenuItems);
+adminMenuRouter.put("/menu-item/:ItemId", allowRoles(["admin", "manager"]), validateMenuUpdate, controller.updateMenuItem);
+adminMenuRouter.delete("/delete/:ItemId", allowRoles(["admin"]), validateMenuId, controller.deleteMenuItem);
+adminMenuRouter.use(handleControllerError);
 
 module.exports = { adminMenuRouter };
