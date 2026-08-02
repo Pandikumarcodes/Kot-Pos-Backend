@@ -1,5 +1,6 @@
 const createBaseRepository = require("./BaseRepository");
 const Table = require("../models/tables");
+const { leanQuery } = require("./readQuery");
 
 const baseRepository = createBaseRepository(Table);
 
@@ -10,7 +11,7 @@ const createTableDocument = (data, options = {}) =>
   baseRepository.createDocument(data, options);
 
 const listAll = (options = {}) =>
-  baseRepository.findMany({}, undefined, options);
+  leanQuery(baseRepository.findMany({}, undefined, options));
 
 const updateTable = (id, update, options = {}) =>
   baseRepository.updateById(id, update, {

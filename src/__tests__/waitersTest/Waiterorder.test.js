@@ -436,7 +436,7 @@ describe("GET /api/v1/waiter/orders/:orderId", () => {
 
   it("200 — returns a single order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findById.mockReturnValue({
+    TableOrder.findOne.mockReturnValue({
       populate: jest.fn().mockReturnValue({
         populate: jest.fn().mockResolvedValue(mockOrderDoc()),
       }),
@@ -452,7 +452,7 @@ describe("GET /api/v1/waiter/orders/:orderId", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findById.mockReturnValue({
+    TableOrder.findOne.mockReturnValue({
       populate: jest.fn().mockReturnValue({
         populate: jest.fn().mockResolvedValue(null),
       }),

@@ -53,10 +53,11 @@ const createTakeawayOrder = async (input, { userId, branchId }) => {
   );
   if (menuItems.length !== items.length)
     throw new AppError("Some menu items not found", 400);
+  const menuItemsById = new Map(
+    menuItems.map((menuItem) => [menuItem._id.toString(), menuItem]),
+  );
   const orderItems = items.map((item) => {
-    const menuItem = menuItems.find(
-      (entry) => entry._id.toString() === item.itemId,
-    );
+    const menuItem = menuItemsById.get(item.itemId);
     return {
       itemId: menuItem._id,
       name: menuItem.ItemName,

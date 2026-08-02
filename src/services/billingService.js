@@ -65,9 +65,12 @@ const generateBillNumber = async (options = {}) => {
 const createBill = async (input, { userId, branchId, io }) => {
   const { customerName, customerPhone, items, paymentStatus, paymentMethod } =
     input;
+  const menuItems = await Promise.all(
+    items.map((item) => menuRepository.findById(item.itemId)),
+  );
   const detailedItems = [];
-  for (const item of items) {
-    const menuItem = await menuRepository.findById(item.itemId);
+  for (const [index, item] of items.entries()) {
+    const menuItem = menuItems[index];
     if (!menuItem)
       throw new AppError(`Menu item not found for ID: ${item.itemId}`, 404);
     detailedItems.push({

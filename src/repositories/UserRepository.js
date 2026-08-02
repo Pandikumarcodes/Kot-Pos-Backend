@@ -1,5 +1,6 @@
 const createBaseRepository = require("./BaseRepository");
 const User = require("../models/users");
+const { leanQuery } = require("./readQuery");
 
 const baseRepository = createBaseRepository(User);
 
@@ -22,7 +23,7 @@ const createUserDocument = (data, options = {}) =>
 
 const findByScope = (filter, options = {}) => {
   if (!Object.keys(options).length) {
-    return baseRepository.findMany(filter).select("-password");
+    return leanQuery(baseRepository.findMany(filter).select("-password"));
   }
   const { projection, sort, skip, limit, lean, ...queryOptions } = options;
   let query = baseRepository.findMany(filter, projection, queryOptions);
@@ -32,7 +33,7 @@ const findByScope = (filter, options = {}) => {
   if (sort) query = query.sort(sort);
   if (skip !== undefined) query = query.skip(skip);
   if (limit !== undefined) query = query.limit(limit);
-  return lean ? query.lean() : query;
+  return lean === false ? query : leanQuery(query);
 };
 
 const updateRole = (filter, role, options = {}) =>

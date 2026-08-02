@@ -1,13 +1,14 @@
 const createBaseRepository = require("./BaseRepository");
 const Branch = require("../models/Branch");
+const { leanQuery } = require("./readQuery");
 
 const baseRepository = createBaseRepository(Branch);
 
 const listWithAdmin = (options = {}) =>
-  baseRepository
+  leanQuery(baseRepository
     .findMany({}, undefined, options)
     .populate("adminUser", "username role")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 }));
 
 const createBranch = (data, options = {}) =>
   baseRepository.create(data, options);

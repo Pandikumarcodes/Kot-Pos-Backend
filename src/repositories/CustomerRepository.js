@@ -1,22 +1,23 @@
 const createBaseRepository = require("./BaseRepository");
 const Customer = require("../models/customer");
+const { leanQuery } = require("./readQuery");
 
 const baseRepository = createBaseRepository(Customer);
 
 const listByLastVisit = (options = {}) => {
   if (!Object.keys(options).length) {
-    return baseRepository.findMany({}).sort({ lastVisit: -1 });
+    return leanQuery(baseRepository.findMany({}).sort({ lastVisit: -1 }));
   }
   const { filter = {}, projection, sort, skip, limit, lean, ...queryOptions } = options;
   let query = baseRepository.findMany(filter, projection, queryOptions);
   if (sort) query = query.sort(sort);
   if (skip !== undefined) query = query.skip(skip);
   if (limit !== undefined) query = query.limit(limit);
-  return lean ? query.lean() : query;
+  return lean === false ? query : leanQuery(query);
 };
 
 const findByPhone = (phone, options = {}) =>
-  baseRepository.findOne({ phone }, undefined, options);
+  leanQuery(baseRepository.findOne({ phone }, { _id: 1 }, options));
 
 const createCustomer = (data, options = {}) =>
   baseRepository.create(data, options);

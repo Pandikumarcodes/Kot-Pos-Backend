@@ -365,7 +365,7 @@ describe("GET /api/v1/cashier/bills/:billId", () => {
 
   it("200 — cashier can fetch a single bill", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockReturnValue({
+    Billing.findOne.mockReturnValue({
       populate: jest.fn().mockResolvedValue(mockBillDoc()),
     });
 
@@ -379,7 +379,7 @@ describe("GET /api/v1/cashier/bills/:billId", () => {
 
   it("404 — returns 404 when bill not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findById.mockReturnValue({
+    Billing.findOne.mockReturnValue({
       populate: jest.fn().mockResolvedValue(null),
     });
 

@@ -1,5 +1,6 @@
 const createBaseRepository = require("./BaseRepository");
 const TableOrder = require("../models/waiter");
+const { leanQuery } = require("./readQuery");
 
 const baseRepository = createBaseRepository(TableOrder);
 
@@ -11,7 +12,10 @@ const listTableActive = (filter, options = {}) =>
 
 const listScoped = (filter, options = {}) => {
   if (!Object.keys(options).length) {
-    return baseRepository.findMany(filter).populate("createdBy", "username").sort({ createdAt: -1 });
+    return leanQuery(baseRepository
+      .findMany(filter)
+      .populate("createdBy", "username")
+      .sort({ createdAt: -1 }));
   }
   const { projection, sort, skip, limit, lean, ...queryOptions } = options;
   let query = baseRepository.findMany(filter, projection, queryOptions)
@@ -19,7 +23,7 @@ const listScoped = (filter, options = {}) => {
   if (sort) query = query.sort(sort);
   if (skip !== undefined) query = query.skip(skip);
   if (limit !== undefined) query = query.limit(limit);
-  return lean ? query.lean() : query;
+  return lean === false ? query : leanQuery(query);
 };
 
 const findScopedWithDetails = (filter, options = {}) =>
