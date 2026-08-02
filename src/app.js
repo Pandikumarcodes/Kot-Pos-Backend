@@ -22,6 +22,14 @@ const {
 } = require("./middlewares/ratelimiter.js");
 
 const { initSocket } = require("./socket/index.js");
+const mongoose = require("mongoose");
+const { STATES, LifecycleState } = require("./infrastructure/health/lifecycleState");
+const { validateEnvironment } = require("./infrastructure/health/startupValidator");
+const { HealthService } = require("./infrastructure/health/healthService");
+const { createHealthController } = require("./infrastructure/health/healthController");
+const { createHealthRouter } = require("./infrastructure/health/healthRoutes");
+const { ShutdownManager } = require("./infrastructure/health/shutdownManager");
+const { createGracefulShutdown } = require("./infrastructure/health/gracefulShutdown");
 
 // ── Winston ───────────────────────────────────────────────────
 const logger = require("./config/logger");
@@ -54,6 +62,30 @@ const corsOptions = {
 const io = new Server(server, { cors: corsOptions });
 initSocket(io);
 app.set("io", io);
+
+const lifecycle = new LifecycleState();
+const healthService = new HealthService({
+  lifecycle,
+  mongoOptions: { connection: mongoose.connection },
+  socket: io,
+  version: "v1",
+});
+const healthController = createHealthController(healthService);
+const configuredShutdownTimeout = Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000);
+const shutdownTimeoutMs = Number.isFinite(configuredShutdownTimeout) && configuredShutdownTimeout > 0
+  ? configuredShutdownTimeout
+  : 10000;
+const shutdownManager = new ShutdownManager({ defaultTimeoutMs: shutdownTimeoutMs });
+const gracefulShutdown = createGracefulShutdown({
+  server,
+  io,
+  mongo: mongoose,
+  lifecycle,
+  shutdownManager,
+  logger,
+  timeoutMs: shutdownTimeoutMs,
+});
+const removeSignalHandlers = gracefulShutdown.installSignalHandlers();
 
 // ── Trust proxy ───────────────────────────────────────────────
 app.set("trust proxy", 1);
@@ -169,23 +201,7 @@ app.use("/api/v1/chef", chefRouter);
 app.use("/api/v1/ai", aiRouter);
 
 // ── Health Check ──────────────────────────────────────────────
-app.get("/health", (req, res) => {
-  const isProduction = process.env.NODE_ENV === "production";
-  res.status(200).json({
-    status: "ok",
-    message: "KOT POS API is running!",
-    version: "v1",
-    timestamp: new Date().toISOString(),
-    ...(!isProduction && {
-      env: process.env.NODE_ENV,
-      sockets: io.engine.clientsCount,
-      e2eTesting: process.env.E2E_TESTING === "true",
-      rateLimitingActive: !(
-        process.env.NODE_ENV === "test" || process.env.E2E_TESTING === "true"
-      ),
-    }),
-  });
-});
+app.use(createHealthRouter({ service: healthService, controller: healthController }));
 
 // ── 404 Handler ───────────────────────────────────────────────
 app.use((req, res) => {
@@ -226,8 +242,9 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
+let keepAliveInterval;
 if (process.env.NODE_ENV === "production" && process.env.BACKEND_URL) {
-  setInterval(
+  keepAliveInterval = setInterval(
     () => {
       fetch(`${process.env.BACKEND_URL}/health`)
         .then(() => logger.info("Keep-alive ping sent"))
@@ -237,22 +254,40 @@ if (process.env.NODE_ENV === "production" && process.env.BACKEND_URL) {
     },
     14 * 60 * 1000,
   ); // every 14 minutes
+  shutdownManager.register(() => clearInterval(keepAliveInterval), { name: "keep-alive" });
 }
 
 // ── Start server ──────────────────────────────────────────────
-connectDB()
-  .then(async () => {
-    await ensureIndexes();
-    server.listen(PORT, () => {
+async function startServer({ validate = validateEnvironment, connect = connectDB, indexes = ensureIndexes, listen = (onReady) => server.listen(PORT, onReady) } = {}) {
+  try {
+    validate();
+    await connect();
+    await indexes();
+    listen(() => {
+      lifecycle.transition(STATES.READY);
       logger.info("Server started", {
         port: PORT,
         env: process.env.NODE_ENV,
         frontendUrl: process.env.FRONTEND_URL,
+        lifecycleState: lifecycle.getState(),
       });
       logger.info("Socket.io ready");
     });
-  })
-  .catch((err) => {
-    logger.error("Database connection failed", { message: err.message });
+  } catch (err) {
+    if (lifecycle.getState() === STATES.STARTING) lifecycle.transition(STATES.FAILED);
+    if (err?.code === "ENVIRONMENT_VALIDATION_ERROR") {
+      logger.error("Startup validation failed", {
+        code: err.code,
+        fields: err.details?.fields || [],
+        lifecycleState: lifecycle.getState(),
+      });
+    } else {
+      logger.error("Database connection failed", { message: err.message, lifecycleState: lifecycle.getState() });
+    }
     process.exit(1);
-  });
+  }
+}
+
+if (require.main === module) startServer();
+
+module.exports = { app, server, io, lifecycle, healthService, startServer, shutdownManager, gracefulShutdown, removeSignalHandlers };
