@@ -73,6 +73,14 @@ const initSocket = (io) => {
       role: user.role,
       branchId: user.branchId,
     });
+
+    // Socket.IO removes room membership on disconnect; clear application
+    // metadata too so authenticated user data is not retained by references.
+    const onDisconnect = () => {
+      if (socket.data) delete socket.data.user;
+    };
+    if (typeof socket.once === "function") socket.once("disconnect", onDisconnect);
+    else if (typeof socket.on === "function") socket.on("disconnect", onDisconnect);
   });
 };
 

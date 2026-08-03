@@ -19,6 +19,8 @@ const {
   apiLimiter,
   orderLimiter,
   reportLimiter,
+  publicLimiter,
+  aiLimiter,
 } = require("./middlewares/ratelimiter.js");
 
 const { initSocket } = require("./socket/index.js");
@@ -32,6 +34,7 @@ const { ShutdownManager } = require("./infrastructure/health/shutdownManager");
 const { createGracefulShutdown } = require("./infrastructure/health/gracefulShutdown");
 const { connectRedis, disconnectRedis } = require("./infrastructure/cache");
 const { startBackgroundJobs } = require("./infrastructure/queue/backgroundJobs");
+const { mountSwagger } = require("./docs/swagger");
 
 // ── Winston ───────────────────────────────────────────────────
 const logger = require("./config/logger");
@@ -171,6 +174,8 @@ const { chefRouter } = require("./routes/chef/chefRouter.js");
 const aiRouter = require("./routes/aiRouter");
 
 // ── Version info endpoint ─────────────────────────────────────
+mountSwagger(app);
+
 app.get("/api/version", (req, res) => {
   res.json({
     current: "v1",
@@ -182,7 +187,7 @@ app.get("/api/version", (req, res) => {
 
 app.use("/api/v1/auth", authRouter);
 // mountTestRoutes(app);
-app.use("/api/v1/public", qrMenuRouter);
+app.use("/api/v1/public", publicLimiter, qrMenuRouter);
 
 app.use("/api/v1/admin", adminMenuRouter);
 app.use("/api/v1/admin", adminTableRouter);
@@ -202,7 +207,7 @@ app.use("/api/v1/waiter", waiterTableRouter);
 
 app.use("/api/v1/chef", chefRouter);
 
-app.use("/api/v1/ai", aiRouter);
+app.use("/api/v1/ai", aiLimiter, aiRouter);
 
 // ── Health Check ──────────────────────────────────────────────
 app.use(createHealthRouter({ service: healthService, controller: healthController }));

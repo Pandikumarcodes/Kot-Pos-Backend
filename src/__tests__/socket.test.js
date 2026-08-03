@@ -16,7 +16,8 @@ const makeSocket = (overrides = {}) => ({
   data: {},
   join: jest.fn(),
   emit: jest.fn(),
-  on: jest.fn(),
+    on: jest.fn(),
+    once: jest.fn(),
   ...overrides,
 });
 
@@ -77,5 +78,16 @@ describe("Socket.IO authentication", () => {
 
     expect(socket.join).toHaveBeenCalledWith("branch:branch_123:role:cashier");
     expect(socket.on).not.toHaveBeenCalled();
+    expect(socket.once).toHaveBeenCalledWith("disconnect", expect.any(Function));
+  });
+
+  it("clears authenticated socket metadata on disconnect", () => {
+    let connectionHandler;
+    const io = { use: jest.fn(), on: jest.fn((event, handler) => { if (event === "connection") connectionHandler = handler; }) };
+    const socket = makeSocket({ data: { user: { id: "user_123", role: "chef", branchId: "branch_123" } } });
+    initSocket(io);
+    connectionHandler(socket);
+    socket.once.mock.calls[0][1]();
+    expect(socket.data.user).toBeUndefined();
   });
 });

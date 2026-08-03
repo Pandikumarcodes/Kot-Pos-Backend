@@ -3,7 +3,7 @@ const { getRedisClient, redisStatus } = require("./redisClient");
 const { CacheMetrics } = require("./cacheMetrics");
 
 const metrics = new CacheMetrics();
-const DEFAULT_TTL_SECONDS = 300;
+const DEFAULT_TTL_SECONDS = Number(process.env.CACHE_TTL) > 0 ? Number(process.env.CACHE_TTL) : 300;
 
 const withTimeout = (
   promise,
