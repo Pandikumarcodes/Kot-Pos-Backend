@@ -1,4 +1,5 @@
 const settingsRepository = require("../repositories/SettingsRepository");
+const { cache, cacheKeys } = require("../infrastructure/cache");
 const administrationAudit = require("../modules/administration/AdministrationAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 
@@ -9,8 +10,10 @@ const writeFailure = async (values) => {
 };
 
 const getSettings = async (branchFilter, branchId) => {
-  const settings = await settingsRepository.findScoped(branchFilter);
-  return settings || settingsRepository.createSettings({ branchId });
+  return cache.getOrSet(cacheKeys.settings({ branchId }), async () => {
+    const settings = await settingsRepository.findScoped(branchFilter);
+    return settings || settingsRepository.createSettings({ branchId });
+  }, { ttlSeconds: 600 });
 };
 
 const saveSettings = async (branchFilter, scopeToBranch, branchId, input, audit = {}) => {
@@ -30,6 +33,8 @@ const saveSettings = async (branchFilter, scopeToBranch, branchId, input, audit 
     );
   }
   settingsId = settings?._id ?? settingsId;
+  if (branchId) await cache.del(cacheKeys.settings({ branchId }));
+  else await cache.invalidatePattern("kot-pos:v1:settings:*");
   await administrationAudit.settingsChanged({ context, settingsId,
     before: existing || {}, after: settings, category: audit.category || "general" });
   return settings;

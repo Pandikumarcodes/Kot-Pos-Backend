@@ -4,6 +4,7 @@ const stockLogRepository = require("../repositories/StockLogRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const billingRepository = require("../repositories/BillingRepository");
 const AppError = require("../utils/AppError");
+const { cache, cacheKeys } = require("../infrastructure/cache");
 
 const client = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
@@ -13,8 +14,6 @@ const MODELS = [
   "gemini-3.1-flash-preview",
   "gemini-3-flash-preview",
 ];
-const summaryCache = new Map();
-const CACHE_TTL = 10 * 60 * 1000;
 
 const utcMidnight = (offsetDays = 0) => {
   const date = new Date();
@@ -52,11 +51,7 @@ const callGemini = async (prompt) => {
 };
 
 const getAiSummary = async (prompt, cacheKey) => {
-  const cached = summaryCache.get(cacheKey);
-  if (cached?.text && cached.expiry > Date.now()) return cached.text;
-  const text = await callGemini(prompt);
-  summaryCache.set(cacheKey, { text, expiry: Date.now() + CACHE_TTL });
-  return text;
+  return cache.getOrSet(cacheKey, () => callGemini(prompt), { ttlSeconds: 600 });
 };
 
 const chat = async ({ message, context }) => {
@@ -205,7 +200,7 @@ const generateFallbackSummary = (data) => {
   return `Good morning! Here's your summary for ${data.date}. Total revenue was ${data.totalRevenue} from ${data.totalOrders} orders (${trend}). Best selling item: ${data.topItems[0]?.name ?? "N/A"}. Peak hour: ${data.peakHour}. Average order value: ${data.avgOrderValue}. Dine-in: ${data.dineIn}, Takeaway: ${data.takeaway}.${stockMessage}`;
 };
 
-const getDailySummary = async ({
+const buildDailySummary = async ({
   branchFilter,
   branchMemberFilter,
   branchId,
@@ -290,13 +285,19 @@ const getDailySummary = async ({
   if (client) {
     try {
       const prompt = `You are a smart restaurant business analyst for KOT POS. Generate a concise morning summary report for the restaurant owner/manager. Yesterday's data: ${JSON.stringify(summaryData, null, 2)} Write a friendly, professional summary with overall performance, revenue and order highlights, the top selling item, one actionable insight, and critical stock alerts. Keep it under 150 words in one plain-text paragraph. Start with "Good morning! Here's your summary for ${summaryData.date}."`;
-      aiSummary = await getAiSummary(prompt, branchId || "all-branches");
+      aiSummary = await getAiSummary(prompt, cacheKeys.aiDailySummaryText({ branchId, date: summaryData.date }));
     } catch (err) {
       aiSummary = generateFallbackSummary(summaryData);
     }
   }
   return { data: summaryData, aiSummary };
 };
+
+const getDailySummary = async (options) => cache.getOrSet(
+  cacheKeys.aiDailySummary({ branchId: options?.branchId, date: utcMidnight(1).toDateString() }),
+  () => buildDailySummary(options),
+  { ttlSeconds: 600 },
+);
 
 module.exports = {
   chat,

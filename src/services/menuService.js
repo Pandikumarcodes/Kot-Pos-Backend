@@ -1,4 +1,5 @@
 const menuRepository = require("../repositories/MenuRepository");
+const { cache, cacheKeys } = require("../infrastructure/cache");
 const AppError = require("../utils/AppError");
 const {
   buildMasterDataPlan,
@@ -61,27 +62,30 @@ const createMenuItem = async ({ ItemName, category, price, available }) => {
     price,
     available,
   });
+  await cache.invalidatePattern("kot-pos:v1:menu:*");
+  await cache.invalidatePattern("kot-pos:v1:menu-available:*");
   return toMenuResponse(menuItem);
 };
 
-const listMenuItems = async (query = {}) => {
+const listMenuItems = async (query = {}, { branchId } = {}) => {
+  const key = cacheKeys.menu({ branchId, query });
   if (!hasQueryControls(query)) {
-    return { items: await menuRepository.listAll() };
+    const items = await cache.getOrSet(key, () => menuRepository.listAll(), { ttlSeconds: 300 });
+    return { items };
   }
 
-  const paginated = usesPagination(query);
-  const plan = buildMasterDataPlan({ query, policy: MENU_QUERY_POLICY });
-  const dataPromise = menuRepository.listAll({
-    ...repositoryOptions(plan, paginated),
-    filter: plan.filter,
-  });
-  const [items, total] = paginated
-    ? await Promise.all([dataPromise, menuRepository.count(plan.filter)])
-    : [await dataPromise, null];
-  return {
-    items,
-    ...(paginated && { pagination: paginationFor(plan, total) }),
-  };
+  return cache.getOrSet(key, async () => {
+    const paginated = usesPagination(query);
+    const plan = buildMasterDataPlan({ query, policy: MENU_QUERY_POLICY });
+    const dataPromise = menuRepository.listAll({
+      ...repositoryOptions(plan, paginated),
+      filter: plan.filter,
+    });
+    const [items, total] = paginated
+      ? await Promise.all([dataPromise, menuRepository.count(plan.filter)])
+      : [await dataPromise, null];
+    return { items, ...(paginated && { pagination: paginationFor(plan, total) }) };
+  }, { ttlSeconds: 300 });
 };
 
 const updateMenuItem = async (ItemId, { price, available }) => {
@@ -90,16 +94,27 @@ const updateMenuItem = async (ItemId, { price, available }) => {
   if (available !== undefined) updateFields.available = available;
   const menuItem = await menuRepository.updateMenuItem(ItemId, updateFields);
   if (!menuItem) throw new AppError("Menu item not found", 404);
+  await cache.invalidatePattern("kot-pos:v1:menu:*");
+  await cache.invalidatePattern("kot-pos:v1:menu-available:*");
   return toMenuResponse(menuItem);
 };
 
 const deleteMenuItem = async (ItemId) => {
   const item = await menuRepository.deleteMenuItem(ItemId);
   if (!item) throw new AppError("Menu item not found", 404);
+  await cache.invalidatePattern("kot-pos:v1:menu:*");
+  await cache.invalidatePattern("kot-pos:v1:menu-available:*");
   return { _id: item._id, ItemName: item.ItemName };
 };
 
-const listAvailableMenu = ({ category, search }) => {
+const listAvailableMenu = ({ category, search, branchId } = {}) => {
+  if (!category && !search) {
+    return cache.getOrSet(
+      cacheKeys.availableMenu({ branchId }),
+      () => menuRepository.listAvailable({ available: true }),
+      { ttlSeconds: 120 },
+    );
+  }
   const filter = { available: true };
   if (category) filter.category = category;
   if (search) filter.ItemName = { $regex: search, $options: "i" };

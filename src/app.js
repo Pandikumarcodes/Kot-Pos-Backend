@@ -30,6 +30,8 @@ const { createHealthController } = require("./infrastructure/health/healthContro
 const { createHealthRouter } = require("./infrastructure/health/healthRoutes");
 const { ShutdownManager } = require("./infrastructure/health/shutdownManager");
 const { createGracefulShutdown } = require("./infrastructure/health/gracefulShutdown");
+const { connectRedis, disconnectRedis } = require("./infrastructure/cache");
+const { startBackgroundJobs } = require("./infrastructure/queue/backgroundJobs");
 
 // ── Winston ───────────────────────────────────────────────────
 const logger = require("./config/logger");
@@ -76,6 +78,7 @@ const shutdownTimeoutMs = Number.isFinite(configuredShutdownTimeout) && configur
   ? configuredShutdownTimeout
   : 10000;
 const shutdownManager = new ShutdownManager({ defaultTimeoutMs: shutdownTimeoutMs });
+let backgroundJobs;
 const gracefulShutdown = createGracefulShutdown({
   server,
   io,
@@ -86,6 +89,7 @@ const gracefulShutdown = createGracefulShutdown({
   timeoutMs: shutdownTimeoutMs,
 });
 const removeSignalHandlers = gracefulShutdown.installSignalHandlers();
+shutdownManager.register(disconnectRedis, { name: "redis" });
 
 // ── Trust proxy ───────────────────────────────────────────────
 app.set("trust proxy", 1);
@@ -258,11 +262,16 @@ if (process.env.NODE_ENV === "production" && process.env.BACKEND_URL) {
 }
 
 // ── Start server ──────────────────────────────────────────────
-async function startServer({ validate = validateEnvironment, connect = connectDB, indexes = ensureIndexes, listen = (onReady) => server.listen(PORT, onReady) } = {}) {
+async function startServer({ validate = validateEnvironment, connect = connectDB, indexes = ensureIndexes, connectCache = connectRedis, listen = (onReady) => server.listen(PORT, onReady) } = {}) {
   try {
     validate();
     await connect();
     await indexes();
+    await connectCache();
+    if (process.env.ENABLE_BACKGROUND_JOBS === "true") {
+      backgroundJobs = await startBackgroundJobs();
+      if (backgroundJobs) shutdownManager.register(() => backgroundJobs.close(), { name: "background-jobs" });
+    }
     listen(() => {
       lifecycle.transition(STATES.READY);
       logger.info("Server started", {

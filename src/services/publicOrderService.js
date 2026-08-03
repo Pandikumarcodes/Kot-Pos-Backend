@@ -4,11 +4,16 @@ const kitchenRepository = require("../repositories/KitchenRepository");
 const settingsRepository = require("../repositories/SettingsRepository");
 const branchRepository = require("../repositories/BranchRepository");
 const AppError = require("../utils/AppError");
+const { cache, cacheKeys } = require("../infrastructure/cache");
 
 const getQrMenu = async (tableId) => {
   const table = await tableRepository.findByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
-  const menuItems = await menuRepository.listAvailableLean();
+  const menuItems = await cache.getOrSet(
+    cacheKeys.availableMenu({ branchId: table.branchId }),
+    () => menuRepository.listAvailableLean(),
+    { ttlSeconds: 120 },
+  );
   const menu = menuItems.reduce((groups, item) => {
     if (!groups[item.category]) groups[item.category] = [];
     groups[item.category].push({
@@ -19,10 +24,12 @@ const getQrMenu = async (tableId) => {
     });
     return groups;
   }, {});
-  const settings =
-    (await settingsRepository.findScopedLean({
-      branchId: table.branchId ?? null,
-    })) ?? (await settingsRepository.findScopedLean({ branchId: null }));
+  const settings = await cache.getOrSet(
+    cacheKeys.settings({ branchId: table.branchId }),
+    async () => (await settingsRepository.findScopedLean({ branchId: table.branchId ?? null }))
+      ?? (await settingsRepository.findScopedLean({ branchId: null })),
+    { ttlSeconds: 600 },
+  );
   return {
     table: {
       _id: table._id,

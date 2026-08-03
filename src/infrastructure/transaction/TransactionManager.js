@@ -12,7 +12,9 @@ class TransactionManager {
     transactionOptions = DEFAULT_TRANSACTION_OPTIONS,
   } = {}) {
     if (!connection || typeof connection.startSession !== "function") {
-      throw new TypeError("A MongoDB connection with startSession() is required");
+      throw new TypeError(
+        "A MongoDB connection with startSession() is required",
+      );
     }
 
     if (!Number.isInteger(maxRetries) || maxRetries < 0) {
@@ -35,10 +37,13 @@ class TransactionManager {
         try {
           let result;
 
-          await session.withTransaction(async () => {
-            result = await work(session);
-            return result;
-          }, { ...this.transactionOptions, ...options });
+          await session.withTransaction(
+            async () => {
+              result = await work(session);
+              return result;
+            },
+            { ...this.transactionOptions, ...options },
+          );
 
           return result;
         } catch (error) {
