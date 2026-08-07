@@ -1,0 +1,96 @@
+{
+  "mode": "read-only",
+  "migrationVersion": "phase5b-1",
+  "branches": {
+    "69b7cdfb5ef4d3634c66ce06": {
+      "Billing": {
+        "directRecordCount": 21,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 6,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "Table": {
+        "directRecordCount": 5,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 0,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "TableOrder": {
+        "directRecordCount": 28,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 7,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "TakeAway": {
+        "directRecordCount": 19,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 2,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      }
+    },
+    "69bc3a288e828f43deb5b812": {
+      "Billing": {
+        "directRecordCount": 16,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 0,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "Table": {
+        "directRecordCount": 3,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 0,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "TableOrder": {
+        "directRecordCount": 25,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 0,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "TakeAway": {
+        "directRecordCount": 0,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 0,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      }
+    },
+    "69e35a5313f865ebe3fca128": {
+      "Billing": {
+        "directRecordCount": 15,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 3,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "Table": {
+        "directRecordCount": 3,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 0,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "TableOrder": {
+        "directRecordCount": 16,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 2,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      },
+      "TakeAway": {
+        "directRecordCount": 2,
+        "legacyOnlyCount": 0,
+        "overlappingCount": 2,
+        "conflictingCount": 0,
+        "crossBranchMismatchCount": 0
+      }
+    }
+  }
+}

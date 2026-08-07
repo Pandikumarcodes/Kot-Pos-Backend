@@ -19,10 +19,17 @@ const createBillBody = Joi.object({
 const payBillBody = Joi.object({
   paymentMethod: Joi.string()
     .valid("cash", "card", "upi")
-    .allow(null)
-    .optional(),
+    .required()
+    .messages({
+      "any.required": "Payment method is required",
+      "string.empty": "Payment method is required",
+    }),
 });
 const billsQuery = Joi.object({
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+  sort: Joi.string().valid("billDate", "paymentStatus").optional(),
+  order: Joi.string().valid("asc", "desc").optional(),
   status: Joi.string()
     .valid(...PAYMENT_STATUSES)
     .optional(),

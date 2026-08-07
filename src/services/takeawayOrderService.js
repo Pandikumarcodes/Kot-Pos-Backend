@@ -3,6 +3,7 @@ const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
+const { assertBranchScope } = require("../utils/accessScope");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
 const userRepository = require("../repositories/UserRepository");
@@ -34,19 +35,22 @@ const TAKEAWAY_QUERY_POLICY = Object.freeze({
   fieldSelection: {
     fields: {
       id: "_id", customerName: "customerName", customerPhone: "customerPhone",
-      items: "items", status: "status", createdBy: "createdBy",
+      items: "items", status: "status", createdBy: "createdBy", branchId: "branchId",
       createdAt: "createdAt", updatedAt: "updatedAt",
     },
     defaultFields: [
-      "id", "customerName", "customerPhone", "items", "status", "createdBy",
+      "id", "customerName", "customerPhone", "items", "status", "createdBy", "branchId",
       "createdAt", "updatedAt",
     ],
   },
 });
 
 const transactionManager = new TransactionManager();
+const scopeForContext = (scope, branchId) =>
+  scope || (branchId ? { type: "branch", isGlobal: false, branchId } : scope);
 
-const createTakeawayOrder = async (input, { userId, branchId }) => {
+const createTakeawayOrder = async (input, { scope, userId }) => {
+  const branchId = assertBranchScope(scope).branchId;
   const { customerName, customerPhone, items } = input;
   const menuItems = await menuRepository.findByIds(
     items.map((item) => item.itemId),
@@ -66,6 +70,7 @@ const createTakeawayOrder = async (input, { userId, branchId }) => {
     };
   });
   const order = await takeawayOrderRepository.createOrderDocument({
+    branchId,
     customerName,
     customerPhone,
     createdBy: userId,
@@ -83,22 +88,20 @@ const createTakeawayOrder = async (input, { userId, branchId }) => {
   return order;
 };
 
-const listTakeawayOrders = async (branchMemberFilter, query = {}) => {
+const listTakeawayOrders = async ({ scope }, query = {}) => {
+  assertBranchScope(scope);
   if (!hasQueryControls(query)) {
-    return { items: await takeawayOrderRepository.listScoped(branchMemberFilter) };
+    return { items: await takeawayOrderRepository.listScopedByAccess({ scope }) };
   }
   const paginated = usesPagination(query);
   const plan = buildOperationalPlan({
     query,
     policy: TAKEAWAY_QUERY_POLICY,
-    trustedConstraints: [branchMemberFilter],
+    trustedConstraints: [{ branchId: scope.branchId }],
   });
-  const dataPromise = takeawayOrderRepository.listScoped(
-    plan.filter,
-    repositoryOptions(plan, paginated),
-  );
+  const dataPromise = takeawayOrderRepository.listScopedByAccess({ scope, filter: plan.filter, options: repositoryOptions(plan, paginated) });
   const [items, total] = paginated
-    ? await Promise.all([dataPromise, takeawayOrderRepository.count(plan.filter)])
+    ? await Promise.all([dataPromise, takeawayOrderRepository.countScopedByAccess({ scope, filter: plan.filter })])
     : [await dataPromise, null];
   return {
     items,
@@ -106,10 +109,8 @@ const listTakeawayOrders = async (branchMemberFilter, query = {}) => {
   };
 };
 
-const getTakeawayOrder = async (orderId, scopeToBranchMembers) => {
-  const order = await takeawayOrderRepository.findScopedWithDetails(
-    scopeToBranchMembers({ _id: orderId }),
-  );
+const getTakeawayOrder = async (orderId, { scope }) => {
+  const order = await takeawayOrderRepository.findByAccess(scope, null, { _id: orderId });
   if (!order) throw new AppError("This order Id not found", 404);
   return order;
 };
@@ -117,15 +118,18 @@ const getTakeawayOrder = async (orderId, scopeToBranchMembers) => {
 const sendToKitchen = async (
   orderId,
   {
-    scopeToBranchMembers,
-    branchId,
+    scope,
+    branchId: contextBranchId,
     userId = null,
     actorRole = null,
     correlationId = null,
     io,
   },
 ) => {
-  const filter = scopeToBranchMembers({ _id: orderId });
+  const effectiveScope = scopeForContext(scope, contextBranchId);
+  const branchId = assertBranchScope(effectiveScope).branchId;
+  assertBranchScope(effectiveScope);
+  const filter = { _id: orderId };
   let auditContext = orderAudit.createContext({
     actorId: userId,
     actorRole,
@@ -136,11 +140,9 @@ const sendToKitchen = async (
   let result;
   try {
     result = await transactionManager.execute(async (session) => {
-    const existing = await takeawayOrderRepository.findOne(
-      filter,
-      undefined,
-      { session },
-    );
+    const existing = typeof takeawayOrderRepository.findByAccess === "function"
+      ? await takeawayOrderRepository.findByAccess(effectiveScope, null, filter, { session })
+      : await takeawayOrderRepository.findOne({ branchId, ...filter }, undefined, { session });
     if (!existing) throw new AppError("Order not found", 404);
 
     const actorId = userId || existing.createdBy;
@@ -158,11 +160,9 @@ const sendToKitchen = async (
     }
     const previousStatus = existing.status;
 
-    const updatedOrder = await takeawayOrderRepository.updateStatus(
-      filter,
-      "sent_to_kitchen",
-      { session },
-    );
+    const updatedOrder = typeof takeawayOrderRepository.updateStatusByAccess === "function"
+      ? await takeawayOrderRepository.updateStatusByAccess(effectiveScope, null, filter, "sent_to_kitchen", { session })
+      : await takeawayOrderRepository.updateStatus({ branchId, ...filter }, "sent_to_kitchen", { session });
     if (!updatedOrder) throw new AppError("Order not found", 404);
 
     const createdKot = await kitchenRepository.createOrder(
@@ -216,11 +216,11 @@ const sendToKitchen = async (
   return order;
 };
 
-const updateStatus = async (orderId, status, scopeToBranchMembers) => {
-  const order = await takeawayOrderRepository.updateStatus(
-    scopeToBranchMembers({ _id: orderId }),
-    status,
-  );
+const updateStatus = async (orderId, status, { scope, branchId }) => {
+  const effectiveScope = scopeForContext(scope, branchId);
+  const order = typeof takeawayOrderRepository.updateStatusByAccess === "function"
+    ? await takeawayOrderRepository.updateStatusByAccess(effectiveScope, null, { _id: orderId }, status)
+    : await takeawayOrderRepository.updateStatus({ branchId, _id: orderId }, status);
   if (!order) throw new AppError("Order not found", 404);
   return order;
 };

@@ -4,8 +4,8 @@ jest.mock("../../infrastructure/transaction/TransactionManager", () =>
   jest.fn().mockImplementation(() => ({ execute: mockExecute })),
 );
 jest.mock("../../repositories/KitchenRepository", () => ({
-  findScoped: jest.fn(),
-  updateStatus: jest.fn(),
+  findScoped: jest.fn(), findByScope: jest.fn(),
+  updateStatus: jest.fn(), updateStatusByScope: jest.fn(),
 }));
 jest.mock("../../repositories/UserRepository", () => ({
   findByIdWithSelection: jest.fn(),
@@ -39,7 +39,7 @@ const session = { id: "kitchen-session-1" };
 const branchId = "branch-1";
 const orderId = "kot-1";
 const io = { name: "io" };
-const scopeToBranch = (filter) => ({ ...filter, branchId });
+const scopeToBranch = { type: "branch", isGlobal: false, branchId };
 
 let state;
 let failureAudits;
@@ -67,8 +67,8 @@ beforeEach(() => {
       throw error;
     }
   });
-  kitchenRepository.findScoped.mockImplementation(async () => ({ ...state.kot }));
-  kitchenRepository.updateStatus.mockImplementation(async (_filter, status) => {
+  kitchenRepository.findByScope.mockImplementation(async () => ({ ...state.kot }));
+  kitchenRepository.updateStatusByScope.mockImplementation(async (_scope, _filter, status) => {
     state.kot.status = status;
     return { ...state.kot };
   });

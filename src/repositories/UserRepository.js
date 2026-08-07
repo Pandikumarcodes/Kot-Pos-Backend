@@ -1,6 +1,14 @@
 const createBaseRepository = require("./BaseRepository");
 const User = require("../models/users");
 const { leanQuery } = require("./readQuery");
+const { assertScope } = require("../utils/accessScope");
+
+const accessFilter = (scope, filter = {}) => {
+  const valid = assertScope(scope);
+  return valid.type === "branch"
+    ? { ...filter, branchId: valid.branchId }
+    : { ...filter };
+};
 
 const baseRepository = createBaseRepository(User);
 
@@ -36,15 +44,30 @@ const findByScope = (filter, options = {}) => {
   return lean === false ? query : leanQuery(query);
 };
 
+const findByAccess = ({ scope, filter = {}, options = {} } = {}) =>
+  findByScope(accessFilter(scope, filter), options);
+
+const findOneByAccess = (scope, filter = {}, options = {}) =>
+  baseRepository.findOne(accessFilter(scope, filter), undefined, options);
+
+const countByAccess = (scope, filter = {}, options = {}) =>
+  baseRepository.count(accessFilter(scope, filter), options);
+
 const updateRole = (filter, role, options = {}) =>
   User.findOneAndUpdate(
     filter,
     { role },
     { new: true, runValidators: true, select: "-password", ...options },
-  );
+);
+
+const updateRoleByAccess = (scope, filter, role, options = {}) =>
+  updateRole(accessFilter(scope, filter), role, options);
 
 const deleteByScope = (filter, options = {}) =>
   baseRepository.deleteOne(filter, options);
+
+const deleteByAccess = (scope, filter, options = {}) =>
+  deleteByScope(accessFilter(scope, filter), options);
 
 const clearRefreshToken = (userId, options = {}) =>
   baseRepository.updateOne(
@@ -59,7 +82,12 @@ module.exports = {
   findByIdWithSelection,
   createUserDocument,
   findByScope,
+  findByAccess,
+  findOneByAccess,
+  countByAccess,
   updateRole,
+  updateRoleByAccess,
   deleteByScope,
+  deleteByAccess,
   clearRefreshToken,
 };

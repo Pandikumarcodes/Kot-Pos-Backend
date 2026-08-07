@@ -1,6 +1,7 @@
 const createBaseRepository = require("./BaseRepository");
 const TableOrder = require("../models/waiter");
 const { leanQuery } = require("./readQuery");
+const { directBranchFilter } = require("../utils/operationalOwnership");
 
 const baseRepository = createBaseRepository(TableOrder);
 
@@ -9,6 +10,8 @@ const listTableActive = (filter, options = {}) =>
     .findMany(filter, undefined, options)
     .populate("createdBy", "username")
     .sort({ createdAt: 1 });
+const listTableActiveByAccess = (scope, memberIds, filter = {}, options = {}) =>
+  listTableActive(scopedFilter(scope, memberIds, filter), options);
 
 const listScoped = (filter, options = {}) => {
   if (!Object.keys(options).length) {
@@ -49,9 +52,26 @@ const updateManyStatus = (filter, status, options = {}) =>
 const countScoped = (filter, options = {}) =>
   baseRepository.count(filter, options);
 
+const scopedFilter = (scope, memberIds, filter = {}) => ({
+  ...directBranchFilter(scope, filter),
+});
+const listScopedByAccess = ({ scope, memberIds, filter = {}, options = {} } = {}) =>
+  listScoped(scopedFilter(scope, memberIds, filter), options);
+const countScopedByAccess = ({ scope, memberIds, filter = {}, options = {} } = {}) =>
+  baseRepository.count(scopedFilter(scope, memberIds, filter), options);
+const findByAccess = (scope, memberIds, filter = {}, options = {}) =>
+  baseRepository.findOne(scopedFilter(scope, memberIds, filter), undefined, options);
+const findManyByAccess = (scope, memberIds, filter = {}, options = {}) =>
+  baseRepository.findMany(scopedFilter(scope, memberIds, filter), undefined, options);
+const updateStatusByAccess = (scope, memberIds, filter, status, options = {}) =>
+  TableOrder.findOneAndUpdate(scopedFilter(scope, memberIds, filter), { status }, { new: true, ...options });
+const updateManyStatusByAccess = (scope, memberIds, filter, status, options = {}) =>
+  TableOrder.updateMany(scopedFilter(scope, memberIds, filter), { status }, options);
+
 module.exports = {
   ...baseRepository,
   listTableActive,
+  listTableActiveByAccess,
   listScoped,
   findScopedWithDetails,
   createOrderDocument,
@@ -59,4 +79,10 @@ module.exports = {
   updateStatus,
   updateManyStatus,
   countScoped,
+  listScopedByAccess,
+  countScopedByAccess,
+  findByAccess,
+  findManyByAccess,
+  updateStatusByAccess,
+  updateManyStatusByAccess,
 };

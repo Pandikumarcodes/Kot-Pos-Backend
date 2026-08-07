@@ -87,7 +87,7 @@ userSchema.methods.getJWT = async function () {
       _id: this._id,
       username: this.username,
       role: this.role,
-      branchId: this.branchId ?? null,
+      branchId: this.branchId ? this.branchId.toString() : null,
       tokenType: "access",
     },
     process.env.JWT_SECRET,

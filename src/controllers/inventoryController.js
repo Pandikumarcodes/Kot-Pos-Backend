@@ -6,7 +6,7 @@ const getInventory = async (req, res, next) => {
     const { page, limit, search, sort, order, lowStock, category } = req.query;
     res.json(
       await inventoryService.listInventory({
-        branchFilter: req.branchFilter,
+        scope: req.accessScope,
         query: { page, limit, search, sort, order, lowStock, category },
       }),
     );
@@ -18,7 +18,7 @@ const getInventory = async (req, res, next) => {
 const createInventory = async (req, res, next) => {
   try {
     const item = await inventoryService.createInventory(req.body, {
-      branchId: req.branchId,
+      scope: req.accessScope,
       userId: req.user._id,
     });
     res.status(201).json({ message: "Inventory item created", item });
@@ -31,7 +31,7 @@ const updateInventory = async (req, res, next) => {
   try {
     const item = await inventoryService.updateInventory(
       req.params.id,
-      req.branchFilter,
+      req.accessScope,
       req.body,
     );
     res.json({ message: "Updated", item });
@@ -44,9 +44,9 @@ const restockItem = async (req, res, next) => {
   try {
     const item = await inventoryService.restockItem(
       req.params.id,
-      req.branchFilter,
+      req.accessScope,
       req.body,
-      { branchId: req.branchId, userId: req.user._id },
+      { scope: req.accessScope, userId: req.user._id },
     );
     res.json({ message: `Restocked ${req.body.quantity} ${item.unit}`, item });
   } catch (err) {
@@ -58,9 +58,9 @@ const adjustStock = async (req, res, next) => {
   try {
     const item = await inventoryService.adjustStock(
       req.params.id,
-      req.branchFilter,
+      req.accessScope,
       req.body,
-      { branchId: req.branchId, userId: req.user._id },
+      { scope: req.accessScope, userId: req.user._id },
     );
     res.json({ message: "Stock adjusted", item });
   } catch (err) {
@@ -73,7 +73,7 @@ const getStockLogs = async (req, res, next) => {
     const { branchId: _branchId, ...query } = req.query;
     const result = await inventoryService.getStockLogs(
       req.params.id,
-      req.branchId,
+      req.accessScope,
       query,
     );
     res.json({
@@ -87,7 +87,7 @@ const getStockLogs = async (req, res, next) => {
 
 const deleteInventory = async (req, res, next) => {
   try {
-    await inventoryService.deleteInventory(req.params.id, req.branchFilter);
+    await inventoryService.deleteInventory(req.params.id, req.accessScope);
     res.json({ message: "Item removed from inventory" });
   } catch (err) {
     forwardError(next, err, "Failed to remove inventory item");

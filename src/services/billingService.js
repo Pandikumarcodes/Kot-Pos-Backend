@@ -1,10 +1,13 @@
 const billingRepository = require("../repositories/BillingRepository");
+const counterRepository = require("../repositories/CounterRepository");
 const menuRepository = require("../repositories/MenuRepository");
 const tableRepository = require("../repositories/TableRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { notify } = require("./notificationservices");
 const billingAudit = require("../modules/billing/BillingAuditLogger");
+const logger = require("../config/logger");
+const { normalizeObjectId } = require("../utils/branchId");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 const {
   buildOperationalPlan,
@@ -39,30 +42,85 @@ const BILLING_QUERY_POLICY = Object.freeze({
       billNumber: "billNumber", tableId: "tableId", tableNumber: "tableNumber",
       items: "items", totalAmount: "totalAmount", paymentStatus: "paymentStatus",
       paymentMethod: "paymentMethod", paidAt: "paidAt", createdBy: "createdBy",
+      branchId: "branchId",
       createdAt: "createdAt", updatedAt: "updatedAt",
     },
     defaultFields: [
       "id", "customerName", "customerPhone", "billNumber", "tableId",
       "tableNumber", "items", "totalAmount", "paymentStatus", "paymentMethod",
-      "paidAt", "createdBy", "createdAt", "updatedAt",
+      "paidAt", "createdBy", "branchId", "createdAt", "updatedAt",
     ],
   },
 });
 
 const transactionManager = new TransactionManager();
 
-const generateBillNumber = async (options = {}) => {
-  const today = new Date().toISOString().split("T")[0].replace(/-/g, "");
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayCount = await billingRepository.countCreatedSince(
-    todayStart,
-    options,
-  );
-  return `BILL-${today}-${(todayCount + 1).toString().padStart(3, "0")}`;
+const requireBillingScope = (scope) => {
+  if (!scope || scope.type !== "branch" || !scope.branchId) {
+    throw new AppError("A valid branch scope is required for billing", 403);
+  }
+  return { branchId: scope.branchId };
 };
 
-const createBill = async (input, { userId, branchId, io }) => {
+const normalizeBillingScopeFilter = (filter = {}) => {
+  if (!filter.createdBy || !("$in" in filter.createdBy)) return { ...filter };
+  return {
+    ...filter,
+    createdBy: {
+      ...filter.createdBy,
+      $in: (Array.isArray(filter.createdBy.$in) ? filter.createdBy.$in : [])
+        .map(normalizeObjectId)
+        .filter(Boolean),
+    },
+  };
+};
+
+const generateBillNumber = async (options = {}) => {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const todayStart = new Date(`${now.toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const tomorrow = new Date(todayStart);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const key = `billing:${today}`;
+  const session = options.session;
+
+  // Bootstrap a counter from existing bills once. This prevents a newly
+  // introduced counter from issuing BILL-...-001 when that number already exists.
+  const existingCounter = await counterRepository.findOne({ key }, { session });
+  if (!existingCounter) {
+    const existingMax = await billingRepository.findMaxSequenceForDate(
+      todayStart,
+      tomorrow,
+      today,
+      options,
+    );
+    await counterRepository.findOneAndUpdate(
+      { key },
+      { $setOnInsert: { key, sequence: existingMax } },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+        session,
+      },
+    );
+  }
+
+  const counter = await counterRepository.findOneAndUpdate(
+    { key },
+    { $inc: { sequence: 1 } },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+      session,
+    },
+  );
+  return `BILL-${today}-${String(counter.sequence).padStart(3, "0")}`;
+};
+
+const createBill = async (input, { userId, branchId, scope, io }) => {
+  requireBillingScope(scope);
   const { customerName, customerPhone, items, paymentStatus, paymentMethod } =
     input;
   const menuItems = await Promise.all(
@@ -92,41 +150,71 @@ const createBill = async (input, { userId, branchId, io }) => {
     ),
     paymentStatus,
     paymentMethod,
+    branchId: scope.branchId,
     createdBy: userId,
   });
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };
 
-const listBills = async ({ query = {}, scopeToBranchMembers }) => {
+const listBills = async ({ query = {}, scope }) => {
+  const scopedFilter = normalizeBillingScopeFilter(requireBillingScope(scope));
   if (!hasQueryControls(query)) {
-    const bills = await billingRepository.listScoped(scopeToBranchMembers({}));
-    if (!bills.length) throw new AppError("No Bills found", 404);
+    const bills = await billingRepository.listScoped(scopedFilter, {}, scope);
     return { items: bills };
   }
   const paginated = usesPagination(query);
   const plan = buildOperationalPlan({
     query,
     policy: BILLING_QUERY_POLICY,
-    trustedConstraints: [scopeToBranchMembers({})],
+    trustedConstraints: [scopedFilter],
   });
+  // QueryBuilder composes trusted constraints under $and. Keep the validated
+  // membership constraint explicit at the repository boundary as well.
+  const repositoryFilter = { ...plan.filter, ...scopedFilter };
   const dataPromise = billingRepository.listScoped(
-    plan.filter,
+    repositoryFilter,
     repositoryOptions(plan, paginated),
+    scope,
   );
-  const [bills, total] = paginated
-    ? await Promise.all([dataPromise, billingRepository.count(plan.filter)])
-    : [await dataPromise, null];
-  if (!bills.length) throw new AppError("No Bills found", 404);
+  let bills;
+  let total = null;
+  try {
+    if (paginated) {
+      [bills, total] = await Promise.all([
+        dataPromise,
+        billingRepository.count(repositoryFilter, {}, scope),
+      ]);
+    } else {
+      bills = await dataPromise;
+    }
+  } catch (error) {
+    logger.error("BillingService.listBills repository failure", {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code ?? null,
+      stack: error?.stack,
+      normalizedBranchId: scope.branchId,
+      page: plan.pagination?.page ?? null,
+      limit: plan.pagination?.limit ?? null,
+      sort: query.sort ?? null,
+      order: query.order ?? null,
+      filter: repositoryFilter,
+    });
+    throw error;
+  }
+  const items = Array.isArray(bills) ? bills : [];
   return {
-    items: bills,
+    items,
     ...(paginated && { pagination: paginationFor(plan, total) }),
   };
 };
 
-const getBill = async (billId, scopeToBranchMembers) => {
+const getBill = async (billId, scope) => {
   const bill = await billingRepository.findScopedWithCreator(
-    scopeToBranchMembers({ _id: billId }),
+    { _id: billId, ...requireBillingScope(scope) },
+    {},
+    scope,
   );
   if (!bill) throw new AppError("Bill not found", 404);
   return bill;
@@ -136,7 +224,7 @@ const payBill = async (
   billId,
   paymentMethod,
   {
-    scopeToBranchMembers,
+    scope,
     branchId,
     userId = null,
     actorRole = null,
@@ -144,6 +232,8 @@ const payBill = async (
     io,
   },
 ) => {
+  const effectiveScope = scope || (branchId ? { type: "branch", isGlobal: false, branchId } : scope);
+  const billingScope = requireBillingScope(effectiveScope);
   let auditContext = billingAudit.createContext({
     actorId: userId,
     actorRole,
@@ -155,12 +245,13 @@ const payBill = async (
   try {
     bill = await transactionManager.execute(async (session) => {
       const billToPay = await billingRepository.findScoped(
-        scopeToBranchMembers({ _id: billId }),
+        { _id: billId, ...billingScope },
         { session },
+        effectiveScope,
       );
       if (!billToPay) throw new AppError("Bill not found", 404);
       if (billToPay.paymentStatus === "paid")
-        throw new AppError("Bill is already paid", 400);
+        throw new AppError("Bill is already paid", 409);
 
       if (!userId && billToPay.createdBy) {
         auditContext = billingAudit.createContext({
@@ -179,14 +270,20 @@ const payBill = async (
       await billingRepository.save(billToPay, { session });
 
       if (billToPay.tableId) {
-        await tableRepository.updateState(
-          billToPay.tableId,
-          {
-            status: "available",
-            currentCustomer: null,
-          },
-          { session },
-        );
+        if (typeof tableRepository.updateTableInScope === "function") {
+          await tableRepository.updateTableInScope(
+            effectiveScope,
+            billToPay.tableId,
+            { status: "available", currentCustomer: null },
+            { session },
+          );
+        } else {
+          await tableRepository.updateState(
+            billToPay.tableId,
+            { status: "available", currentCustomer: null },
+            { session },
+          );
+        }
       }
 
       await billingAudit.paymentCollected(
@@ -219,9 +316,11 @@ const payBill = async (
   return bill;
 };
 
-const deleteBill = async (billId, scopeToBranchMembers) => {
+const deleteBill = async (billId, scope) => {
   const bill = await billingRepository.deleteScoped(
-    scopeToBranchMembers({ _id: billId }),
+    { _id: billId, ...requireBillingScope(scope) },
+    {},
+    scope,
   );
   if (!bill) throw new AppError("Bill not found", 404);
   return {

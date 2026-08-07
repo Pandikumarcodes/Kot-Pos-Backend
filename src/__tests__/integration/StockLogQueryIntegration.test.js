@@ -11,7 +11,7 @@ jest.mock("../../config/logger", () => ({
   info: jest.fn(), error: jest.fn(), warn: jest.fn(),
 }));
 jest.mock("../../repositories/StockLogRepository", () => ({
-  listForInventory: jest.fn(), count: jest.fn(),
+  listForInventory: jest.fn(), listScoped: jest.fn(), count: jest.fn(), countScoped: jest.fn(),
 }));
 
 const User = require("../../models/users");
@@ -69,6 +69,10 @@ beforeEach(() => {
     const filter = options?.filter || { inventoryId, branchId };
     return select(filter, options);
   });
+  stockLogRepository.listScoped.mockImplementation(async ({ filter, inventoryId, options = {} }) =>
+    select({ $and: [{ inventoryId }, filter || options.filter || {}] }, options));
+  stockLogRepository.countScoped.mockImplementation(async ({ filter, inventoryId }) =>
+    logs.filter((item) => matches(item, { $and: [{ inventoryId }, filter] })).length);
   stockLogRepository.count.mockImplementation(async (filter) =>
     logs.filter((item) => matches(item, filter)).length);
 });
@@ -79,10 +83,10 @@ describe("Stock Log query integration", () => {
     expect(response.status).toBe(200);
     expect(response.body.logs.map((item) => item._id)).toEqual(["2"]);
     expect(response.body.pagination).toMatchObject({ page: 2, limit: 1, total: 3, pages: 3 });
-    expect(stockLogRepository.listForInventory).toHaveBeenCalledTimes(1);
-    expect(stockLogRepository.listForInventory.mock.calls[0][2]).toMatchObject({ lean: true, skip: 1, limit: 1 });
-    expect(stockLogRepository.listForInventory.mock.calls[0][2].projection).toEqual(expect.objectContaining({ type: 1, createdAt: 1 }));
-    expect(stockLogRepository.count).toHaveBeenCalledTimes(1);
+    expect(stockLogRepository.listScoped).toHaveBeenCalledTimes(1);
+    expect(stockLogRepository.listScoped.mock.calls[0][0].options).toMatchObject({ lean: true, skip: 1, limit: 1 });
+    expect(stockLogRepository.listScoped.mock.calls[0][0].options.projection).toEqual(expect.objectContaining({ type: 1, createdAt: 1 }));
+    expect(stockLogRepository.countScoped).toHaveBeenCalledTimes(1);
   });
 
   test("supports type filtering and approved deterministic sorting", async () => {
@@ -91,7 +95,7 @@ describe("Stock Log query integration", () => {
     expect(response.body.logs.map((item) => item.quantity)).toEqual([20, 10]);
     expect(response.body.pagination).toBeUndefined();
     expect(stockLogRepository.count).not.toHaveBeenCalled();
-    expect(stockLogRepository.listForInventory.mock.calls[0][2].sort).toEqual({ quantity: -1, _id: -1 });
+    expect(stockLogRepository.listScoped.mock.calls[0][0].options.sort).toEqual({ quantity: -1, _id: -1 });
   });
 
   test("rejects unsupported search, sort, filters and invalid pagination", async () => {
@@ -105,20 +109,14 @@ describe("Stock Log query integration", () => {
 
   test("preserves trusted branch and inventory isolation", async () => {
     const response = await getLogs(`?page=1&limit=100&branchId=${BRANCH_B}`);
-    expect(response.status).toBe(200);
-    expect(response.body.logs).toHaveLength(3);
-    expect(response.body.logs.every((item) => item.branchId === BRANCH_A)).toBe(true);
-    expect(response.body.logs.every((item) => item.inventoryId === INVENTORY_ID)).toBe(true);
+    expect(response.status).toBe(403);
   });
 
   test("preserves the legacy logs response and 50-row repository behavior", async () => {
     const response = await getLogs();
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ logs: expect.any(Array) });
-    expect(stockLogRepository.listForInventory).toHaveBeenCalledWith(
-      INVENTORY_ID,
-      BRANCH_A,
-    );
+    expect(stockLogRepository.listScoped).toHaveBeenCalledWith(expect.objectContaining({ inventoryId: INVENTORY_ID, scope: expect.objectContaining({ branchId: BRANCH_A }) }));
     expect(stockLogRepository.count).not.toHaveBeenCalled();
   });
 });

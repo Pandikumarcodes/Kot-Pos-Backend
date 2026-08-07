@@ -10,6 +10,20 @@ process.env.NODE_ENV = "test";
 // ── Mock models ───────────────────────────────────────────────
 jest.mock("../../models/users");
 jest.mock("../../models/tables");
+jest.mock("../../repositories/TableRepository", () => {
+  const Table = require("../../models/tables");
+  return {
+    findByNumberInScope: jest.fn(() => Table.findOne()),
+    createTableDocument: jest.fn((data) => {
+      const table = new Table(data);
+      return table.save().then(() => table);
+    }),
+    listScoped: jest.fn(() => Table.find()),
+    findByIdInScope: jest.fn((_scope, id) => Table.findById(id)),
+    updateTableInScope: jest.fn((_scope, id, update) => Table.findByIdAndUpdate(id, update)),
+    deleteTableInScope: jest.fn((_scope, id) => Table.findByIdAndDelete(id)),
+  };
+});
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
@@ -34,16 +48,17 @@ app.use("/api/v1/admin", adminTableRouter);
 
 function makeToken(role = "admin") {
   return jwt.sign(
-    { _id: "user_id_123", username: "testuser", role },
+    { _id: "user_id_123", username: "testuser", role, branchId: VALID_BRANCH_ID },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
 }
 
 function mockUserDoc(role = "admin") {
-  return { _id: "user_id_123", username: "testuser", role };
+  return { _id: "user_id_123", username: "testuser", role, branchId: VALID_BRANCH_ID };
 }
 
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 const VALID_TABLE_ID = new mongoose.Types.ObjectId().toString();
 
 function mockTableDoc(overrides = {}) {
@@ -51,6 +66,7 @@ function mockTableDoc(overrides = {}) {
     _id: VALID_TABLE_ID,
     tableNumber: 1,
     capacity: 4,
+    branchId: VALID_BRANCH_ID,
     status: "available",
     save: jest.fn().mockResolvedValue(true),
     ...overrides,

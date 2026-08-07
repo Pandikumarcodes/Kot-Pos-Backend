@@ -9,9 +9,14 @@ jest.mock("../../infrastructure/transaction/TransactionManager", () =>
 );
 jest.mock("../../repositories/BillingRepository", () => ({
   countCreatedSince: jest.fn(),
+  findMaxSequenceForDate: jest.fn(),
   findScoped: jest.fn(),
   createBill: jest.fn(),
   save: jest.fn(),
+}));
+jest.mock("../../repositories/CounterRepository", () => ({
+  findOne: jest.fn(),
+  findOneAndUpdate: jest.fn(),
 }));
 jest.mock("../../repositories/OrderRepository", () => ({
   findMany: jest.fn(),
@@ -37,6 +42,7 @@ jest.mock("../../modules/billing/BillingAuditLogger", () => ({
 }));
 
 const billingRepository = require("../../repositories/BillingRepository");
+const counterRepository = require("../../repositories/CounterRepository");
 const orderRepository = require("../../repositories/OrderRepository");
 const tableRepository = require("../../repositories/TableRepository");
 const { notify } = require("../../services/notificationservices");
@@ -179,6 +185,8 @@ beforeEach(() => {
     );
   });
   billingRepository.countCreatedSince.mockResolvedValue(0);
+  counterRepository.findOne.mockResolvedValue({ key: "billing:test", sequence: 0 });
+  counterRepository.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
   billingRepository.createBill.mockImplementation(async (data) => {
     const bill = { _id: `bill-${state.bills.length + 1}`, ...clone(data) };
     state.bills.push(bill);
@@ -264,6 +272,42 @@ describe("Send Table to Cashier transaction", () => {
       { status: "billing" },
       { session },
     );
+  });
+
+  test("retries the whole transaction on a bill-number duplicate", async () => {
+    const duplicate = Object.assign(new Error("duplicate bill number"), {
+      code: 11000,
+      keyPattern: { billNumber: 1 },
+    });
+    mockExecute
+      .mockRejectedValueOnce(duplicate)
+      .mockImplementationOnce(async (work) => {
+        const result = await work(session);
+        transactionPhase = "committed";
+        return result;
+      });
+
+    await expect(
+      waiterOrderService.sendToCashier(tableId, input, transactionContext),
+    ).resolves.toEqual(expect.objectContaining({ billNumber: expect.any(String) }));
+    expect(mockExecute).toHaveBeenCalledTimes(2);
+  });
+
+  test("returns a controlled error after bounded bill-number retries", async () => {
+    const duplicate = Object.assign(new Error("duplicate bill number"), {
+      code: 11000,
+      keyPattern: { billNumber: 1 },
+    });
+    mockExecute.mockRejectedValue(duplicate);
+
+    await expect(
+      waiterOrderService.sendToCashier(tableId, input, transactionContext),
+    ).rejects.toMatchObject({
+      statusCode: 503,
+      message: expect.stringContaining("unique bill number"),
+    });
+    expect(mockExecute).toHaveBeenCalledTimes(3);
+    expect(mockAuditFailure).toHaveBeenCalled();
   });
 
   test.each([

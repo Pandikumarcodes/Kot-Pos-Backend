@@ -1,1 +1,4 @@
-module.exports = { adminBranchRouter: require("../../routes/admin/adminBranchRouter").adminBranchRouter };
+module.exports = {
+  adminBranchRouter: require("../../routes/admin/adminBranchRouter")
+    .adminBranchRouter,
+};

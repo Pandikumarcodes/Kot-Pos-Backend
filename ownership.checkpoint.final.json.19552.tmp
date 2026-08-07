@@ -1,0 +1,18 @@
+{
+  "migrationVersion": "phase5b-1",
+  "collections": {
+    "Billing": {
+      "migrationVersion": "phase5b-1",
+      "collection": "Billing",
+      "lastProcessedId": "6a477cf2354a6d2e6a36c49d",
+      "scannedCount": 11,
+      "migratedCount": 0,
+      "skippedCount": 0,
+      "conflictCount": 0,
+      "unresolvedCount": 0,
+      "errorCount": 0,
+      "startedAt": "2026-08-06T20:16:15.801Z",
+      "updatedAt": "2026-08-06T20:16:23.713Z"
+    }
+  }
+}

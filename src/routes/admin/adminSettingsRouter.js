@@ -1,20 +1,24 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
-const branchScope = require("../../middlewares/branchScope");
+const { allowGlobalOrSelectedBranch, requireBranchScope } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/settingsController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const { validateSettingsUpdate } = require("../../validators/general");
 
 const adminSettingsRouter = express.Router();
-adminSettingsRouter.use(
-  userAuth,
-  allowRoles(["admin", "manager"]),
-  branchScope,
+adminSettingsRouter.use(userAuth);
+adminSettingsRouter.get(
+  "/settings",
+  allowRoles(["admin", "manager", "cashier"]),
+  allowGlobalOrSelectedBranch,
+  requireBranchScope,
+  controller.getSettings,
 );
-adminSettingsRouter.get("/settings", controller.getSettings);
 adminSettingsRouter.put(
   "/settings",
   allowRoles(["admin"]),
+  allowGlobalOrSelectedBranch,
+  requireBranchScope,
   validateSettingsUpdate,
   controller.saveSettings,
 );

@@ -6,6 +6,7 @@ const TransactionManager = require("../infrastructure/transaction/TransactionMan
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 const inventoryAudit = require("../modules/inventory/InventoryAuditLogger");
 const AppError = require("../utils/AppError");
+const { assertBranchScope, branchConstraint } = require("../utils/accessScope");
 const {
   QueryBuilder,
   QueryValidationError,
@@ -136,14 +137,14 @@ const normalizeLowStockFilter = (value) => {
   );
 };
 
-const buildInventoryQueryPlan = ({ branchFilter, query = {} }) => {
+const buildInventoryQueryPlan = ({ scope, query = {} }) => {
   try {
     const { lowStock, ...standardQuery } = query;
     return QueryBuilder.build({
       query: standardQuery,
       policy: INVENTORY_QUERY_POLICY,
       trustedConstraints: [
-        branchFilter,
+        branchConstraint(scope),
         normalizeLowStockFilter(lowStock) || {},
       ],
     });
@@ -180,7 +181,7 @@ const buildStockLogQueryPlan = ({ inventoryId, branchId, query }) => {
 };
 
 const listInventory = async ({
-  branchFilter,
+  scope,
   query,
   page,
   limit,
@@ -199,7 +200,8 @@ const listInventory = async ({
     lowStock,
     category,
   };
-  const plan = buildInventoryQueryPlan({ branchFilter, query: normalizedQuery });
+  assertBranchScope(scope);
+  const plan = buildInventoryQueryPlan({ scope, query: normalizedQuery });
   const repositoryOptions = {
     projection: plan.projection,
     sort: plan.sort,
@@ -207,8 +209,8 @@ const listInventory = async ({
     limit: plan.pagination.limit,
   };
   const [items, total] = await Promise.all([
-    inventoryRepository.findActive(plan.filter, repositoryOptions),
-    inventoryRepository.count(plan.filter),
+    inventoryRepository.listScoped({ scope, filter: plan.filter, options: repositoryOptions }),
+    inventoryRepository.countScoped({ scope, filter: plan.filter }),
   ]);
   const annotated = items.map((item) => ({
     ...item,
@@ -247,8 +249,9 @@ const writeFailure = async (values) => {
 
 const createInventory = async (
   input,
-  { branchId, userId, actorRole = null, correlationId = null },
+  { scope, userId, actorRole = null, correlationId = null },
 ) => {
+  const branchId = assertBranchScope(scope).branchId;
   const {
     name,
     unit,
@@ -336,7 +339,8 @@ const createInventory = async (
   }
 };
 
-const updateInventory = async (id, branchFilter, input) => {
+const updateInventory = async (id, scope, input) => {
+  assertBranchScope(scope);
   const {
     name,
     unit,
@@ -346,7 +350,7 @@ const updateInventory = async (id, branchFilter, input) => {
     supplier,
     menuItemId,
   } = input;
-  const item = await inventoryRepository.updateScoped(id, branchFilter, {
+  const item = await inventoryRepository.updateByScope(id, scope, {
     name,
     unit,
     lowStockThreshold,
@@ -361,10 +365,11 @@ const updateInventory = async (id, branchFilter, input) => {
 
 const restockItem = async (
   id,
-  branchFilter,
+  scope,
   { quantity, note },
-  { branchId, userId, actorRole = null, correlationId = null },
+  { userId, actorRole = null, correlationId = null },
 ) => {
+  const branchId = assertBranchScope(scope).branchId;
   let auditContext = inventoryAudit.createContext({
     actorId: userId,
     actorRole,
@@ -379,7 +384,7 @@ const restockItem = async (
       correlationId: auditContext.correlationId,
     });
     return await transactionManager.execute(async (session) => {
-      const item = await inventoryRepository.findScopedById(id, branchFilter, {
+      const item = await inventoryRepository.findByScope(id, scope, {
         session,
       });
       if (!item) throw new AppError("Item not found", 404);
@@ -433,10 +438,11 @@ const restockItem = async (
 
 const adjustStock = async (
   id,
-  branchFilter,
+  scope,
   { quantity, note },
-  { branchId, userId, actorRole = null, correlationId = null },
+  { userId, actorRole = null, correlationId = null },
 ) => {
+  const branchId = assertBranchScope(scope).branchId;
   let auditContext = inventoryAudit.createContext({
     actorId: userId,
     actorRole,
@@ -451,7 +457,7 @@ const adjustStock = async (
       correlationId: auditContext.correlationId,
     });
     return await transactionManager.execute(async (session) => {
-      const item = await inventoryRepository.findScopedById(id, branchFilter, {
+      const item = await inventoryRepository.findByScope(id, scope, {
         session,
       });
       if (!item) throw new AppError("Item not found", 404);
@@ -504,13 +510,14 @@ const adjustStock = async (
   }
 };
 
-const getStockLogs = async (inventoryId, branchId, query = {}) => {
+const getStockLogs = async (inventoryId, scope, query = {}) => {
+  const branchId = assertBranchScope(scope).branchId;
   const hasQueryControls = Object.values(query).some(
     (value) => value !== undefined,
   );
   if (!hasQueryControls) {
     return {
-      items: await stockLogRepository.listForInventory(inventoryId, branchId),
+      items: await stockLogRepository.listScoped({ scope, inventoryId }),
     };
   }
 
@@ -524,13 +531,16 @@ const getStockLogs = async (inventoryId, branchId, query = {}) => {
     limit: paginated ? plan.pagination.limit : 50,
     lean: true,
   };
-  const dataPromise = stockLogRepository.listForInventory(
+  const dataPromise = stockLogRepository.listScoped({
+    scope,
     inventoryId,
-    branchId,
-    repositoryOptions,
-  );
+    options: repositoryOptions,
+  });
   const [items, total] = paginated
-    ? await Promise.all([dataPromise, stockLogRepository.count(plan.filter)])
+    ? await Promise.all([
+      dataPromise,
+      stockLogRepository.countScoped({ scope, inventoryId, filter: plan.filter }),
+    ])
     : [await dataPromise, null];
   return {
     items,
@@ -544,16 +554,16 @@ const getStockLogs = async (inventoryId, branchId, query = {}) => {
   };
 };
 
-const deleteInventory = async (id, branchFilter) => {
-  const item = await inventoryRepository.deactivateScoped(id, branchFilter);
+const deleteInventory = async (id, scope) => {
+  assertBranchScope(scope);
+  const item = await inventoryRepository.deactivateByScope(id, scope);
   if (!item) throw new AppError("Item not found", 404);
 };
 
 const deductStockForKot = async (kotItems, branchId, kotId, doneBy) => {
   for (const kotItem of kotItems) {
-    const inventory = await inventoryRepository.findActiveByMenuItem(
-      branchId,
-      kotItem.itemId,
+    const inventory = await inventoryRepository.findActiveByMenuItemScoped(
+      { type: "branch", isGlobal: false, branchId }, kotItem.itemId,
     );
     if (!inventory) continue;
     const stockBefore = inventory.currentStock;

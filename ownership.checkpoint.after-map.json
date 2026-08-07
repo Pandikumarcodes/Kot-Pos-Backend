@@ -1,0 +1,57 @@
+{
+  "migrationVersion": "phase5b-1",
+  "collections": {
+    "Billing": {
+      "migrationVersion": "phase5b-1",
+      "collection": "Billing",
+      "lastProcessedId": "6a74768564ae6cb504f8bf4f",
+      "scannedCount": 68,
+      "migratedCount": 0,
+      "skippedCount": 0,
+      "conflictCount": 0,
+      "unresolvedCount": 59,
+      "errorCount": 0,
+      "startedAt": "2026-08-06T19:28:10.769Z",
+      "updatedAt": "2026-08-06T19:28:31.052Z"
+    },
+    "Table": {
+      "migrationVersion": "phase5b-1",
+      "collection": "Table",
+      "lastProcessedId": "6a732fefb3fe410c4a0cb0ac",
+      "scannedCount": 11,
+      "migratedCount": 0,
+      "skippedCount": 0,
+      "conflictCount": 0,
+      "unresolvedCount": 2,
+      "errorCount": 0,
+      "startedAt": "2026-08-06T19:28:31.056Z",
+      "updatedAt": "2026-08-06T19:28:31.809Z"
+    },
+    "TableOrder": {
+      "migrationVersion": "phase5b-1",
+      "collection": "TableOrder",
+      "lastProcessedId": "6a74768264ae6cb504f8bf14",
+      "scannedCount": 69,
+      "migratedCount": 0,
+      "skippedCount": 0,
+      "conflictCount": 0,
+      "unresolvedCount": 60,
+      "errorCount": 0,
+      "startedAt": "2026-08-06T19:28:31.811Z",
+      "updatedAt": "2026-08-06T19:28:47.122Z"
+    },
+    "TakeAway": {
+      "migrationVersion": "phase5b-1",
+      "collection": "TakeAway",
+      "lastProcessedId": "6a74163561a243dbf35c3e4a",
+      "scannedCount": 21,
+      "migratedCount": 0,
+      "skippedCount": 0,
+      "conflictCount": 0,
+      "unresolvedCount": 17,
+      "errorCount": 0,
+      "startedAt": "2026-08-06T19:28:47.130Z",
+      "updatedAt": "2026-08-06T19:28:58.518Z"
+    }
+  }
+}

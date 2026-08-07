@@ -1,7 +1,8 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
-const { branchMemberScope, requireBranch } = branchScope;
+const { requireBranch } = branchScope;
+const { allowGlobalOrSelectedBranch, requireBranchScope } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/takeawayOrderController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
@@ -13,8 +14,8 @@ const cashierKotRouter = express.Router();
 cashierKotRouter.use(
   userAuth,
   allowRoles(["cashier", "admin", "manager"]),
-  branchScope,
-  branchMemberScope,
+  allowGlobalOrSelectedBranch,
+  requireBranchScope,
 );
 cashierKotRouter.post(
   "/takeaway-orders",

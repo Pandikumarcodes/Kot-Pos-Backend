@@ -35,6 +35,8 @@ const User = require("../../models/users");
 const { validateSignupData } = require("../../utils/validation");
 const { adminUserRouter } = require("../../routes/admin/adminUser");
 
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
 // ── Build minimal Express app ─────────────────────────────────
 const app = express();
 app.use(express.json());
@@ -45,9 +47,9 @@ app.use("/api/v1/admin", adminUserRouter);
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
-function makeToken(role = "admin") {
+function makeToken(role = "admin", branchId = VALID_BRANCH_ID) {
   return jwt.sign(
-    { _id: "user_id_123", username: "testuser", role },
+    { _id: "user_id_123", username: "testuser", role, branchId },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
@@ -59,7 +61,7 @@ function mockUserDoc(overrides = {}) {
     username: "testuser",
     role: "waiter",
     status: "active",
-    branchId: null,
+    branchId: VALID_BRANCH_ID,
     save: jest.fn().mockResolvedValue(true),
     ...overrides,
   };
@@ -273,7 +275,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("200 — admin can update a user role", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndUpdate.mockResolvedValue(
+    User.findOneAndUpdate.mockResolvedValue(
       mockUserDoc({ _id: VALID_USER_ID, username: "staff1", role: "chef" }),
     );
 
@@ -289,7 +291,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("200 — manager can update a user role", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "manager" }));
-    User.findByIdAndUpdate.mockResolvedValue(
+    User.findOneAndUpdate.mockResolvedValue(
       mockUserDoc({ _id: VALID_USER_ID, role: "cashier" }),
     );
 
@@ -311,7 +313,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
     expect(res.status).toBe(403);
     expect(res.body.error).toBe("Managers cannot assign admin role");
-    expect(User.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(User.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it("400 — rejects missing role field", async () => {
@@ -352,7 +354,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("404 — returns 404 when user does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndUpdate.mockResolvedValue(null);
+    User.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/admin/update-role/${VALID_USER_ID}`)
@@ -395,7 +397,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("500 — returns 500 when DB throws", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndUpdate.mockRejectedValue(new Error("DB error"));
+    User.findOneAndUpdate.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
       .put(`/api/v1/admin/update-role/${VALID_USER_ID}`)
@@ -415,7 +417,7 @@ describe("DELETE /api/v1/admin/deleteUser/:userId", () => {
 
   it("200 — admin can delete a user", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndDelete.mockResolvedValue(
+    User.findOneAndDelete.mockResolvedValue(
       mockUserDoc({ _id: VALID_USER_ID, username: "staff1" }),
     );
 
@@ -436,12 +438,12 @@ describe("DELETE /api/v1/admin/deleteUser/:userId", () => {
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Invalid User Id");
+    expect(res.body.error).toBe("Invalid userId");
   });
 
   it("404 — returns 404 when user does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndDelete.mockResolvedValue(null);
+    User.findOneAndDelete.mockResolvedValue(null);
 
     const res = await request(app)
       .delete(`/api/v1/admin/deleteUser/${VALID_USER_ID}`)
@@ -501,7 +503,7 @@ describe("DELETE /api/v1/admin/deleteUser/:userId", () => {
 
   it("500 — returns 500 when DB throws", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndDelete.mockRejectedValue(new Error("DB error"));
+    User.findOneAndDelete.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
       .delete(`/api/v1/admin/deleteUser/${VALID_USER_ID}`)

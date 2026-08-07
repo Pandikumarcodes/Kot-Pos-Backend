@@ -1,32 +1,35 @@
 const tableRepository = require("../repositories/TableRepository");
 const AppError = require("../utils/AppError");
+const { assertBranchScope } = require("../utils/accessScope");
 
-const createTable = async ({ tableNumber, capacity }) => {
-  if (await tableRepository.findByNumber(tableNumber))
+const createTable = async ({ tableNumber, capacity }, scope) => {
+  assertBranchScope(scope);
+  if (await tableRepository.findByNumberInScope(scope, tableNumber))
     throw new AppError("Table number already exists", 400);
   const table = await tableRepository.createTableDocument({
     tableNumber,
     capacity,
+    branchId: scope.branchId,
   });
   return table;
 };
 
-const listTables = () => tableRepository.listAll();
+const listTables = (scope) => tableRepository.listScoped(scope);
 
-const getTable = async (id) => {
-  const table = await tableRepository.findById(id);
+const getTable = async (id, scope) => {
+  const table = await tableRepository.findByIdInScope(scope, id);
   if (!table) throw new AppError("Table not found", 404);
   return table;
 };
 
-const updateTable = async (id, { capacity, status }) => {
-  const table = await tableRepository.updateTable(id, { capacity, status });
+const updateTable = async (id, { capacity, status, branchId: _ignored }, scope) => {
+  const table = await tableRepository.updateTableInScope(scope, id, { capacity, status }, { new: true, runValidators: true });
   if (!table) throw new AppError("Table not found", 404);
   return table;
 };
 
-const deleteTable = async (id) => {
-  const table = await tableRepository.deleteTable(id);
+const deleteTable = async (id, scope) => {
+  const table = await tableRepository.deleteTableInScope(scope, id);
   if (!table) throw new AppError("Table not found", 404);
 };
 

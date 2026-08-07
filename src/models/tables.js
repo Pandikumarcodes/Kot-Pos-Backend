@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const tableSchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+      immutable: true,
+      index: true,
+    },
     currentCustomer: {
       name: String,
       phone: String,
@@ -28,6 +35,9 @@ const tableSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+tableSchema.index({ branchId: 1, status: 1 });
+tableSchema.index({ branchId: 1, createdAt: -1 });
 
 const Table = mongoose.model("Table", tableSchema);
 

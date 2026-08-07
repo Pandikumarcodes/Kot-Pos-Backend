@@ -4,6 +4,7 @@ const stockLogRepository = require("../repositories/StockLogRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const billingRepository = require("../repositories/BillingRepository");
 const AppError = require("../utils/AppError");
+const { assertBranchScope, branchConstraint } = require("../utils/accessScope");
 const { cache, cacheKeys } = require("../infrastructure/cache");
 
 const client = process.env.GEMINI_API_KEY
@@ -101,8 +102,9 @@ const chat = async ({ message, context }) => {
   }
 };
 
-const getInventoryAlerts = async (branchFilter) => {
-  const items = await inventoryRepository.listLean(branchFilter);
+const getInventoryAlerts = async (scope) => {
+  assertBranchScope(scope);
+  const items = await inventoryRepository.listLeanScoped(scope);
   if (!items.length) {
     return {
       alerts: [],
@@ -111,7 +113,7 @@ const getInventoryAlerts = async (branchFilter) => {
     };
   }
   const logs = await stockLogRepository.listLean({
-    ...branchFilter,
+    ...branchConstraint(scope),
     createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
     type: "deduction",
   });
@@ -201,29 +203,26 @@ const generateFallbackSummary = (data) => {
 };
 
 const buildDailySummary = async ({
-  branchFilter,
-  branchMemberFilter,
-  branchId,
+  scope,
 }) => {
+  const branchId = assertBranchScope(scope).branchId;
+  const branchFilter = branchConstraint(scope);
   const today = utcMidnight(0);
   const yesterday = utcMidnight(1);
   const dayBefore = utcMidnight(2);
   const [yesterdayOrders, dayBeforeOrders, yesterdayBills] = await Promise.all([
-    kitchenRepository.listLean({
-      ...branchFilter,
+    kitchenRepository.listLeanScoped(scope, {
       createdAt: { $gte: yesterday, $lt: today },
       status: { $ne: "cancelled" },
     }),
-    kitchenRepository.listLean({
-      ...branchFilter,
+    kitchenRepository.listLeanScoped(scope, {
       createdAt: { $gte: dayBefore, $lt: yesterday },
       status: { $ne: "cancelled" },
     }),
-    billingRepository.listLean({
-      ...branchMemberFilter,
+    billingRepository.listScoped({
       createdAt: { $gte: yesterday, $lt: today },
       paymentStatus: "paid",
-    }),
+    }, {}, scope),
   ]);
   const totalRevenue = yesterdayBills.reduce(
     (sum, bill) => sum + (bill.totalAmount ?? 0),
@@ -255,7 +254,7 @@ const buildDailySummary = async ({
     const method = bill.paymentMethod ?? "unknown";
     paymentBreakdown[method] = (paymentBreakdown[method] ?? 0) + 1;
   });
-  const inventoryItems = await inventoryRepository.listLean(branchFilter);
+  const inventoryItems = await inventoryRepository.listLeanScoped(scope);
   const summaryData = {
     date: yesterday.toDateString(),
     totalRevenue: `₹${totalRevenue.toLocaleString()}`,
@@ -293,11 +292,14 @@ const buildDailySummary = async ({
   return { data: summaryData, aiSummary };
 };
 
-const getDailySummary = async (options) => cache.getOrSet(
-  cacheKeys.aiDailySummary({ branchId: options?.branchId, date: utcMidnight(1).toDateString() }),
-  () => buildDailySummary(options),
+const getDailySummary = async (options) => {
+  const scope = assertBranchScope(options?.scope);
+  return cache.getOrSet(
+  cacheKeys.aiDailySummary({ scope, date: utcMidnight(1).toDateString() }),
+  () => buildDailySummary({ ...options, scope }),
   { ttlSeconds: 600 },
-);
+  );
+};
 
 module.exports = {
   chat,

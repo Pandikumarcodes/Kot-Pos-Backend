@@ -2345,7 +2345,7 @@
                 "settings"
               ]
             },
-            "description": "Get branch settings. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+            "description": "Cashiers receive a read-only sanitized response containing only billing, receipt, payment, and branch display settings. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager, cashier. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
             "auth": {
               "type": "bearer",
               "bearer": [

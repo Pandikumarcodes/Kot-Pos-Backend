@@ -1,6 +1,7 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { allowGlobalOrSelectedBranch } = require("../../middlewares/accessScope");
 const { requireBranch } = branchScope;
 const controller = require("../../controllers/userController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
@@ -11,7 +12,7 @@ const {
 } = require("../../validators/users");
 
 const adminUserRouter = express.Router();
-adminUserRouter.use(userAuth, branchScope);
+adminUserRouter.use(userAuth, allowGlobalOrSelectedBranch);
 adminUserRouter.post(
   "/create-user",
   allowRoles(["admin"]),

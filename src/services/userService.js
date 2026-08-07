@@ -1,5 +1,6 @@
 const userRepository = require("../repositories/UserRepository");
 const AppError = require("../utils/AppError");
+const { assertScope, assertBranchScope } = require("../utils/accessScope");
 const administrationAudit = require("../modules/administration/AdministrationAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 const {
@@ -54,7 +55,8 @@ const writeFailure = async (values) => {
   }
 };
 
-const createUser = async ({ username, role, password, status }, branchId, audit = {}) => {
+const createUser = async ({ username, role, password, status }, scope, audit = {}) => {
+  const branchId = assertBranchScope(scope).branchId;
   const context = administrationAudit.createContext({ ...audit, branchId });
   let staffId = "staff:pending";
   try {
@@ -72,9 +74,15 @@ const createUser = async ({ username, role, password, status }, branchId, audit 
   }
 };
 
-const listUsers = async (branchFilter, query = {}) => {
+const scopeFilter = (scope) => {
+  assertScope(scope);
+  return scope.type === "global" ? {} : { branchId: scope.branchId };
+};
+
+const listUsers = async (scope, query = {}) => {
+  const branchFilter = scopeFilter(scope);
   if (!hasQueryControls(query)) {
-    const users = await userRepository.findByScope(branchFilter);
+    const users = await userRepository.findByAccess({ scope });
     if (!users.length) throw new AppError("No users found", 404);
     return { items: users };
   }
@@ -85,12 +93,16 @@ const listUsers = async (branchFilter, query = {}) => {
     policy: STAFF_QUERY_POLICY,
     trustedConstraints: [branchFilter],
   });
-  const dataPromise = userRepository.findByScope(
-    plan.filter,
-    repositoryOptions(plan, paginated),
-  );
+  const dataPromise = userRepository.findByAccess({
+    scope,
+    filter: plan.filter,
+    options: repositoryOptions(plan, paginated),
+  });
   const [users, total] = paginated
-    ? await Promise.all([dataPromise, userRepository.count(plan.filter)])
+    ? await Promise.all([
+      dataPromise,
+      userRepository.countByAccess(scope, plan.filter),
+    ])
     : [await dataPromise, null];
   if (!users.length) throw new AppError("No users found", 404);
   return {
@@ -99,23 +111,20 @@ const listUsers = async (branchFilter, query = {}) => {
   };
 };
 
-const updateUserRole = async ({ userId, role, actorRole, scopeToBranch, actorId,
+const updateUserRole = async ({ userId, role, actorRole, scope, actorId,
   branchId, correlationId }) => {
+  const filter = scopeFilter(scope);
   const context = administrationAudit.createContext({ actorId, actorRole, branchId, correlationId });
   let previousRole = null;
   try {
   if (actorRole === "manager" && role === "admin") {
     throw new AppError("Managers cannot assign admin role", 403);
   }
-  const previous = await userRepository.findOne(
-    scopeToBranch({ _id: userId }),
-    "role status branchId username",
+  const previous = await userRepository.findOneByAccess(
+    scope, { _id: userId }, { projection: "role status branchId username" },
   );
   previousRole = previous?.role ?? null;
-  const user = await userRepository.updateRole(
-    scopeToBranch({ _id: userId }),
-    role,
-  );
+  const user = await userRepository.updateRoleByAccess(scope, { _id: userId }, role);
   if (!user) throw new AppError("User not found", 404);
   const scopedContext = administrationAudit.createContext({
     actorId, actorRole, branchId: branchId ?? user.branchId, correlationId: context.correlationId,
@@ -129,10 +138,11 @@ const updateUserRole = async ({ userId, role, actorRole, scopeToBranch, actorId,
   }
 };
 
-const deleteUser = async (userId, scopeToBranch, audit = {}) => {
+const deleteUser = async (userId, scope, audit = {}) => {
+  const filter = scopeFilter(scope);
   const context = administrationAudit.createContext(audit);
   try {
-    const user = await userRepository.deleteByScope(scopeToBranch({ _id: userId }));
+    const user = await userRepository.deleteByAccess(scope, { _id: userId });
     if (!user) throw new AppError("User not found", 404);
     const scopedContext = administrationAudit.createContext({ ...audit,
       branchId: audit.branchId ?? user.branchId, correlationId: context.correlationId });

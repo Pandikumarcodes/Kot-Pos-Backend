@@ -1,0 +1,3438 @@
+{
+  "generatedAt": "2026-08-06T18:21:55.498Z",
+  "sourceArtifacts": [
+    "ownership-audit.json",
+    "ownership-backfill-dry-run.json",
+    "ownership-verification.json",
+    "ownership-backfill-dry-run-propagated.json",
+    "docs/phase5B-takeaway-resolution.md"
+  ],
+  "policy": {
+    "automaticBranchAssignment": false,
+    "applyExecuted": false,
+    "directOnlyReadsEnabled": false,
+    "schemasChanged": false,
+    "frontendChanged": false
+  },
+  "summary": {
+    "uniqueUnresolvedTableCount": 9,
+    "unresolvedActiveRecords": 31,
+    "unresolvedHistoricalRecords": 116,
+    "unresolvedUnknownRecords": 0,
+    "safeToMigrate": {
+      "Billing": 9,
+      "Table": 0,
+      "TableOrder": 9,
+      "TakeAway": 4
+    },
+    "conflicts": {
+      "Billing": 0,
+      "Table": 0,
+      "TableOrder": 0,
+      "TakeAway": 0
+    },
+    "recordsRequiringManualAssignment": {
+      "tableMappings": 9,
+      "takeAway": 17
+    },
+    "migrationReady": false
+  },
+  "byCollection": {
+    "Billing": {
+      "unresolved": 59,
+      "byClassification": {
+        "completed": 59
+      }
+    },
+    "Table": {
+      "unresolved": 11,
+      "byClassification": {
+        "active": 11
+      }
+    },
+    "TableOrder": {
+      "unresolved": 60,
+      "byClassification": {
+        "completed": 57,
+        "active": 3
+      }
+    },
+    "TakeAway": {
+      "unresolved": 17,
+      "byClassification": {
+        "active": 17
+      }
+    }
+  },
+  "unresolvedByCollection": {
+    "Billing": [
+      {
+        "recordId": "6a460b23b1f83fd40a30d033",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-02T06:54:27.309Z",
+        "updatedAt": "2026-07-02T07:03:26.893Z",
+        "paidAt": "2026-07-02T07:03:26.891Z"
+      },
+      {
+        "recordId": "6a477cf2354a6d2e6a36c49d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "paymentStatus": "paid",
+        "createdBy": "69b7cdfb5ef4d3634c66ce08",
+        "createdAt": "2026-07-03T09:12:18.890Z",
+        "updatedAt": "2026-07-06T12:52:43.026Z",
+        "paidAt": "2026-07-06T12:52:43.025Z"
+      },
+      {
+        "recordId": "6a477d23354a6d2e6a36c4cf",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "paymentStatus": "paid",
+        "createdBy": "69b7cdfb5ef4d3634c66ce08",
+        "createdAt": "2026-07-03T09:13:07.412Z",
+        "updatedAt": "2026-07-06T12:52:40.381Z",
+        "paidAt": "2026-07-06T12:52:40.380Z"
+      },
+      {
+        "recordId": "6a4ba33c4bf11a64def1f4af",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:44:44.254Z",
+        "updatedAt": "2026-07-06T12:52:37.615Z",
+        "paidAt": "2026-07-06T12:52:37.613Z"
+      },
+      {
+        "recordId": "6a4ba34f4bf11a64def1f512",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:45:03.243Z",
+        "updatedAt": "2026-07-06T12:52:35.517Z",
+        "paidAt": "2026-07-06T12:52:35.512Z"
+      },
+      {
+        "recordId": "6a4ba4304bf11a64def1f6fe",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:48:48.902Z",
+        "updatedAt": "2026-07-06T12:52:34.011Z",
+        "paidAt": "2026-07-06T12:52:34.008Z"
+      },
+      {
+        "recordId": "6a4ba4604bf11a64def1f82d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:49:36.121Z",
+        "updatedAt": "2026-07-06T12:52:32.438Z",
+        "paidAt": "2026-07-06T12:52:32.434Z"
+      },
+      {
+        "recordId": "6a4ba4ab4bf11a64def1fa9e",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:50:51.601Z",
+        "updatedAt": "2026-07-06T12:52:30.011Z",
+        "paidAt": "2026-07-06T12:52:30.005Z"
+      },
+      {
+        "recordId": "6a4ba4bd4bf11a64def1fb0b",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca151",
+        "tableNumber": 6,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:51:09.045Z",
+        "updatedAt": "2026-07-06T12:51:55.453Z",
+        "paidAt": "2026-07-06T12:51:55.450Z"
+      },
+      {
+        "recordId": "6a4ba5f04bf11a64def20565",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T12:56:16.328Z",
+        "updatedAt": "2026-07-06T12:56:16.328Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a4bad0d4bf11a64def20c7e",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:26:37.263Z",
+        "updatedAt": "2026-07-06T13:26:37.263Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a4bad5e4bf11a64def20fd3",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:27:59.070Z",
+        "updatedAt": "2026-07-06T13:27:59.070Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a4baf8d4bf11a64def2164c",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:37:17.052Z",
+        "updatedAt": "2026-07-06T13:37:17.052Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a4baf8f4bf11a64def2166e",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:37:19.951Z",
+        "updatedAt": "2026-07-06T13:37:19.951Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a5e2d67b6c85b83d8e352f3",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:15:03.397Z",
+        "updatedAt": "2026-07-29T16:49:56.801Z",
+        "paidAt": "2026-07-29T16:49:56.782Z"
+      },
+      {
+        "recordId": "6a5e2d82b6c85b83d8e3530d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:15:30.009Z",
+        "updatedAt": "2026-07-29T16:50:13.169Z",
+        "paidAt": "2026-07-29T16:50:13.168Z"
+      },
+      {
+        "recordId": "6a5e2db9b6c85b83d8e35571",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:16:25.700Z",
+        "updatedAt": "2026-07-29T16:50:11.602Z",
+        "paidAt": "2026-07-29T16:50:11.599Z"
+      },
+      {
+        "recordId": "6a5e2f5eb6c85b83d8e35cd9",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:23:26.615Z",
+        "updatedAt": "2026-07-29T16:50:09.724Z",
+        "paidAt": "2026-07-29T16:50:09.722Z"
+      },
+      {
+        "recordId": "6a5e3360b6c85b83d8e36a6b",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:40:32.399Z",
+        "updatedAt": "2026-07-29T16:50:08.335Z",
+        "paidAt": "2026-07-29T16:50:08.334Z"
+      },
+      {
+        "recordId": "6a5e404bb6c85b83d8e36cdd",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca151",
+        "tableNumber": 6,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T15:35:39.500Z",
+        "updatedAt": "2026-07-29T16:50:06.291Z",
+        "paidAt": "2026-07-29T16:50:06.289Z"
+      },
+      {
+        "recordId": "6a69d5e1c084b119b255de04",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:28:49.819Z",
+        "updatedAt": "2026-07-29T16:50:03.717Z",
+        "paidAt": "2026-07-29T16:50:03.716Z"
+      },
+      {
+        "recordId": "6a69d625c084b119b255de9d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:29:57.938Z",
+        "updatedAt": "2026-07-29T16:50:01.578Z",
+        "paidAt": "2026-07-29T16:50:01.576Z"
+      },
+      {
+        "recordId": "6a6a2f63143debb7ef05bd63",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-29T16:50:43.348Z",
+        "updatedAt": "2026-07-29T16:50:43.348Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a6b53716c73f7dd78e5c775",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T13:36:49.691Z",
+        "updatedAt": "2026-07-30T13:37:38.942Z",
+        "paidAt": "2026-07-30T13:37:38.939Z"
+      },
+      {
+        "recordId": "6a6b538c6c73f7dd78e5c7b1",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-30T13:37:16.083Z",
+        "updatedAt": "2026-07-30T13:37:16.083Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a6b538e6c73f7dd78e5c7bb",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-30T13:37:18.537Z",
+        "updatedAt": "2026-07-30T13:37:18.537Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a6b54036c73f7dd78e5ce26",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "paymentStatus": "paid",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-07-30T13:39:15.685Z",
+        "updatedAt": "2026-08-01T10:56:55.708Z",
+        "paidAt": "2026-08-01T10:56:55.703Z"
+      },
+      {
+        "recordId": "6a6b54b66c73f7dd78e5d95f",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T13:42:14.167Z",
+        "updatedAt": "2026-08-01T10:56:54.304Z",
+        "paidAt": "2026-08-01T10:56:54.302Z"
+      },
+      {
+        "recordId": "6a6b7ec383e2d046012717e6",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T16:41:39.438Z",
+        "updatedAt": "2026-08-01T10:56:52.913Z",
+        "paidAt": "2026-08-01T10:56:52.912Z"
+      },
+      {
+        "recordId": "6a6dafce119092301c667e36",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T08:35:26.316Z",
+        "updatedAt": "2026-08-01T10:56:51.462Z",
+        "paidAt": "2026-08-01T10:56:51.461Z"
+      },
+      {
+        "recordId": "6a6dbee3e23949defc8f2afb",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T09:39:47.184Z",
+        "updatedAt": "2026-08-01T10:56:49.906Z",
+        "paidAt": "2026-08-01T10:56:49.904Z"
+      },
+      {
+        "recordId": "6a6dbef4e23949defc8f2b38",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T09:40:04.620Z",
+        "updatedAt": "2026-08-01T10:56:47.297Z",
+        "paidAt": "2026-08-01T10:56:47.295Z"
+      },
+      {
+        "recordId": "6a6dd0c56fcde921ad6d1eff",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T10:56:05.418Z",
+        "updatedAt": "2026-08-01T10:56:05.418Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a6df537d258593f8a5f4eab",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:31:35.318Z",
+        "updatedAt": "2026-08-05T15:22:06.002Z",
+        "paidAt": "2026-08-05T15:22:06.002Z"
+      },
+      {
+        "recordId": "6a6df6d9d258593f8a5f524d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T13:38:33.220Z",
+        "updatedAt": "2026-08-01T13:38:33.220Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a6dfa7ed1aac66788957ca2",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:54:06.778Z",
+        "updatedAt": "2026-08-05T15:22:01.819Z",
+        "paidAt": "2026-08-05T15:22:01.819Z"
+      },
+      {
+        "recordId": "6a6dfadfd1aac66788957df0",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:55:43.298Z",
+        "updatedAt": "2026-08-05T15:21:55.625Z",
+        "paidAt": "2026-08-05T15:21:55.624Z"
+      },
+      {
+        "recordId": "6a6dfb32d1aac66788957e39",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:57:06.472Z",
+        "updatedAt": "2026-08-05T15:21:50.323Z",
+        "paidAt": "2026-08-05T15:21:50.322Z"
+      },
+      {
+        "recordId": "6a6e1b5c45ef35903b83e227",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T16:14:20.091Z",
+        "updatedAt": "2026-08-02T04:36:58.573Z",
+        "paidAt": "2026-08-02T04:36:58.570Z"
+      },
+      {
+        "recordId": "6a6e1ba445ef35903b83e3af",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T16:15:32.957Z",
+        "updatedAt": "2026-08-01T16:15:32.957Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a73555b37ed464248dd5066",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:23:07.699Z",
+        "updatedAt": "2026-08-05T15:35:24.722Z",
+        "paidAt": "2026-08-05T15:35:24.719Z"
+      },
+      {
+        "recordId": "6a73556d37ed464248dd50b5",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:23:25.632Z",
+        "updatedAt": "2026-08-05T15:35:32.159Z",
+        "paidAt": "2026-08-05T15:35:32.157Z"
+      },
+      {
+        "recordId": "6a73558237ed464248dd50ff",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:23:46.771Z",
+        "updatedAt": "2026-08-05T15:35:29.136Z",
+        "paidAt": "2026-08-05T15:35:29.135Z"
+      },
+      {
+        "recordId": "6a73559637ed464248dd514b",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:24:06.690Z",
+        "updatedAt": "2026-08-05T15:35:18.326Z",
+        "paidAt": "2026-08-05T15:35:18.324Z"
+      },
+      {
+        "recordId": "6a7355c037ed464248dd51ff",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:24:48.080Z",
+        "updatedAt": "2026-08-05T15:35:13.291Z",
+        "paidAt": "2026-08-05T15:35:13.288Z"
+      },
+      {
+        "recordId": "6a7355d737ed464248dd5240",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca151",
+        "tableNumber": 6,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:25:11.399Z",
+        "updatedAt": "2026-08-05T15:34:54.080Z",
+        "paidAt": "2026-08-05T15:34:54.078Z"
+      },
+      {
+        "recordId": "6a7355f437ed464248dd5261",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:25:40.552Z",
+        "updatedAt": "2026-08-05T15:34:43.669Z",
+        "paidAt": "2026-08-05T15:34:43.667Z"
+      },
+      {
+        "recordId": "6a73563037ed464248dd52ef",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:26:40.659Z",
+        "updatedAt": "2026-08-05T15:30:11.379Z",
+        "paidAt": "2026-08-05T15:30:11.378Z"
+      },
+      {
+        "recordId": "6a73563437ed464248dd5307",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a69d672c084b119b255df12",
+        "tableNumber": 11,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:26:44.546Z",
+        "updatedAt": "2026-08-05T15:29:52.361Z",
+        "paidAt": "2026-08-05T15:29:52.360Z"
+      },
+      {
+        "recordId": "6a73575937ed464248dd54fd",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-05T15:31:37.392Z",
+        "updatedAt": "2026-08-05T15:31:37.392Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a7357bd37ed464248dd5553",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-05T15:33:17.329Z",
+        "updatedAt": "2026-08-05T15:33:17.329Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a7357d037ed464248dd5574",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-05T15:33:36.927Z",
+        "updatedAt": "2026-08-05T15:33:36.927Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a7358c972a0a264417e2bd0",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:37:45.253Z",
+        "updatedAt": "2026-08-05T19:35:34.048Z",
+        "paidAt": "2026-08-05T19:35:34.047Z"
+      },
+      {
+        "recordId": "6a73590172a0a264417e2c45",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:38:41.042Z",
+        "updatedAt": "2026-08-05T19:35:28.118Z",
+        "paidAt": "2026-08-05T19:35:28.116Z"
+      },
+      {
+        "recordId": "6a7415eb61a243dbf35c3e3b",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-06T05:04:43.453Z",
+        "updatedAt": "2026-08-06T05:04:43.453Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a74163961a243dbf35c3e67",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": null,
+        "tableNumber": null,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-06T05:06:01.087Z",
+        "updatedAt": "2026-08-06T05:06:01.087Z",
+        "paidAt": null
+      },
+      {
+        "recordId": "6a7416d661a243dbf35c3f60",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-06T05:08:38.501Z",
+        "updatedAt": "2026-08-06T06:22:42.045Z",
+        "paidAt": "2026-08-06T06:22:42.043Z"
+      },
+      {
+        "recordId": "6a7416dd61a243dbf35c3f89",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-06T05:08:45.034Z",
+        "updatedAt": "2026-08-06T05:10:42.236Z",
+        "paidAt": "2026-08-06T05:10:42.234Z"
+      },
+      {
+        "recordId": "6a74768564ae6cb504f8bf4f",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "paymentStatus": "paid",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-06T11:56:53.079Z",
+        "updatedAt": "2026-08-06T11:59:09.661Z",
+        "paidAt": "2026-08-06T11:59:09.659Z"
+      }
+    ],
+    "Table": [
+      {
+        "recordId": "69e35a5313f865ebe3fca142",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 1,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:55.930Z",
+        "updatedAt": "2026-08-06T11:59:09.696Z"
+      },
+      {
+        "recordId": "69e35a5313f865ebe3fca145",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 2,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:55.983Z",
+        "updatedAt": "2026-08-05T19:35:28.173Z"
+      },
+      {
+        "recordId": "69e35a5413f865ebe3fca148",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 3,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:56.036Z",
+        "updatedAt": "2026-08-06T05:10:42.397Z"
+      },
+      {
+        "recordId": "69e35a5413f865ebe3fca14b",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 4,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:56.088Z",
+        "updatedAt": "2026-08-05T15:35:18.364Z"
+      },
+      {
+        "recordId": "69e35a5413f865ebe3fca14e",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 5,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:56.140Z",
+        "updatedAt": "2026-08-05T15:35:13.341Z"
+      },
+      {
+        "recordId": "69e35a5413f865ebe3fca151",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 6,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:56.203Z",
+        "updatedAt": "2026-08-05T15:34:54.119Z"
+      },
+      {
+        "recordId": "69e35a5413f865ebe3fca154",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 7,
+        "status": "available",
+        "createdAt": "2026-04-18T10:17:56.515Z",
+        "updatedAt": "2026-08-05T15:34:43.708Z"
+      },
+      {
+        "recordId": "6a477c66354a6d2e6a36c38a",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 10,
+        "status": "available",
+        "createdAt": "2026-07-03T09:09:58.158Z",
+        "updatedAt": "2026-08-05T15:30:11.444Z"
+      },
+      {
+        "recordId": "6a69d672c084b119b255df12",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 11,
+        "status": "available",
+        "createdAt": "2026-07-29T10:31:14.915Z",
+        "updatedAt": "2026-08-05T15:29:52.427Z"
+      },
+      {
+        "recordId": "6a6b53f66c73f7dd78e5ce0f",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 12,
+        "status": "available",
+        "createdAt": "2026-07-30T13:39:02.033Z",
+        "updatedAt": "2026-07-30T13:39:02.033Z"
+      },
+      {
+        "recordId": "6a732fefb3fe410c4a0cb0ac",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableNumber": 22,
+        "status": "available",
+        "createdAt": "2026-08-05T12:43:27.710Z",
+        "updatedAt": "2026-08-05T12:43:27.710Z"
+      }
+    ],
+    "TableOrder": [
+      {
+        "recordId": "69e638da7210f11d53170874",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69b7cdfb5ef4d3634c66ce08",
+        "createdAt": "2026-04-20T14:31:54.532Z",
+        "updatedAt": "2026-07-02T06:54:27.389Z"
+      },
+      {
+        "recordId": "69e638de7210f11d53170889",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69b7cdfb5ef4d3634c66ce08",
+        "createdAt": "2026-04-20T14:31:58.832Z",
+        "updatedAt": "2026-07-02T06:54:27.389Z"
+      },
+      {
+        "recordId": "6a3d465630a21cb26adaf386",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-06-25T15:16:38.470Z",
+        "updatedAt": "2026-07-06T12:44:44.302Z"
+      },
+      {
+        "recordId": "6a460be4b1f83fd40a30d0de",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-02T06:57:40.757Z",
+        "updatedAt": "2026-07-06T12:45:03.287Z"
+      },
+      {
+        "recordId": "6a460bf7b1f83fd40a30d175",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-02T06:57:59.712Z",
+        "updatedAt": "2026-07-06T12:45:03.287Z"
+      },
+      {
+        "recordId": "6a477c72354a6d2e6a36c392",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69b7cdfb5ef4d3634c66ce08",
+        "createdAt": "2026-07-03T09:10:10.279Z",
+        "updatedAt": "2026-07-03T09:12:18.975Z"
+      },
+      {
+        "recordId": "6a477cf9354a6d2e6a36c4ac",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69b7cdfb5ef4d3634c66ce08",
+        "createdAt": "2026-07-03T09:12:25.138Z",
+        "updatedAt": "2026-07-29T10:29:57.994Z"
+      },
+      {
+        "recordId": "6a4ba3644bf11a64def1f53e",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:45:25.004Z",
+        "updatedAt": "2026-07-06T12:48:48.936Z"
+      },
+      {
+        "recordId": "6a4ba3814bf11a64def1f59d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:45:53.212Z",
+        "updatedAt": "2026-07-06T12:48:48.936Z"
+      },
+      {
+        "recordId": "6a4ba45d4bf11a64def1f78b",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:49:33.467Z",
+        "updatedAt": "2026-07-06T12:49:36.153Z"
+      },
+      {
+        "recordId": "6a4ba49e4bf11a64def1f997",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:50:38.308Z",
+        "updatedAt": "2026-07-06T12:50:51.652Z"
+      },
+      {
+        "recordId": "6a4ba4a84bf11a64def1fa3a",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:50:48.825Z",
+        "updatedAt": "2026-07-06T12:50:51.652Z"
+      },
+      {
+        "recordId": "6a4ba4b24bf11a64def1facc",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:50:58.482Z",
+        "updatedAt": "2026-07-20T14:15:30.043Z"
+      },
+      {
+        "recordId": "6a4ba4c64bf11a64def1fb21",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-06T12:51:18.766Z",
+        "updatedAt": "2026-07-29T10:29:57.994Z"
+      },
+      {
+        "recordId": "6a4ba5aa4bf11a64def2047c",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-07-06T12:55:06.307Z",
+        "updatedAt": "2026-07-20T14:15:03.465Z"
+      },
+      {
+        "recordId": "6a5e2db7b6c85b83d8e3552a",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:16:23.249Z",
+        "updatedAt": "2026-07-20T14:16:25.734Z"
+      },
+      {
+        "recordId": "6a5e2f5db6c85b83d8e35cae",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:23:25.236Z",
+        "updatedAt": "2026-07-20T14:23:26.654Z"
+      },
+      {
+        "recordId": "6a5e335eb6c85b83d8e36a55",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T14:40:30.469Z",
+        "updatedAt": "2026-07-20T14:40:32.456Z"
+      },
+      {
+        "recordId": "6a5e4049b6c85b83d8e36ca4",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca151",
+        "tableNumber": 6,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T15:35:37.866Z",
+        "updatedAt": "2026-07-20T15:35:39.548Z"
+      },
+      {
+        "recordId": "6a5e4053b6c85b83d8e36cf3",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca151",
+        "tableNumber": 6,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-20T15:35:48.000Z",
+        "updatedAt": "2026-08-05T15:25:11.464Z"
+      },
+      {
+        "recordId": "6a69d5d9c084b119b255dde7",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:28:41.226Z",
+        "updatedAt": "2026-07-29T10:28:49.883Z"
+      },
+      {
+        "recordId": "6a69d5edc084b119b255de16",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:29:01.783Z",
+        "updatedAt": "2026-08-05T15:25:40.617Z"
+      },
+      {
+        "recordId": "6a69d5f5c084b119b255de29",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:29:09.680Z",
+        "updatedAt": "2026-08-05T15:25:40.617Z"
+      },
+      {
+        "recordId": "6a69d5fac084b119b255de3d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca154",
+        "tableNumber": 7,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:29:14.975Z",
+        "updatedAt": "2026-08-05T15:25:40.617Z"
+      },
+      {
+        "recordId": "6a69d61dc084b119b255de6e",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:29:49.326Z",
+        "updatedAt": "2026-07-29T10:29:57.994Z"
+      },
+      {
+        "recordId": "6a69d64cc084b119b255deb3",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-29T10:30:36.362Z",
+        "updatedAt": "2026-07-30T13:39:15.725Z"
+      },
+      {
+        "recordId": "6a6b53636c73f7dd78e5c6f4",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T13:36:35.081Z",
+        "updatedAt": "2026-07-30T13:36:49.742Z"
+      },
+      {
+        "recordId": "6a6b53686c73f7dd78e5c719",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T13:36:40.535Z",
+        "updatedAt": "2026-07-30T13:36:49.742Z"
+      },
+      {
+        "recordId": "6a6b536e6c73f7dd78e5c73c",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T13:36:46.456Z",
+        "updatedAt": "2026-07-30T13:36:49.742Z"
+      },
+      {
+        "recordId": "6a6b540a6c73f7dd78e5ce39",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "sent_to_kitchen",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-07-30T13:39:22.623Z",
+        "updatedAt": "2026-07-30T13:39:22.740Z"
+      },
+      {
+        "recordId": "6a6b54b36c73f7dd78e5d934",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T13:42:11.110Z",
+        "updatedAt": "2026-07-30T13:42:14.257Z"
+      },
+      {
+        "recordId": "6a6b7ebc83e2d046012717b8",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-07-30T16:41:32.933Z",
+        "updatedAt": "2026-07-30T16:41:39.479Z"
+      },
+      {
+        "recordId": "6a6d92e40f16e8016cbf86a5",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "sent_to_kitchen",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-08-01T06:32:04.491Z",
+        "updatedAt": "2026-08-01T06:32:04.879Z"
+      },
+      {
+        "recordId": "6a6dafcb119092301c667e1d",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T08:35:23.763Z",
+        "updatedAt": "2026-08-01T08:35:26.360Z"
+      },
+      {
+        "recordId": "6a6db004119092301c668287",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T08:36:20.708Z",
+        "updatedAt": "2026-08-01T13:55:43.334Z"
+      },
+      {
+        "recordId": "6a6dbed9e23949defc8f2adb",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T09:39:37.915Z",
+        "updatedAt": "2026-08-01T09:39:47.242Z"
+      },
+      {
+        "recordId": "6a6dbef0e23949defc8f2b18",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T09:40:00.609Z",
+        "updatedAt": "2026-08-01T09:40:04.660Z"
+      },
+      {
+        "recordId": "6a6df534d258593f8a5f4e91",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:31:32.592Z",
+        "updatedAt": "2026-08-01T13:31:35.361Z"
+      },
+      {
+        "recordId": "6a6df54dd258593f8a5f4ec5",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:31:57.968Z",
+        "updatedAt": "2026-08-05T15:23:07.775Z"
+      },
+      {
+        "recordId": "6a6df555d258593f8a5f4ee1",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:32:05.595Z",
+        "updatedAt": "2026-08-05T15:23:07.775Z"
+      },
+      {
+        "recordId": "6a6df561d258593f8a5f4f09",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:32:17.410Z",
+        "updatedAt": "2026-08-05T15:23:07.775Z"
+      },
+      {
+        "recordId": "6a6dfa7bd1aac66788957c88",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:54:03.836Z",
+        "updatedAt": "2026-08-01T13:54:06.820Z"
+      },
+      {
+        "recordId": "6a6dfb28d1aac66788957e18",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T13:56:56.889Z",
+        "updatedAt": "2026-08-01T13:57:06.506Z"
+      },
+      {
+        "recordId": "6a6e1b5845ef35903b83e1f4",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T16:14:16.199Z",
+        "updatedAt": "2026-08-01T16:14:20.153Z"
+      },
+      {
+        "recordId": "6a6e1b6245ef35903b83e243",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-01T16:14:26.232Z",
+        "updatedAt": "2026-08-05T15:24:48.146Z"
+      },
+      {
+        "recordId": "6a73556937ed464248dd5082",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:23:21.498Z",
+        "updatedAt": "2026-08-05T15:23:25.698Z"
+      },
+      {
+        "recordId": "6a73557f37ed464248dd50da",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:23:43.401Z",
+        "updatedAt": "2026-08-05T15:23:46.837Z"
+      },
+      {
+        "recordId": "6a73559337ed464248dd5118",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:24:03.341Z",
+        "updatedAt": "2026-08-05T15:24:06.756Z"
+      },
+      {
+        "recordId": "6a73559d37ed464248dd5161",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "tableId": "69e35a5413f865ebe3fca14b",
+        "tableNumber": 4,
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:24:13.852Z",
+        "updatedAt": "2026-08-05T15:24:14.475Z"
+      },
+      {
+        "recordId": "6a7355b137ed464248dd519e",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:24:33.182Z",
+        "updatedAt": "2026-08-05T15:24:48.146Z"
+      },
+      {
+        "recordId": "6a7355b837ed464248dd51c4",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca14e",
+        "tableNumber": 5,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:24:40.640Z",
+        "updatedAt": "2026-08-05T15:24:48.146Z"
+      },
+      {
+        "recordId": "6a7355d337ed464248dd5220",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca151",
+        "tableNumber": 6,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:25:07.964Z",
+        "updatedAt": "2026-08-05T15:25:11.464Z"
+      },
+      {
+        "recordId": "6a73560937ed464248dd527b",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:26:01.115Z",
+        "updatedAt": "2026-08-05T15:26:40.725Z"
+      },
+      {
+        "recordId": "6a73561437ed464248dd529f",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a477c66354a6d2e6a36c38a",
+        "tableNumber": 10,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:26:12.002Z",
+        "updatedAt": "2026-08-05T15:26:40.725Z"
+      },
+      {
+        "recordId": "6a73562637ed464248dd52c7",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "6a69d672c084b119b255df12",
+        "tableNumber": 11,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:26:30.422Z",
+        "updatedAt": "2026-08-05T15:26:44.612Z"
+      },
+      {
+        "recordId": "6a7358c772a0a264417e2ba4",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:37:43.127Z",
+        "updatedAt": "2026-08-05T15:37:45.291Z"
+      },
+      {
+        "recordId": "6a7358fd72a0a264417e2c19",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca145",
+        "tableNumber": 2,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:38:37.931Z",
+        "updatedAt": "2026-08-05T15:38:41.080Z"
+      },
+      {
+        "recordId": "6a73590e72a0a264417e2c65",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5413f865ebe3fca148",
+        "tableNumber": 3,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T15:38:54.720Z",
+        "updatedAt": "2026-08-06T05:08:45.075Z"
+      },
+      {
+        "recordId": "6a7390e8f0612903b5da3128",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-05T19:37:12.507Z",
+        "updatedAt": "2026-08-06T05:08:38.635Z"
+      },
+      {
+        "recordId": "6a74768264ae6cb504f8bf14",
+        "classification": "completed",
+        "recommendedAction": "keep historical compatibility fallback",
+        "tableId": "69e35a5313f865ebe3fca142",
+        "tableNumber": 1,
+        "status": "served",
+        "createdBy": "69bc0ac8b3106afed60c1fba",
+        "createdAt": "2026-08-06T11:56:50.989Z",
+        "updatedAt": "2026-08-06T11:56:53.134Z"
+      }
+    ],
+    "TakeAway": [
+      {
+        "recordId": "6a4ba5504bf11a64def1ff63",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-07-06T12:53:36.907Z",
+        "updatedAt": "2026-07-06T12:53:37.143Z"
+      },
+      {
+        "recordId": "6a4ba5e24bf11a64def204bf",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T12:56:02.124Z",
+        "updatedAt": "2026-07-06T12:56:02.278Z"
+      },
+      {
+        "recordId": "6a4bacdf4bf11a64def20a66",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:25:51.914Z",
+        "updatedAt": "2026-07-06T13:25:52.111Z"
+      },
+      {
+        "recordId": "6a4bad3b4bf11a64def20e43",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:27:23.822Z",
+        "updatedAt": "2026-07-06T13:27:24.009Z"
+      },
+      {
+        "recordId": "6a4bad9a4bf11a64def21201",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-06T13:28:58.851Z",
+        "updatedAt": "2026-07-06T13:28:59.124Z"
+      },
+      {
+        "recordId": "6a6a2f5f143debb7ef05bd47",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-29T16:50:39.735Z",
+        "updatedAt": "2026-07-29T16:50:39.919Z"
+      },
+      {
+        "recordId": "6a6b4e386c73f7dd78e5c6ab",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69b813ddd7840638331a924a",
+        "createdAt": "2026-07-30T13:14:32.113Z",
+        "updatedAt": "2026-07-30T13:14:32.315Z"
+      },
+      {
+        "recordId": "6a6b53896c73f7dd78e5c795",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-07-30T13:37:13.661Z",
+        "updatedAt": "2026-07-30T13:37:13.809Z"
+      },
+      {
+        "recordId": "6a6dd0c36fcde921ad6d1eda",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T10:56:03.122Z",
+        "updatedAt": "2026-08-01T10:56:03.403Z"
+      },
+      {
+        "recordId": "6a6df6d6d258593f8a5f5228",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T13:38:30.581Z",
+        "updatedAt": "2026-08-01T13:38:30.819Z"
+      },
+      {
+        "recordId": "6a6dfaa3d1aac66788957d3f",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T13:54:43.661Z",
+        "updatedAt": "2026-08-01T13:54:43.904Z"
+      },
+      {
+        "recordId": "6a6e1b9e45ef35903b83e2f9",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-01T16:15:26.968Z",
+        "updatedAt": "2026-08-01T16:15:27.569Z"
+      },
+      {
+        "recordId": "6a73575037ed464248dd54d7",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-05T15:31:28.899Z",
+        "updatedAt": "2026-08-05T15:31:29.596Z"
+      },
+      {
+        "recordId": "6a7357a837ed464248dd552b",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-05T15:32:56.964Z",
+        "updatedAt": "2026-08-05T15:32:57.670Z"
+      },
+      {
+        "recordId": "6a7357ca37ed464248dd555e",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-05T15:33:30.366Z",
+        "updatedAt": "2026-08-05T15:33:31.054Z"
+      },
+      {
+        "recordId": "6a7415e861a243dbf35c3e1c",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-06T05:04:40.922Z",
+        "updatedAt": "2026-08-06T05:04:41.270Z"
+      },
+      {
+        "recordId": "6a74163561a243dbf35c3e4a",
+        "classification": "active",
+        "recommendedAction": "assign branch manually",
+        "status": "sent_to_kitchen",
+        "createdBy": "69bc0b4fb3106afed60c1ff9",
+        "createdAt": "2026-08-06T05:05:57.958Z",
+        "updatedAt": "2026-08-06T05:05:58.277Z"
+      }
+    ]
+  },
+  "referencedTables": [
+    {
+      "tableId": "69e35a5313f865ebe3fca142",
+      "tableNumber": 1,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:55.930Z",
+      "updatedAt": "2026-08-06T11:59:09.696Z",
+      "existingReferences": {
+        "tableOrders": [
+          "69e4f036aefa24e02617a5f6",
+          "69e62fb9b77556c8a3b91aab",
+          "69e63018b77556c8a3b91c6b",
+          "69ea27ecfc425b801b8eb14a",
+          "69ea2829fc425b801b8eb2d2",
+          "69ea2832fc425b801b8eb2e5",
+          "6a3d465630a21cb26adaf386",
+          "6a3d469030a21cb26adaf3d6",
+          "6a4ba5aa4bf11a64def2047c",
+          "6a6b53636c73f7dd78e5c6f4",
+          "6a6b53686c73f7dd78e5c719",
+          "6a6b536e6c73f7dd78e5c73c",
+          "6a6b54b36c73f7dd78e5d934",
+          "6a6d92e40f16e8016cbf86a5",
+          "6a6df534d258593f8a5f4e91",
+          "6a6df54dd258593f8a5f4ec5",
+          "6a6df555d258593f8a5f4ee1",
+          "6a6df561d258593f8a5f4f09",
+          "6a7358c772a0a264417e2ba4",
+          "6a7390e8f0612903b5da3128",
+          "6a74768264ae6cb504f8bf14"
+        ],
+        "kots": [
+          "6a7358c772a0a264417e2bb8",
+          "6a7390eaf0612903b5da3134",
+          "6a74768364ae6cb504f8bf30",
+          "69e4f037aefa24e02617a608",
+          "69e62fb9b77556c8a3b91ad7",
+          "69e63018b77556c8a3b91c87",
+          "69ea27edfc425b801b8eb196",
+          "69ea282afc425b801b8eb2dc",
+          "69ea2832fc425b801b8eb2ef",
+          "6a3d469030a21cb26adaf3e0",
+          "6a6b53636c73f7dd78e5c70a",
+          "6a6b53686c73f7dd78e5c72b",
+          "6a6b536e6c73f7dd78e5c752",
+          "6a6b54b36c73f7dd78e5d94a",
+          "6a6df534d258593f8a5f4e9c",
+          "6a6df54ed258593f8a5f4ed4",
+          "6a6df555d258593f8a5f4ef0",
+          "6a6df561d258593f8a5f4f14"
+        ],
+        "billings": [
+          "69e4f03aaefa24e02617a61a",
+          "69e62fbdb77556c8a3b91b07",
+          "69e6301ab77556c8a3b91ca4",
+          "69ea2801fc425b801b8eb1e5",
+          "6a4ba33c4bf11a64def1f4af",
+          "6a5e2d67b6c85b83d8e352f3",
+          "6a6b53716c73f7dd78e5c775",
+          "6a6b54b66c73f7dd78e5d95f",
+          "6a6df537d258593f8a5f4eab",
+          "6a73555b37ed464248dd5066",
+          "6a7358c972a0a264417e2bd0",
+          "6a7416d661a243dbf35c3f60",
+          "6a74768564ae6cb504f8bf4f"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69e35a5313f865ebe3fca128",
+          "69b7cdfb5ef4d3634c66ce06"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [
+          "69b7cdfb5ef4d3634c66ce06"
+        ],
+        "auditBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [
+        {
+          "userId": "69e0bb8f958ad1d3ebf5cde9",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "role": "waiter",
+          "status": "active"
+        }
+      ],
+      "auditEvents": [
+        {
+          "eventId": "31aa8c19-7ec1-45d2-bdf6-76664512cf04",
+          "timestamp": "2026-08-05T15:22:06.130Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a6df537d258593f8a5f4eab",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "bff8afc0-25af-4f9b-bc3f-6b830986157a",
+          "timestamp": "2026-08-05T15:23:07.920Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73555b37ed464248dd5066",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "0b07c12e-3595-443c-84d9-d22eb09d5d1d",
+          "timestamp": "2026-08-05T15:35:24.801Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73555b37ed464248dd5066",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "d500bceb-40de-453d-a7c4-77f81abaedf9",
+          "timestamp": "2026-08-05T15:37:43.451Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a7358c772a0a264417e2ba4",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "1fc1fb93-8898-406d-b8ca-3589a3950374",
+          "timestamp": "2026-08-05T15:37:45.381Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a7358c972a0a264417e2bd0",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "5845562f-1c43-4502-b192-5bde58cf2a66",
+          "timestamp": "2026-08-05T19:35:34.270Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a7358c972a0a264417e2bd0",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "250e035d-df35-4a18-9236-b8794f819f2c",
+          "timestamp": "2026-08-05T19:37:14.713Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a7390e8f0612903b5da3128",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "6d22f17d-6f23-43ab-ab6e-a993414e8c9b",
+          "timestamp": "2026-08-06T05:08:38.949Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a7416d661a243dbf35c3f60",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "fafebc09-0447-4d28-9b2d-984ea10d8f7b",
+          "timestamp": "2026-08-06T06:22:42.178Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a7416d661a243dbf35c3f60",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": "admin"
+        },
+        {
+          "eventId": "e4ec0787-9c74-4c38-9042-508f3efee2b3",
+          "timestamp": "2026-08-06T11:56:51.351Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a74768264ae6cb504f8bf14",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "3a4780f4-cd28-4fdd-a0c0-ab4eb5afd5f9",
+          "timestamp": "2026-08-06T11:56:53.226Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a74768564ae6cb504f8bf4f",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "a85f6729-c20b-48ea-99b3-3fd91099ffac",
+          "timestamp": "2026-08-06T11:59:09.735Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a74768564ae6cb504f8bf4f",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": "admin"
+        }
+      ]
+    },
+    {
+      "tableId": "69e35a5313f865ebe3fca145",
+      "tableNumber": 2,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:55.983Z",
+      "updatedAt": "2026-08-05T19:35:28.173Z",
+      "existingReferences": {
+        "tableOrders": [
+          "69e638da7210f11d53170874",
+          "69e638de7210f11d53170889",
+          "6a460be4b1f83fd40a30d0de",
+          "6a460bf7b1f83fd40a30d175",
+          "6a4ba4b24bf11a64def1facc",
+          "6a6b7ebc83e2d046012717b8",
+          "6a6dfa7bd1aac66788957c88",
+          "6a73556937ed464248dd5082",
+          "6a7358fd72a0a264417e2c19"
+        ],
+        "kots": [
+          "6a7358fe72a0a264417e2c2d",
+          "6a460be5b1f83fd40a30d132",
+          "6a460bf8b1f83fd40a30d17f",
+          "6a4ba4b24bf11a64def1fad6",
+          "6a6b7ebd83e2d046012717cf",
+          "6a6dfa7cd1aac66788957c93",
+          "6a73556a37ed464248dd509a"
+        ],
+        "billings": [
+          "6a460b23b1f83fd40a30d033",
+          "6a4ba34f4bf11a64def1f512",
+          "6a5e2d82b6c85b83d8e3530d",
+          "6a6b7ec383e2d046012717e6",
+          "6a6dfa7ed1aac66788957ca2",
+          "6a73556d37ed464248dd50b5",
+          "6a73590172a0a264417e2c45"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69e35a5313f865ebe3fca128",
+          "69b7cdfb5ef4d3634c66ce06"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [],
+        "auditBranches": [
+          "69b7cdfb5ef4d3634c66ce06",
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [],
+      "auditEvents": [
+        {
+          "eventId": "ae77852a-d270-4986-b643-f9591dbbaf55",
+          "timestamp": "2026-08-01T16:13:23.751Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6dfa7cd1aac66788957c93",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "5177db04-06d3-49f7-b982-4ba246338bff",
+          "timestamp": "2026-08-01T16:13:27.815Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6dfa7cd1aac66788957c93",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "3da833ec-4fd6-4e35-a25d-7c1ce996b42b",
+          "timestamp": "2026-08-05T15:22:01.960Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a6dfa7ed1aac66788957ca2",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "156bb3cb-cfb4-446d-a14a-6eea1aba46be",
+          "timestamp": "2026-08-05T15:23:22.275Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73556937ed464248dd5082",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "6b2aad5e-7cb7-4e8f-80e9-b4a1916e3244",
+          "timestamp": "2026-08-05T15:23:25.843Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73556d37ed464248dd50b5",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "b15e903f-fed1-4136-9058-891f4b39d036",
+          "timestamp": "2026-08-05T15:27:55.234Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73556a37ed464248dd509a",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "5a5b32f7-f723-4679-bd5d-1037e95d325f",
+          "timestamp": "2026-08-05T15:28:18.097Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73556a37ed464248dd509a",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "54c85295-c732-4279-aeef-67148d473f57",
+          "timestamp": "2026-08-05T15:35:32.241Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73556d37ed464248dd50b5",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "97716bb6-5e78-4dfe-ab6b-1fdeb12f15a1",
+          "timestamp": "2026-08-05T15:38:38.253Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a7358fd72a0a264417e2c19",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "f95a0026-bbba-4878-9f80-616a8884ab32",
+          "timestamp": "2026-08-05T15:38:41.168Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73590172a0a264417e2c45",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "a0af8059-1aef-4042-85ed-bf1576b16c9e",
+          "timestamp": "2026-08-05T19:35:28.654Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73590172a0a264417e2c45",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "69e35a5413f865ebe3fca148",
+      "tableNumber": 3,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:56.036Z",
+      "updatedAt": "2026-08-06T05:10:42.397Z",
+      "existingReferences": {
+        "tableOrders": [
+          "6a4ba3644bf11a64def1f53e",
+          "6a4ba3814bf11a64def1f59d",
+          "6a5e2db7b6c85b83d8e3552a",
+          "6a6dafcb119092301c667e1d",
+          "6a6db004119092301c668287",
+          "6a73557f37ed464248dd50da",
+          "6a73590e72a0a264417e2c65"
+        ],
+        "kots": [
+          "6a73590f72a0a264417e2c7d",
+          "6a4ba3654bf11a64def1f55b",
+          "6a4ba3814bf11a64def1f5a7",
+          "6a5e2db7b6c85b83d8e3554d",
+          "6a6dafcc119092301c667e28",
+          "6a6db004119092301c668292",
+          "6a73558037ed464248dd50ea"
+        ],
+        "billings": [
+          "6a4ba4304bf11a64def1f6fe",
+          "6a5e2db9b6c85b83d8e35571",
+          "6a6dafce119092301c667e36",
+          "6a6dfadfd1aac66788957df0",
+          "6a73558237ed464248dd50ff",
+          "6a7416dd61a243dbf35c3f89"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69e35a5313f865ebe3fca128",
+          "69b7cdfb5ef4d3634c66ce06"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [],
+        "auditBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [],
+      "auditEvents": [
+        {
+          "eventId": "079ef8a8-aa07-48e7-9b44-3eed7b4df89f",
+          "timestamp": "2026-08-05T15:21:55.757Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a6dfadfd1aac66788957df0",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "99c049f8-ea2d-4176-8b6d-b2096187d928",
+          "timestamp": "2026-08-05T15:21:56.055Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a6dfadfd1aac66788957df0",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "FAILURE",
+          "actorRole": null
+        },
+        {
+          "eventId": "9db8cbdd-18e7-43b0-9ce5-764cbbfadc77",
+          "timestamp": "2026-08-05T15:23:44.147Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73557f37ed464248dd50da",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "e3187bbd-326b-40b2-b2df-bc02f095e0be",
+          "timestamp": "2026-08-05T15:23:46.982Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73558237ed464248dd50ff",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "9bc6ed5a-96ba-4e09-adc1-9e7d6eabe1d1",
+          "timestamp": "2026-08-05T15:27:56.838Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73558037ed464248dd50ea",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "17aad5ca-8fc4-4c68-981f-e975cce34ce9",
+          "timestamp": "2026-08-05T15:28:17.272Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73558037ed464248dd50ea",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "16698e98-708a-45c7-91ae-704415899108",
+          "timestamp": "2026-08-05T15:35:29.216Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73558237ed464248dd50ff",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "efaa3d3b-44e3-46e6-9f8c-bcdaef356b43",
+          "timestamp": "2026-08-05T15:38:55.041Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73590e72a0a264417e2c65",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "965ee686-00d6-4178-9018-165643782914",
+          "timestamp": "2026-08-06T05:08:45.207Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a7416dd61a243dbf35c3f89",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "ca31cebe-2b0e-42a4-bc07-4081e5261b58",
+          "timestamp": "2026-08-06T05:10:42.455Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a7416dd61a243dbf35c3f89",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "69e35a5413f865ebe3fca14b",
+      "tableNumber": 4,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:56.088Z",
+      "updatedAt": "2026-08-05T15:35:18.364Z",
+      "existingReferences": {
+        "tableOrders": [
+          "6a4ba45d4bf11a64def1f78b",
+          "6a5e2f5db6c85b83d8e35cae",
+          "6a6dbed9e23949defc8f2adb",
+          "6a6dfb28d1aac66788957e18",
+          "6a73559337ed464248dd5118",
+          "6a73559d37ed464248dd5161"
+        ],
+        "kots": [
+          "6a4ba45d4bf11a64def1f7d5",
+          "6a5e2f5db6c85b83d8e35cc4",
+          "6a6dbedae23949defc8f2aea",
+          "6a6dfb29d1aac66788957e27",
+          "6a73559437ed464248dd5130",
+          "6a73559e37ed464248dd5171"
+        ],
+        "billings": [
+          "6a4ba4604bf11a64def1f82d",
+          "6a5e2f5eb6c85b83d8e35cd9",
+          "6a6dbee3e23949defc8f2afb",
+          "6a6dfb32d1aac66788957e39",
+          "6a73559637ed464248dd514b"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69b7cdfb5ef4d3634c66ce06",
+          "69e35a5313f865ebe3fca128"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [],
+        "auditBranches": [
+          "69b7cdfb5ef4d3634c66ce06",
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [],
+      "auditEvents": [
+        {
+          "eventId": "b930189e-c252-477b-a6c4-c363b1c1df93",
+          "timestamp": "2026-08-01T16:13:25.985Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6dfb29d1aac66788957e27",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "85629a85-f1da-46bd-ab02-af227b7c9095",
+          "timestamp": "2026-08-01T16:13:28.816Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6dfb29d1aac66788957e27",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "cac618a7-5d09-4c98-9e22-eed6aa4f7732",
+          "timestamp": "2026-08-05T15:21:50.465Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a6dfb32d1aac66788957e39",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "db57f755-5da6-4944-be5b-cdfb8659b7e7",
+          "timestamp": "2026-08-05T15:24:04.099Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73559337ed464248dd5118",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "a09d588b-f3b2-407d-af92-b28ae82df70d",
+          "timestamp": "2026-08-05T15:24:06.901Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73559637ed464248dd514b",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "1fa0ee56-5850-4cdd-8a2e-439c0d72a45e",
+          "timestamp": "2026-08-05T15:24:14.607Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73559d37ed464248dd5161",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "bd11b289-2ba0-4491-8f8c-eb673a48680e",
+          "timestamp": "2026-08-05T15:27:58.466Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73559437ed464248dd5130",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "6d67651c-3f1d-4484-ae93-4a3eb7901968",
+          "timestamp": "2026-08-05T15:28:00.135Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73559e37ed464248dd5171",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "24b6cc52-3325-4fe0-becb-19b45ec27ce0",
+          "timestamp": "2026-08-05T15:28:23.657Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73559437ed464248dd5130",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "f2b3d120-c781-49eb-a01b-4303153a9802",
+          "timestamp": "2026-08-05T15:28:29.169Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73559e37ed464248dd5171",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "29ace3e1-3627-4895-91ec-7ce5b20e9f09",
+          "timestamp": "2026-08-05T15:35:18.408Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73559637ed464248dd514b",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "69e35a5413f865ebe3fca14e",
+      "tableNumber": 5,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:56.140Z",
+      "updatedAt": "2026-08-05T15:35:13.341Z",
+      "existingReferences": {
+        "tableOrders": [
+          "6a4ba49e4bf11a64def1f997",
+          "6a4ba4a84bf11a64def1fa3a",
+          "6a5e335eb6c85b83d8e36a55",
+          "6a6dbef0e23949defc8f2b18",
+          "6a6e1b5845ef35903b83e1f4",
+          "6a6e1b6245ef35903b83e243",
+          "6a7355b137ed464248dd519e",
+          "6a7355b837ed464248dd51c4"
+        ],
+        "kots": [
+          "6a4ba49e4bf11a64def1f9ee",
+          "6a4ba4a94bf11a64def1fa53",
+          "6a5e335eb6c85b83d8e36a5f",
+          "6a6dbef0e23949defc8f2b27",
+          "6a6e1b5845ef35903b83e20c",
+          "6a6e1b6245ef35903b83e24f",
+          "6a7355b137ed464248dd51b2",
+          "6a7355b937ed464248dd51dc"
+        ],
+        "billings": [
+          "6a4ba4ab4bf11a64def1fa9e",
+          "6a5e3360b6c85b83d8e36a6b",
+          "6a6dbef4e23949defc8f2b38",
+          "6a6e1b5c45ef35903b83e227",
+          "6a7355c037ed464248dd51ff"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69b7cdfb5ef4d3634c66ce06",
+          "69e35a5313f865ebe3fca128"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [],
+        "auditBranches": [
+          "69b7cdfb5ef4d3634c66ce06",
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [],
+      "auditEvents": [
+        {
+          "eventId": "db40494e-ebf9-4825-8cd1-d280a92662fc",
+          "timestamp": "2026-08-01T16:14:16.523Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "ORDER",
+          "entityId": "6a6e1b5845ef35903b83e1f4",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "03922ad6-c236-4d01-92f0-f37279c56fc9",
+          "timestamp": "2026-08-01T16:14:20.246Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "BILLING",
+          "entityId": "6a6e1b5c45ef35903b83e227",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "b209fec6-7e0a-48d8-82ba-f440a572b5a3",
+          "timestamp": "2026-08-01T16:14:26.560Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "ORDER",
+          "entityId": "6a6e1b6245ef35903b83e243",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "3b7bae07-3fc2-4d5e-b6e3-9ecd2d0a49a7",
+          "timestamp": "2026-08-02T04:36:58.651Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a6e1b5c45ef35903b83e227",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        },
+        {
+          "eventId": "3b40e243-7dd8-43f3-8a09-3c14f24cb97d",
+          "timestamp": "2026-08-03T20:27:55.167Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6e1b5845ef35903b83e20c",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "cdc66366-faf8-40de-a68f-76c4681c900d",
+          "timestamp": "2026-08-03T20:27:57.593Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6e1b6245ef35903b83e24f",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "10528878-35c2-40c7-b155-0d0ee648078c",
+          "timestamp": "2026-08-03T20:28:05.913Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6e1b5845ef35903b83e20c",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "dafcb918-1224-4555-83ab-543300ac8432",
+          "timestamp": "2026-08-03T20:28:07.951Z",
+          "branchId": "69b7cdfb5ef4d3634c66ce06",
+          "entityType": "KOT",
+          "entityId": "6a6e1b6245ef35903b83e24f",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "06346648-21f9-48de-b3bf-26447f4b06fb",
+          "timestamp": "2026-08-05T15:24:33.950Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a7355b137ed464248dd519e",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "0d1ad4e9-fad5-459b-820b-271d2b3df066",
+          "timestamp": "2026-08-05T15:24:41.742Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a7355b837ed464248dd51c4",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "8971d702-9a4a-449c-8a96-214237dc2cc7",
+          "timestamp": "2026-08-05T15:24:48.291Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a7355c037ed464248dd51ff",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "47b548a2-57de-4851-9399-61b379ec3312",
+          "timestamp": "2026-08-05T15:28:01.817Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a7355b937ed464248dd51dc",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "c0c046a1-e008-4f71-be45-46055aaa06c1",
+          "timestamp": "2026-08-05T15:28:08.534Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a7355b137ed464248dd51b2",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "047936fb-97c6-4479-8b21-09d66e20df29",
+          "timestamp": "2026-08-05T15:28:25.046Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a7355b137ed464248dd51b2",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "3923786f-a654-4e23-8470-81398c949216",
+          "timestamp": "2026-08-05T15:28:28.037Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a7355b937ed464248dd51dc",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "91a0fbd0-8631-4c46-8c6d-9824e8c92d0c",
+          "timestamp": "2026-08-05T15:35:13.378Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a7355c037ed464248dd51ff",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "69e35a5413f865ebe3fca151",
+      "tableNumber": 6,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:56.203Z",
+      "updatedAt": "2026-08-05T15:34:54.119Z",
+      "existingReferences": {
+        "tableOrders": [
+          "69e35a5713f865ebe3fca1e3",
+          "6a5e4049b6c85b83d8e36ca4",
+          "6a5e4053b6c85b83d8e36cf3",
+          "6a7355d337ed464248dd5220"
+        ],
+        "kots": [
+          "69e35a5613f865ebe3fca1d7",
+          "6a5e404ab6c85b83d8e36cc2",
+          "6a5e4054b6c85b83d8e36cfd",
+          "6a7355d437ed464248dd522c"
+        ],
+        "billings": [
+          "69e35a5713f865ebe3fca1f3",
+          "6a4ba4bd4bf11a64def1fb0b",
+          "6a5e404bb6c85b83d8e36cdd",
+          "6a7355d737ed464248dd5240"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69e35a5313f865ebe3fca128",
+          "69b7cdfb5ef4d3634c66ce06"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "auditBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [
+        {
+          "userId": "69e35a5313f865ebe3fca132",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "role": "waiter",
+          "status": "active"
+        },
+        {
+          "userId": "69e35a5313f865ebe3fca135",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "role": "cashier",
+          "status": "active"
+        }
+      ],
+      "auditEvents": [
+        {
+          "eventId": "b3282429-9dc3-43a8-bbdc-077a30f2712c",
+          "timestamp": "2026-08-05T15:25:08.711Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a7355d337ed464248dd5220",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "1a4b0767-d8ce-479f-9d2d-cf18fd9fd967",
+          "timestamp": "2026-08-05T15:25:11.612Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a7355d737ed464248dd5240",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "6810036c-d30d-4bc7-98a4-1a6364eb9045",
+          "timestamp": "2026-08-05T15:28:07.331Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a7355d437ed464248dd522c",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "0080fca7-121a-4a44-86d3-f4dcf4e2005d",
+          "timestamp": "2026-08-05T15:28:22.472Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a7355d437ed464248dd522c",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "4a3669b3-57f3-4c8e-afd5-3cb7d38d59e3",
+          "timestamp": "2026-08-05T15:34:54.158Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a7355d737ed464248dd5240",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "69e35a5413f865ebe3fca154",
+      "tableNumber": 7,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-04-18T10:17:56.515Z",
+      "updatedAt": "2026-08-05T15:34:43.708Z",
+      "existingReferences": {
+        "tableOrders": [
+          "69e35a5713f865ebe3fca1e7",
+          "6a69d5d9c084b119b255dde7",
+          "6a69d5edc084b119b255de16",
+          "6a69d5f5c084b119b255de29",
+          "6a69d5fac084b119b255de3d"
+        ],
+        "kots": [
+          "69e35a5713f865ebe3fca1db",
+          "6a69d5d9c084b119b255ddf5",
+          "6a69d5edc084b119b255de20",
+          "6a69d5f5c084b119b255de33",
+          "6a69d5fbc084b119b255de47"
+        ],
+        "billings": [
+          "69e35a5713f865ebe3fca1fd",
+          "6a477d23354a6d2e6a36c4cf",
+          "6a69d5e1c084b119b255de04",
+          "6a7355f437ed464248dd5261"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69e35a5313f865ebe3fca128",
+          "69b7cdfb5ef4d3634c66ce06"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "auditBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [
+        {
+          "userId": "69e35a5313f865ebe3fca132",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "role": "waiter",
+          "status": "active"
+        },
+        {
+          "userId": "69e35a5313f865ebe3fca135",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "role": "cashier",
+          "status": "active"
+        }
+      ],
+      "auditEvents": [
+        {
+          "eventId": "81e66312-486b-41d0-afd9-035e931c708c",
+          "timestamp": "2026-08-05T15:25:40.762Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a7355f437ed464248dd5261",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "508cdc14-5c85-400a-9ae7-5383393deedb",
+          "timestamp": "2026-08-05T15:34:43.750Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a7355f437ed464248dd5261",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "6a477c66354a6d2e6a36c38a",
+      "tableNumber": 10,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-07-03T09:09:58.158Z",
+      "updatedAt": "2026-08-05T15:30:11.444Z",
+      "existingReferences": {
+        "tableOrders": [
+          "6a477c72354a6d2e6a36c392",
+          "6a477cf9354a6d2e6a36c4ac",
+          "6a4ba4c64bf11a64def1fb21",
+          "6a69d61dc084b119b255de6e",
+          "6a69d64cc084b119b255deb3",
+          "6a6b540a6c73f7dd78e5ce39",
+          "6a73560937ed464248dd527b",
+          "6a73561437ed464248dd529f"
+        ],
+        "kots": [
+          "6a4ba4c74bf11a64def1fb2b",
+          "6a69d61dc084b119b255de84",
+          "6a69d64cc084b119b255dec5",
+          "6a73560937ed464248dd5287",
+          "6a73561437ed464248dd52ab"
+        ],
+        "billings": [
+          "6a477cf2354a6d2e6a36c49d",
+          "6a69d625c084b119b255de9d",
+          "6a6b54036c73f7dd78e5ce26",
+          "6a73563037ed464248dd52ef"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69b7cdfb5ef4d3634c66ce06",
+          "69e35a5313f865ebe3fca128"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [],
+        "auditBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [],
+      "auditEvents": [
+        {
+          "eventId": "d8298ae7-9d83-455b-8d84-1441334022c5",
+          "timestamp": "2026-08-05T15:26:01.874Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73560937ed464248dd527b",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "72d2f639-f56b-4a3c-80f7-5b93c704fe2c",
+          "timestamp": "2026-08-05T15:26:12.768Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73561437ed464248dd529f",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "c20fcbe3-6f18-4da0-b12e-3f9ff7ad9e4a",
+          "timestamp": "2026-08-05T15:26:40.870Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73563037ed464248dd52ef",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "b63f30b0-1fd0-4116-8c26-a39f638f526d",
+          "timestamp": "2026-08-05T15:28:05.932Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73560937ed464248dd5287",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "0c6b772a-a071-4c4c-b6e5-a025352451d8",
+          "timestamp": "2026-08-05T15:28:11.123Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73561437ed464248dd52ab",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "a0bc4088-25ed-4a14-b324-4209906e658b",
+          "timestamp": "2026-08-05T15:28:26.508Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73560937ed464248dd5287",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "671fd850-6021-4208-8740-3511386ad9cc",
+          "timestamp": "2026-08-05T15:28:31.149Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73561437ed464248dd52ab",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "5fef539a-e250-4775-b18e-21a356541423",
+          "timestamp": "2026-08-05T15:30:11.510Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73563037ed464248dd52ef",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    },
+    {
+      "tableId": "6a69d672c084b119b255df12",
+      "tableNumber": 11,
+      "name": null,
+      "status": "available",
+      "branchId": null,
+      "creator": null,
+      "createdAt": "2026-07-29T10:31:14.915Z",
+      "updatedAt": "2026-08-05T15:29:52.427Z",
+      "existingReferences": {
+        "tableOrders": [
+          "6a73562637ed464248dd52c7"
+        ],
+        "kots": [
+          "6a73562737ed464248dd52d3"
+        ],
+        "billings": [
+          "6a73563437ed464248dd5307"
+        ]
+      },
+      "evidence": {
+        "currentBranchId": null,
+        "creatorBranchId": null,
+        "linkedOrderBranches": [],
+        "linkedKotBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "linkedBillingBranches": [],
+        "linkedCreatorBranches": [],
+        "auditBranches": [
+          "69e35a5313f865ebe3fca128"
+        ],
+        "creationTimeBranchActivity": [],
+        "explicitHistoricalBranchFields": []
+      },
+      "creatorMetadata": [],
+      "auditEvents": [
+        {
+          "eventId": "01e9becf-3e48-4651-aa43-d11bd3e77525",
+          "timestamp": "2026-08-05T15:26:31.176Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "ORDER",
+          "entityId": "6a73562637ed464248dd52c7",
+          "action": "ORDER.SEND_TO_KITCHEN",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "3be1eb50-91ed-400f-86c3-4e3360047da1",
+          "timestamp": "2026-08-05T15:26:44.756Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "BILLING",
+          "entityId": "6a73563437ed464248dd5307",
+          "action": "BILLING.CREATE",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "416faeba-9c45-4425-abcc-56dc363b64be",
+          "timestamp": "2026-08-05T15:28:09.864Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73562737ed464248dd52d3",
+          "action": "KOT.START_PREPARATION",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "af82d692-3bf8-4456-ad0c-b1fff49f3c46",
+          "timestamp": "2026-08-05T15:28:30.597Z",
+          "branchId": "69e35a5313f865ebe3fca128",
+          "entityType": "KOT",
+          "entityId": "6a73562737ed464248dd52d3",
+          "action": "KOT.MARK_READY",
+          "outcome": "SUCCESS",
+          "actorRole": "waiter"
+        },
+        {
+          "eventId": "e21106c5-212c-447d-8507-c4104b82d6d6",
+          "timestamp": "2026-08-05T15:29:52.493Z",
+          "branchId": null,
+          "entityType": "PAYMENT",
+          "entityId": "6a73563437ed464248dd5307",
+          "action": "PAYMENT.COLLECT",
+          "outcome": "SUCCESS",
+          "actorRole": null
+        }
+      ]
+    }
+  ],
+  "takeAwayResolution": {
+    "mapFile": "takeaway-branch-map.template.json",
+    "mapEntrySource": "takeaway-map",
+    "activeUnresolvedCount": 17,
+    "historicalUnresolvedCount": 0,
+    "unknownLifecycleCount": 0,
+    "itemsAndTotalAmount": "unknown in supplied source artifacts",
+    "manualAction": "assign branch manually; do not infer or auto-assign",
+    "conflictPolicy": "direct, creator, or linked evidence differing from the map is conflict"
+  },
+  "takeAwayManualReview": [
+    {
+      "recordId": "6a4ba5504bf11a64def1ff63",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69b813ddd7840638331a924a",
+      "createdAt": "2026-07-06T12:53:36.907Z",
+      "updatedAt": "2026-07-06T12:53:37.143Z",
+      "creator": {
+        "userId": "69b813ddd7840638331a924a",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a4ba5e24bf11a64def204bf",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-07-06T12:56:02.124Z",
+      "updatedAt": "2026-07-06T12:56:02.278Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a4bacdf4bf11a64def20a66",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-07-06T13:25:51.914Z",
+      "updatedAt": "2026-07-06T13:25:52.111Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a4bad3b4bf11a64def20e43",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-07-06T13:27:23.822Z",
+      "updatedAt": "2026-07-06T13:27:24.009Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a4bad9a4bf11a64def21201",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-07-06T13:28:58.851Z",
+      "updatedAt": "2026-07-06T13:28:59.124Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6a2f5f143debb7ef05bd47",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-07-29T16:50:39.735Z",
+      "updatedAt": "2026-07-29T16:50:39.919Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6b4e386c73f7dd78e5c6ab",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69b813ddd7840638331a924a",
+      "createdAt": "2026-07-30T13:14:32.113Z",
+      "updatedAt": "2026-07-30T13:14:32.315Z",
+      "creator": {
+        "userId": "69b813ddd7840638331a924a",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6b53896c73f7dd78e5c795",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-07-30T13:37:13.661Z",
+      "updatedAt": "2026-07-30T13:37:13.809Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6dd0c36fcde921ad6d1eda",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-01T10:56:03.122Z",
+      "updatedAt": "2026-08-01T10:56:03.403Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6df6d6d258593f8a5f5228",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-01T13:38:30.581Z",
+      "updatedAt": "2026-08-01T13:38:30.819Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6dfaa3d1aac66788957d3f",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-01T13:54:43.661Z",
+      "updatedAt": "2026-08-01T13:54:43.904Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a6e1b9e45ef35903b83e2f9",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-01T16:15:26.968Z",
+      "updatedAt": "2026-08-01T16:15:27.569Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a73575037ed464248dd54d7",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-05T15:31:28.899Z",
+      "updatedAt": "2026-08-05T15:31:29.596Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a7357a837ed464248dd552b",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-05T15:32:56.964Z",
+      "updatedAt": "2026-08-05T15:32:57.670Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a7357ca37ed464248dd555e",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-05T15:33:30.366Z",
+      "updatedAt": "2026-08-05T15:33:31.054Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a7415e861a243dbf35c3e1c",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-06T05:04:40.922Z",
+      "updatedAt": "2026-08-06T05:04:41.270Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    },
+    {
+      "recordId": "6a74163561a243dbf35c3e4a",
+      "classification": "active",
+      "recommendedAction": "assign branch manually",
+      "status": "sent_to_kitchen",
+      "createdBy": "69bc0b4fb3106afed60c1ff9",
+      "createdAt": "2026-08-06T05:05:57.958Z",
+      "updatedAt": "2026-08-06T05:05:58.277Z",
+      "creator": {
+        "userId": "69bc0b4fb3106afed60c1ff9",
+        "branchId": null,
+        "role": null,
+        "status": null
+      },
+      "linkedReferences": {
+        "kot": null,
+        "order": null,
+        "billing": null
+      },
+      "likelyLifecycle": "likely active",
+      "recommendedManualAction": "assign branch manually"
+    }
+  ]
+}

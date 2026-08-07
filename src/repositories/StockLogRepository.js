@@ -1,5 +1,6 @@
 const createBaseRepository = require("./BaseRepository");
 const StockLog = require("../models/StockLog");
+const { branchConstraint } = require("../utils/accessScope");
 
 const baseRepository = createBaseRepository(StockLog);
 
@@ -35,9 +36,20 @@ const listForInventory = (inventoryId, branchId, options = {}) => {
 const listLean = (filter, options = {}) =>
   baseRepository.findMany(filter, undefined, options).lean();
 
+const listScoped = ({ scope, inventoryId, filter = {}, options = {} } = {}) =>
+  listForInventory(inventoryId, branchConstraint(scope).branchId, {
+    ...options,
+    filter: { ...filter, inventoryId, ...branchConstraint(scope) },
+  });
+
+const countScoped = ({ scope, inventoryId, filter = {}, options = {} } = {}) =>
+  baseRepository.count({ ...branchConstraint(scope), inventoryId, ...filter }, options);
+
 module.exports = {
   ...baseRepository,
   createLog,
   listForInventory,
   listLean,
+  listScoped,
+  countScoped,
 };

@@ -34,7 +34,23 @@ describe("production hardening", () => {
     getRedisClient.mockReturnValue(null);
     const store = new RedisRateLimitStore();
     store.init({ windowMs: 60000 });
-    await expect(store.increment("client")).resolves.toMatchObject({ totalHits: 0 });
+    const result = await store.increment("client");
+    expect(result.totalHits).toBe(1);
+    expect(result.resetTime).toBeInstanceOf(Date);
+  });
+
+  test("returns post-increment integer counts", async () => {
+    const client = {
+      isReady: true,
+      incr: jest.fn().mockResolvedValueOnce("1").mockResolvedValueOnce("2"),
+      pExpire: jest.fn().mockResolvedValue(1),
+      pTTL: jest.fn().mockResolvedValue(59000),
+    };
+    getRedisClient.mockReturnValue(client);
+    const store = new RedisRateLimitStore({ prefix: "test" });
+    store.init({ windowMs: 60000 });
+    await expect(store.increment("client")).resolves.toMatchObject({ totalHits: 1 });
+    await expect(store.increment("client")).resolves.toMatchObject({ totalHits: 2 });
   });
 
   test("parses and validates optional production configuration", () => {

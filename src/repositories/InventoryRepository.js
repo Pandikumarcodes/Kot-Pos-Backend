@@ -1,5 +1,6 @@
 const createBaseRepository = require("./BaseRepository");
 const Inventory = require("../models/Inventory");
+const { assertBranchScope, branchConstraint } = require("../utils/accessScope");
 
 const baseRepository = createBaseRepository(Inventory);
 
@@ -22,6 +23,12 @@ const findActive = (filter, options = {}) => {
 
 const createInventory = (data, options = {}) =>
   baseRepository.create(data, options);
+
+const listScoped = ({ scope, filter = {}, options = {} } = {}) =>
+  findActive({ ...filter, ...branchConstraint(scope) }, options);
+
+const countScoped = ({ scope, filter = {}, options = {} } = {}) =>
+  baseRepository.count({ ...filter, ...branchConstraint(scope), isActive: true }, options);
 
 const updateScoped = (id, branchFilter, update, options = {}) =>
   Inventory.findOneAndUpdate(
@@ -47,16 +54,42 @@ const findActiveByMenuItem = (branchId, menuItemId, options = {}) =>
     options,
   );
 
+const findActiveByMenuItemScoped = (scope, menuItemId, options = {}) =>
+  findActiveByMenuItem(branchConstraint(scope).branchId, menuItemId, options);
+
 const listLean = (filter, options = {}) =>
   baseRepository.findMany(filter, undefined, options).lean();
+
+const updateByScope = (id, scope, update, options = {}) =>
+  Inventory.findOneAndUpdate({ _id: id, ...branchConstraint(scope) }, update, {
+    new: true, runValidators: true, ...options,
+  });
+
+const findByScope = (id, scope, options = {}) =>
+  baseRepository.findOne({ _id: id, ...branchConstraint(scope) }, undefined, options);
+
+const deactivateByScope = (id, scope, options = {}) =>
+  Inventory.findOneAndUpdate({ _id: id, ...branchConstraint(scope) }, { isActive: false }, {
+    new: true, ...options,
+  });
+
+const listLeanScoped = (scope, filter = {}, options = {}) =>
+  baseRepository.findMany({ ...filter, ...branchConstraint(scope) }, undefined, options).lean();
 
 module.exports = {
   ...baseRepository,
   findActive,
+  listScoped,
+  countScoped,
   createInventory,
   updateScoped,
   findScopedById,
   deactivateScoped,
   findActiveByMenuItem,
+  findActiveByMenuItemScoped,
   listLean,
+  updateByScope,
+  findByScope,
+  deactivateByScope,
+  listLeanScoped,
 };

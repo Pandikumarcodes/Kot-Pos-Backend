@@ -2,12 +2,11 @@ const tableRepository = require("../repositories/TableRepository");
 const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const settingsRepository = require("../repositories/SettingsRepository");
-const branchRepository = require("../repositories/BranchRepository");
 const AppError = require("../utils/AppError");
 const { cache, cacheKeys } = require("../infrastructure/cache");
 
 const getQrMenu = async (tableId) => {
-  const table = await tableRepository.findByIdLean(tableId);
+  const table = await tableRepository.findPublicByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
   const menuItems = await cache.getOrSet(
     cacheKeys.availableMenu({ branchId: table.branchId }),
@@ -52,16 +51,9 @@ const placePublicOrder = async (
   tableId,
   { customerName, customerPhone, items },
 ) => {
-  const table = await tableRepository.findByIdLean(tableId);
+  const table = await tableRepository.findPublicByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
-  let branchId = table.branchId ?? null;
-  if (!branchId) {
-    const branch = await branchRepository.findFirstActive();
-    if (branch) {
-      branchId = branch._id;
-      await tableRepository.updateState(table._id, { branchId: branch._id });
-    }
-  }
+  const branchId = table.branchId;
   if (!branchId) {
     throw new AppError(
       "Branch configuration missing. Please ask a staff member for help.",
@@ -102,7 +94,11 @@ const placePublicOrder = async (
     status: "pending",
   });
   if (table.status === "available") {
-    await tableRepository.updateState(table._id, { status: "occupied" });
+    await tableRepository.updateStateInScope(
+      { type: "branch", isGlobal: false, branchId },
+      table._id,
+      { status: "occupied" },
+    );
   }
   return { orderId: kot._id, totalAmount };
 };

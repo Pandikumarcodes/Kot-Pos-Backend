@@ -1,7 +1,8 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
-const { branchMemberScope, requireBranch } = branchScope;
+const { requireBranch } = branchScope;
+const { allowGlobalOrSelectedBranch, requireBranchScope } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/waiterorderControllers");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const { validateMenuQuery } = require("../../validators/menu");
@@ -16,8 +17,8 @@ const waiterOrderRouter = express.Router();
 waiterOrderRouter.use(
   userAuth,
   allowRoles(["waiter", "manager", "admin", "cashier"]),
-  branchScope,
-  branchMemberScope,
+  allowGlobalOrSelectedBranch,
+  requireBranchScope,
 );
 waiterOrderRouter.get("/menu", validateMenuQuery, controller.getMenu);
 waiterOrderRouter.get(

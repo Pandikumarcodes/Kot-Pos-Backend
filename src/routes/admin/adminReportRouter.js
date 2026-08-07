@@ -1,7 +1,6 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
-const branchScope = require("../../middlewares/branchScope");
-const { branchMemberScope } = branchScope;
+const { allowGlobalOrSelectedBranch } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/reportController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const { validateReportQuery } = require("../../validators/general");
@@ -10,8 +9,7 @@ const adminReportRouter = express.Router();
 adminReportRouter.use(
   userAuth,
   allowRoles(["admin", "manager"]),
-  branchScope,
-  branchMemberScope,
+  allowGlobalOrSelectedBranch,
 );
 adminReportRouter.get(
   "/reports/summary",

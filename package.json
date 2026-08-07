@@ -6,9 +6,20 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "seed": "node src/seed.js",
+    "seed": "node src/seeds/index.js",
+    "seed:admin": "node src/seeds/seedSuperAdmin.js",
+    "assign:branch": "node src/scripts/assignUserToBranch.js",
+    "ownership:audit": "node src/scripts/auditBranchOwnership.js",
+    "ownership:backfill": "node src/scripts/backfillBranchOwnership.js",
+    "ownership:verify": "node src/scripts/verifyBranchOwnership.js",
+    "ownership:check": "node src/scripts/checkOwnershipInvariants.js",
+    "ownership:rollback": "node src/scripts/rollbackBranchOwnership.js",
     "docs:generate": "node scripts/generate-api-docs.js",
+    "test": "jest",
     "test:backend": "jest",
+    "test:backend:unit": "jest --testPathIgnorePatterns=/integration/",
+    "test:backend:integration": "jest --testPathPatterns=src/__tests__/integration",
+    "test:backend:open-handles": "jest --runInBand --detectOpenHandles",
     "test:backend:watch": "jest --watch",
     "test:backend:coverage": "jest --coverage",
     "test:backend:ci": "jest --ci --coverage --forceExit"
@@ -21,6 +32,9 @@
     ],
     "testMatch": [
       "**/src/__tests__/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/__tests__/setup.js"
     ],
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
@@ -68,6 +82,7 @@
     "ioredis": "^5.11.1",
     "joi": "^18.2.3",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.5.0",
     "mongoose": "^8.24.2",
     "node-cron": "^4.6.0",
     "redis": "^5.12.1",

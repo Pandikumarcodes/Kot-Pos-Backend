@@ -34,26 +34,47 @@ const getDateRange = (range, from, to) => {
   return { start, end };
 };
 
+const requireScope = (scope) => {
+  if (!scope || !["global", "branch"].includes(scope.type)) {
+    throw new Error("A valid access scope is required");
+  }
+  if (scope.type === "branch" && !scope.branchId) {
+    throw new Error("Branch scope requires branchId");
+  }
+  return scope;
+};
+
+const scopedFilters = (scope) => {
+  requireScope(scope);
+  if (scope.type === "global") {
+    return { branch: {}, operational: {} };
+  }
+  return {
+    branch: { branchId: scope.branchId },
+    operational: { branchId: scope.branchId },
+  };
+};
+
 const getSummary = async ({
   range = "today",
   from,
   to,
-  branchMemberFilter,
-  branchFilter,
+  scope,
 }) => {
+  const filters = scopedFilters(scope);
   const { start, end } = getDateRange(range, from, to);
   const [revenueResult, dineInCount, takeawayCount] = await Promise.all([
     reportRepository.getRevenueSummary({
-      ...branchMemberFilter,
+      ...filters.operational,
       paymentStatus: "paid",
       createdAt: { $gte: start, $lte: end },
     }),
     reportRepository.countDineInOrders({
-      ...branchMemberFilter,
+      ...filters.operational,
       createdAt: { $gte: start, $lte: end },
     }),
     reportRepository.countKitchenOrders({
-      ...branchFilter,
+      ...filters.branch,
       orderType: "takeaway",
       createdAt: { $gte: start, $lte: end },
     }),
@@ -70,10 +91,11 @@ const getSummary = async ({
   };
 };
 
-const getTopItems = ({ range = "today", from, to, branchFilter }) => {
+const getTopItems = ({ range = "today", from, to, scope }) => {
+  const { branch } = scopedFilters(scope);
   const { start, end } = getDateRange(range, from, to);
   return reportRepository.getTopItems({
-    ...branchFilter,
+    ...branch,
     createdAt: { $gte: start, $lte: end },
   });
 };
@@ -82,11 +104,12 @@ const getPayments = async ({
   range = "today",
   from,
   to,
-  branchMemberFilter,
+  scope,
 }) => {
+  const { operational } = scopedFilters(scope);
   const { start, end } = getDateRange(range, from, to);
   const payments = await reportRepository.getPayments({
-    ...branchMemberFilter,
+    ...operational,
     paymentStatus: "paid",
     createdAt: { $gte: start, $lte: end },
   });
@@ -101,11 +124,12 @@ const getHourlySales = async ({
   range = "today",
   from,
   to,
-  branchMemberFilter,
+  scope,
 }) => {
+  const { operational } = scopedFilters(scope);
   const { start, end } = getDateRange(range, from, to);
   const hourly = await reportRepository.getHourlySales({
-    ...branchMemberFilter,
+    ...operational,
     paymentStatus: "paid",
     createdAt: { $gte: start, $lte: end },
   });
@@ -121,11 +145,13 @@ const getHourlySales = async ({
   }));
 };
 
-const getCashierIncome = async (userId) => {
+const getCashierIncome = async (userId, scope) => {
+  const { operational } = scopedFilters(scope);
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const income = await reportRepository.getCashierIncome({
     createdAt: { $gte: todayStart },
+    ...operational,
     createdBy: userId,
     paymentStatus: "paid",
   });

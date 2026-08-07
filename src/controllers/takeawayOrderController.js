@@ -5,7 +5,7 @@ const createOrder = async (req, res, next) => {
   try {
     const order = await service.createTakeawayOrder(req.body, {
       userId: req.user._id,
-      branchId: req.branchId,
+      scope: req.accessScope,
     });
     res.status(201).json({ message: "Order created successfully", order });
   } catch (err) {
@@ -16,7 +16,7 @@ const listOrders = async (req, res, next) => {
   try {
     const { branchId: _branchId, ...query } = req.query;
     const result = await service.listTakeawayOrders(
-      req.branchMemberFilter,
+      { scope: req.accessScope },
       query,
     );
     res.status(200).json({
@@ -31,7 +31,7 @@ const getOrder = async (req, res, next) => {
   try {
     const order = await service.getTakeawayOrder(
       req.params.orderId,
-      req.scopeToBranchMembers,
+      { scope: req.accessScope },
     );
     res.status(200).json({ message: "Single order", order });
   } catch (err) {
@@ -41,8 +41,7 @@ const getOrder = async (req, res, next) => {
 const sendToKitchen = async (req, res, next) => {
   try {
     const order = await service.sendToKitchen(req.params.orderId, {
-      scopeToBranchMembers: req.scopeToBranchMembers,
-      branchId: req.branchId,
+      scope: req.accessScope,
       io: req.app.get("io"),
     });
     res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
@@ -55,7 +54,7 @@ const markReceived = async (req, res, next) => {
     const order = await service.updateStatus(
       req.params.orderId,
       "received",
-      req.scopeToBranchMembers,
+      { scope: req.accessScope },
     );
     res.status(200).json({ message: "Order received successfully", order });
   } catch (err) {
@@ -67,7 +66,7 @@ const cancelOrder = async (req, res, next) => {
     const order = await service.updateStatus(
       req.params.orderId,
       "cancelled",
-      req.scopeToBranchMembers,
+      { scope: req.accessScope },
     );
     res.status(200).json({ message: "Order has been cancelled", order });
   } catch (err) {

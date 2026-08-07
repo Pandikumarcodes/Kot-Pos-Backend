@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 const takeAwaySchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+      immutable: true,
+      index: true,
+    },
     customerName: {
       type: String,
       required: true,
@@ -36,5 +43,7 @@ const takeAwaySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+takeAwaySchema.index({ branchId: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("TakeAway", takeAwaySchema);

@@ -3,6 +3,7 @@ const router = express.Router();
 const { userAuth, requireRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
 const { requireBranch } = branchScope;
+const { allowGlobalOrSelectedBranch, requireBranchScope } = require("../../middlewares/accessScope");
 const {
   getInventory,
   createInventory,
@@ -22,7 +23,7 @@ const {
   validateInventoryUpdate,
 } = require("../../validators/inventory");
 
-router.use(userAuth, requireRoles(["admin", "manager"]), branchScope);
+router.use(userAuth, requireRoles(["admin", "manager"]), allowGlobalOrSelectedBranch, requireBranchScope);
 
 router.get("/", validateInventoryQuery, getInventory);
 router.post("/", requireBranch, validateInventoryCreate, createInventory);

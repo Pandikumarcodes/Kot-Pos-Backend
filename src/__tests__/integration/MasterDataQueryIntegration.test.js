@@ -11,7 +11,7 @@ jest.mock("../../config/logger", () => ({
   info: jest.fn(), error: jest.fn(), warn: jest.fn(),
 }));
 jest.mock("../../repositories/UserRepository", () => ({
-  findByScope: jest.fn(), count: jest.fn(),
+  findByScope: jest.fn(), findByAccess: jest.fn(), count: jest.fn(), countByAccess: jest.fn(),
 }));
 jest.mock("../../repositories/MenuRepository", () => ({
   listAll: jest.fn(), count: jest.fn(),
@@ -95,8 +95,12 @@ beforeEach(() => {
   });
   userRepository.findByScope.mockImplementation(async (filter, options) =>
     sortedPage(staff, filter, options));
+  userRepository.findByAccess.mockImplementation(async ({ scope, filter = {}, options = {} }) =>
+    sortedPage(staff, { ...filter, branchId: scope.branchId }, options));
   userRepository.count.mockImplementation(async (filter) =>
     staff.filter((item) => matches(item, filter)).length);
+  userRepository.countByAccess.mockImplementation(async (scope, filter = {}) =>
+    staff.filter((item) => matches(item, { ...filter, branchId: scope.branchId })).length);
   menuRepository.listAll.mockImplementation(async ({ filter, ...options } = {}) =>
     sortedPage(menu, filter, options));
   menuRepository.count.mockImplementation(async (filter) =>
@@ -113,9 +117,9 @@ describe("Staff query integration", () => {
     expect(response.status).toBe(200);
     expect(response.body.users).toHaveLength(1);
     expect(response.body.pagination).toMatchObject({ page: 2, limit: 1, total: 3, pages: 3 });
-    expect(userRepository.findByScope).toHaveBeenCalledTimes(1);
-    expect(userRepository.findByScope.mock.calls[0][1]).toMatchObject({ lean: true, skip: 1, limit: 1 });
-    expect(userRepository.count).toHaveBeenCalledTimes(1);
+    expect(userRepository.findByAccess).toHaveBeenCalledTimes(1);
+    expect(userRepository.findByAccess.mock.calls[0][0]).toMatchObject({ scope: expect.objectContaining({ branchId: BRANCH_A }) });
+    expect(userRepository.countByAccess).toHaveBeenCalledTimes(1);
   });
 
   test("searches username and supports approved sorting and existing filters", async () => {
@@ -130,7 +134,7 @@ describe("Staff query integration", () => {
     expect((await get(staffApp, "/api/v1/admin/users?sort=password")).status).toBe(400);
     expect((await get(staffApp, "/api/v1/admin/users?active=true")).status).toBe(400);
     const scoped = await get(staffApp, `/api/v1/admin/users?page=1&branchId=${BRANCH_B}`);
-    expect(scoped.body.users.every((item) => item.branchId === BRANCH_A)).toBe(true);
+    expect(scoped.status).toBe(403);
   });
 });
 

@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const tableOrderSchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+      immutable: true,
+      index: true,
+    },
     tableNumber: { type: Number, required: false },
     customerName: { type: String, trim: true },
     tableId: {
@@ -39,5 +46,8 @@ const tableOrderSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+tableOrderSchema.index({ branchId: 1, status: 1, createdAt: -1 });
+tableOrderSchema.index({ branchId: 1, tableId: 1, status: 1 });
 
 module.exports = mongoose.model("TableOrder", tableOrderSchema);

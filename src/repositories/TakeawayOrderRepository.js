@@ -1,6 +1,7 @@
 const createBaseRepository = require("./BaseRepository");
 const TakeAway = require("../models/takeAway");
 const { leanQuery } = require("./readQuery");
+const { directBranchFilter } = require("../utils/operationalOwnership");
 
 const baseRepository = createBaseRepository(TakeAway);
 
@@ -28,10 +29,26 @@ const findScopedWithDetails = (filter, options = {}) =>
 const updateStatus = (filter, status, options = {}) =>
   TakeAway.findOneAndUpdate(filter, { status }, { new: true, ...options });
 
+const scopedFilter = (scope, memberIds, filter = {}) => ({
+  ...directBranchFilter(scope, filter),
+});
+const listScopedByAccess = ({ scope, memberIds, filter = {}, options = {} } = {}) =>
+  listScoped(scopedFilter(scope, memberIds, filter), options);
+const countScopedByAccess = ({ scope, memberIds, filter = {}, options = {} } = {}) =>
+  baseRepository.count(scopedFilter(scope, memberIds, filter), options);
+const findByAccess = (scope, memberIds, filter = {}, options = {}) =>
+  findScopedWithDetails(scopedFilter(scope, memberIds, filter), options);
+const updateStatusByAccess = (scope, memberIds, filter, status, options = {}) =>
+  TakeAway.findOneAndUpdate(scopedFilter(scope, memberIds, filter), { status }, { new: true, ...options });
+
 module.exports = {
   ...baseRepository,
   createOrderDocument,
   listScoped,
   findScopedWithDetails,
   updateStatus,
+  listScopedByAccess,
+  countScopedByAccess,
+  findByAccess,
+  updateStatusByAccess,
 };

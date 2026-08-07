@@ -10,7 +10,7 @@ const chat = async (req, res, next) => {
 };
 const getInventoryAlerts = async (req, res, next) => {
   try {
-    res.json(await service.getInventoryAlerts(req.branchFilter));
+    res.json(await service.getInventoryAlerts(req.accessScope));
   } catch (err) {
     forwardError(next, err, "Failed to generate inventory alerts");
   }
@@ -19,9 +19,7 @@ const getDailySummary = async (req, res, next) => {
   try {
     res.json(
       await service.getDailySummary({
-        branchFilter: req.branchFilter,
-        branchMemberFilter: req.branchMemberFilter,
-        branchId: req.branchId,
+        scope: req.accessScope,
       }),
     );
   } catch (err) {

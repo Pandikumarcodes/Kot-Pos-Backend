@@ -49,10 +49,9 @@ async function ensureIndexes() {
 
     // ── Table ─────────────────────────────────────────────────
     await Table.collection.createIndex({ branchId: 1, status: 1 }); // floor view filter
-    await Table.collection.createIndex(
-      { branchId: 1, tableNumber: 1 },
-      { unique: true },
-    ); // table lookup
+    await Table.collection.createIndex({ branchId: 1, createdAt: -1 }); // branch-owned tables
+    // Deferred: { branchId: 1, tableNumber: 1 }, unique. Existing global
+    // tableNumber uniqueness remains until a duplicate/ownership audit and backfill.
 
     // ── MenuItem ──────────────────────────────────────────────
     await MenuItem.collection.createIndex({ category: 1, available: 1 }); // menu by category

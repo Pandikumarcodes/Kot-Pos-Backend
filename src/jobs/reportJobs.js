@@ -1,4 +1,5 @@
 const { JOB_NAMES } = require("../infrastructure/queue");
+const { requireJobScope } = require("../infrastructure/queue/jobScope");
 
 const reportJobHandlers = ({
   reportService,
@@ -6,10 +7,10 @@ const reportJobHandlers = ({
   emailProvider,
 }) => ({
   [JOB_NAMES.DAILY_SALES_REPORT]: async (data) => {
+    const scope = requireJobScope(data);
     const summary = await reportService.getSummary({
       range: "today",
-      branchFilter: data.branchFilter,
-      branchMemberFilter: data.branchMemberFilter,
+      scope,
     });
     const attachment = await reportRenderer(summary, data);
     return emailProvider.send({

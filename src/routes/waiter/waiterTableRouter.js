@@ -1,6 +1,7 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { allowGlobalOrSelectedBranch, requireBranchScope } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/waiterTableController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
@@ -12,7 +13,8 @@ const waiterTableRouter = express.Router();
 waiterTableRouter.use(
   userAuth,
   allowRoles(["waiter", "manager", "admin"]),
-  branchScope,
+  allowGlobalOrSelectedBranch,
+  requireBranchScope,
 );
 waiterTableRouter.post(
   "/allocate/:tableId",

@@ -34,7 +34,7 @@ const schemas = {
   OrderItem: { type: "object", required: ["itemId", "quantity"], properties: { itemId: id, quantity: { type: "number", exclusiveMinimum: 0, example: 2 } } },
   KOT: { allOf: [ref("Order"), { description: "Kitchen order ticket representation returned by kitchen/order endpoints." }] },
   Bill: { type: "object", properties: { _id: id, customerName: { type: "string" }, customerPhone: { type: "string" }, items: { type: "array", items: ref("OrderItem") }, paymentStatus: { type: "string", enum: ["unpaid", "paid"] }, paymentMethod: { type: "string", enum: ["cash", "card", "upi", "none"] }, total: { type: "number" }, branchId: id }, additionalProperties: true },
-  Payment: { type: "object", properties: { paymentMethod: { type: "string", enum: ["cash", "card", "upi"] }, paymentStatus: { type: "string", enum: ["unpaid", "paid"] } }, additionalProperties: true },
+  Payment: { type: "object", required: ["paymentMethod"], properties: { paymentMethod: { type: "string", enum: ["cash", "card", "upi"] }, paymentStatus: { type: "string", enum: ["unpaid", "paid"] } }, additionalProperties: true },
   Settings: { type: "object", properties: { businessName: { type: "string" }, email: { type: "string", format: "email" }, phone: { type: "string" }, address: { type: "string" }, gstin: { type: "string" }, currency: { type: "string" }, timezone: { type: "string" }, openTime: { type: "string", pattern: "^\\d{2}:\\d{2}$" }, closeTime: { type: "string", pattern: "^\\d{2}:\\d{2}$" }, taxRate: { type: "number", minimum: 0 }, paymentMethods: { type: "object" } }, additionalProperties: true },
   Pagination: { type: "object", properties: { page: { type: "integer", example: 1 }, limit: { type: "integer", example: 20 }, total: { type: "integer", example: 42 }, pages: { type: "integer", example: 3 } }, additionalProperties: true },
   StandardSuccessResponse: { type: "object", required: ["success", "message"], properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "Success" }, data: { nullable: true } }, additionalProperties: true },
@@ -128,7 +128,7 @@ add("get", "/api/v1/admin/reports/payments", "Payments", "Get payment report", [
 add("get", "/api/v1/admin/reports/hourly", "Reports", "Get hourly sales", ["admin", "manager"], { branch: true, parameters: [q("range", { type: "string" }, "Report range.", "today")] });
 add("get", "/api/v1/cashier/income", "Reports", "Get cashier income", ["cashier"], { branch: true });
 
-add("get", "/api/v1/admin/settings", "Settings", "Get branch settings", ["admin", "manager"], { branch: true });
+add("get", "/api/v1/admin/settings", "Settings", "Get branch settings", ["admin", "manager", "cashier"], { branch: true, description: "Cashiers receive a read-only sanitized response containing only billing, receipt, payment, and branch display settings" });
 add("put", "/api/v1/admin/settings", "Settings", "Save branch settings", ["admin"], { branch: true, requestBody: jsonBody(ref("Settings"), examples.settings) });
 
 add("post", "/api/v1/cashier/billing", "Billing", "Create bill", ["cashier", "admin", "manager"], { branch: true, status: 201, requestBody: jsonBody(ref("Bill"), { customerName: "Asha Rao", customerPhone: "9876543210", items: examples.order.items, paymentStatus: "unpaid", paymentMethod: "none" }) });

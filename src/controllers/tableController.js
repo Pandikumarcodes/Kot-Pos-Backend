@@ -3,7 +3,7 @@ const { forwardError } = require("./controllerUtils");
 
 const createTable = async (req, res, next) => {
   try {
-    const table = await tableService.createTable(req.body);
+    const table = await tableService.createTable(req.body, req.accessScope);
     res.status(201).json({ message: "Table created", table });
   } catch (err) {
     forwardError(next, err);
@@ -11,21 +11,21 @@ const createTable = async (req, res, next) => {
 };
 const listTables = async (req, res, next) => {
   try {
-    res.status(200).json({ tables: await tableService.listTables() });
+    res.status(200).json({ tables: await tableService.listTables(req.accessScope) });
   } catch (err) {
     forwardError(next, err);
   }
 };
 const getTable = async (req, res, next) => {
   try {
-    res.status(200).json({ table: await tableService.getTable(req.params.id) });
+    res.status(200).json({ table: await tableService.getTable(req.params.id, req.accessScope) });
   } catch (err) {
     forwardError(next, err);
   }
 };
 const updateTable = async (req, res, next) => {
   try {
-    const table = await tableService.updateTable(req.params.id, req.body);
+    const table = await tableService.updateTable(req.params.id, req.body, req.accessScope);
     res.status(200).json({ message: "Table updated", table });
   } catch (err) {
     forwardError(next, err);
@@ -33,7 +33,7 @@ const updateTable = async (req, res, next) => {
 };
 const deleteTable = async (req, res, next) => {
   try {
-    await tableService.deleteTable(req.params.id);
+    await tableService.deleteTable(req.params.id, req.accessScope);
     res.status(200).json({ message: "Table deleted" });
   } catch (err) {
     forwardError(next, err);

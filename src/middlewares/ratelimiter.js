@@ -31,15 +31,25 @@ class RedisRateLimitStore {
     const resetTime = new Date(Date.now() + this.windowMs);
     const client = getRedisClient();
     if (!client?.isReady || !redisStatus().configured) {
-      return { totalHits: 0, resetTime };
+      return { totalHits: 1, resetTime };
     }
 
     const key = `${this.prefix}:${identifier}`;
     try {
-      const totalHits = await Promise.race([
+      let timeoutId;
+      const rawTotalHits = await Promise.race([
         client.incr(key),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis rate limit timed out")), toPositiveNumber(process.env.REDIS_TIMEOUT || process.env.REDIS_OPERATION_TIMEOUT_MS, 500))),
-      ]);
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("Redis rate limit timed out")),
+            toPositiveNumber(
+              process.env.REDIS_TIMEOUT || process.env.REDIS_OPERATION_TIMEOUT_MS,
+              500,
+            ),
+          );
+        }),
+      ]).finally(() => clearTimeout(timeoutId));
+      const totalHits = Math.max(1, Math.floor(Number(rawTotalHits) || 1));
       if (totalHits === 1) await client.pExpire(key, this.windowMs);
       const remainingTtl = await client.pTTL(key);
       return {
@@ -48,7 +58,7 @@ class RedisRateLimitStore {
       };
     } catch (error) {
       logger.warn("Redis rate limiter unavailable; request allowed", { error: error.message });
-      return { totalHits: 0, resetTime };
+      return { totalHits: 1, resetTime };
     }
   }
 

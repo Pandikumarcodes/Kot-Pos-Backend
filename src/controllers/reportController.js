@@ -3,8 +3,7 @@ const { forwardError } = require("./controllerUtils");
 
 const context = (req) => ({
   ...req.query,
-  branchFilter: req.branchFilter,
-  branchMemberFilter: req.branchMemberFilter,
+  scope: req.accessScope,
 });
 const getSummary = async (req, res, next) => {
   try {
@@ -39,7 +38,7 @@ const getCashierIncome = async (req, res, next) => {
     res
       .status(200)
       .json({
-        totalIncome: await reportService.getCashierIncome(req.user._id),
+        totalIncome: await reportService.getCashierIncome(req.user._id, req.accessScope),
       });
   } catch (err) {
     forwardError(next, err, "Failed to fetch your income");

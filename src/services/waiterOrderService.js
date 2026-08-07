@@ -6,6 +6,7 @@ const billingRepository = require("../repositories/BillingRepository");
 const userRepository = require("../repositories/UserRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
+const { assertBranchScope } = require("../utils/accessScope");
 const { generateBillNumber } = require("./billingService");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
@@ -38,26 +39,46 @@ const ORDER_QUERY_POLICY = Object.freeze({
   fieldSelection: {
     fields: {
       id: "_id", tableNumber: "tableNumber", customerName: "customerName",
-      tableId: "tableId", createdBy: "createdBy", items: "items",
+      tableId: "tableId", createdBy: "createdBy", branchId: "branchId", items: "items",
       totalAmount: "totalAmount", status: "status", createdAt: "createdAt",
       updatedAt: "updatedAt",
     },
     defaultFields: [
-      "id", "tableNumber", "customerName", "tableId", "createdBy", "items",
+      "id", "tableNumber", "customerName", "tableId", "createdBy", "branchId", "items",
       "totalAmount", "status", "createdAt", "updatedAt",
     ],
   },
 });
 
 const transactionManager = new TransactionManager();
+const BILL_NUMBER_RETRY_LIMIT = 3;
+const scopeForContext = (scope, branchId) =>
+  scope || (branchId ? { type: "branch", isGlobal: false, branchId } : scope);
+const findTableInScope = (scope, id, options) =>
+  typeof tableRepository.findByIdInScope === "function"
+    ? tableRepository.findByIdInScope(scope, id, options)
+    : tableRepository.findById(id, undefined, options);
 
-const getTableOrders = async (tableId, scopeToBranchMembers) => {
-  const orders = await orderRepository.listTableActive(
-    scopeToBranchMembers({
-      tableId,
-      status: { $nin: ["cancelled", "served"] },
-    }),
-  );
+const isBillNumberDuplicate = (error) =>
+  error?.code === 11000 &&
+  (error.keyPattern?.billNumber === 1 ||
+    error.keyValue?.billNumber ||
+    String(error.message || "").includes("billNumber_1"));
+
+const isBillAllocationDuplicate = (error) =>
+  isBillNumberDuplicate(error) ||
+  (error?.code === 11000 &&
+    (error.keyPattern?.key === 1 ||
+      String(error.message || "").includes("counters")));
+
+const getTableOrders = async (tableId, { scope }) => {
+  assertBranchScope(scope);
+  const table = await findTableInScope(scope, tableId);
+  if (!table) throw new AppError("Table not found", 404);
+  const orders = await orderRepository.listScopedByAccess({
+    scope,
+    filter: { tableId, status: { $nin: ["cancelled", "served"] } },
+  });
   const allItems = orders.flatMap((order, index) =>
     order.items.map((item) => ({
       ...item.toObject(),
@@ -76,13 +97,15 @@ const getTableOrders = async (tableId, scopeToBranchMembers) => {
 const sendToCashier = async (tableId, input, context) => {
   const { customerName, customerPhone, tableNumber } = input;
   const {
-    scopeToBranchMembers,
-    branchId,
+    scope,
+    
     userId,
     actorRole = null,
     correlationId,
     io,
   } = context;
+  const effectiveScope = scopeForContext(scope, context.branchId);
+  const branchId = assertBranchScope(effectiveScope).branchId;
   const actor = actorRole
     ? null
     : await userRepository.findByIdWithSelection(userId, "role");
@@ -95,8 +118,10 @@ const sendToCashier = async (tableId, input, context) => {
   let createdBillId = null;
   let bill;
   try {
-    bill = await transactionManager.execute(async (session) => {
-    const table = await tableRepository.findById(tableId, undefined, {
+    for (let attempt = 0; attempt < BILL_NUMBER_RETRY_LIMIT; attempt += 1) {
+      try {
+        bill = await transactionManager.execute(async (session) => {
+    const table = await findTableInScope(effectiveScope, tableId, {
       session,
     });
     if (!table) throw new AppError("Table not found", 404);
@@ -105,18 +130,17 @@ const sendToCashier = async (tableId, input, context) => {
       tableId,
       status: { $nin: ["cancelled", "served"] },
     };
-    const scopedActiveFilter = scopeToBranchMembers(activeFilter);
-    const orders = await orderRepository.findMany(
-      scopedActiveFilter,
-      undefined,
-      { session },
-    );
+    const scopedActiveFilter = { ...activeFilter, branchId };
+    const orders = typeof orderRepository.findManyByAccess === "function"
+      ? await orderRepository.findManyByAccess(effectiveScope, null, activeFilter, { session })
+      : await orderRepository.findMany({ branchId, ...activeFilter }, undefined, { session });
     if (!orders.length)
       throw new AppError("No active orders found for this table", 400);
 
     const existingBill = await billingRepository.findScoped(
-      scopeToBranchMembers({ tableId, paymentStatus: "unpaid" }),
+      { tableId, paymentStatus: "unpaid" },
       { session },
+      effectiveScope,
     );
     if (existingBill) {
       throw new AppError(
@@ -136,6 +160,7 @@ const sendToCashier = async (tableId, input, context) => {
     const createdBill = await billingRepository.createBill(
       {
         billNumber: await generateBillNumber({ session }),
+        branchId,
         customerName: customerName || "Walk-in",
         customerPhone: validPhone,
         items: allItems.map((item) => ({
@@ -160,11 +185,11 @@ const sendToCashier = async (tableId, input, context) => {
       "served",
       { session },
     );
-    await tableRepository.updateState(
-      tableId,
-      { status: "billing" },
-      { session },
-    );
+    if (typeof tableRepository.updateStateInScope === "function") {
+      await tableRepository.updateStateInScope(effectiveScope, tableId, { status: "billing" }, { session });
+    } else {
+      await tableRepository.updateState(tableId, { status: "billing" }, { session });
+    }
     await billingAudit.billCreated(
       {
         context: auditContext,
@@ -177,7 +202,18 @@ const sendToCashier = async (tableId, input, context) => {
       { session },
     );
     return createdBill;
-    });
+        });
+        break;
+      } catch (error) {
+        if (!isBillAllocationDuplicate(error)) throw error;
+        if (attempt === BILL_NUMBER_RETRY_LIMIT - 1) {
+          throw new AppError(
+            "Unable to allocate a unique bill number. Please try again later.",
+            503,
+          );
+        }
+      }
+    }
   } catch (error) {
     try {
       await billingAudit.failure({
@@ -196,8 +232,12 @@ const sendToCashier = async (tableId, input, context) => {
   return bill;
 };
 
-const createOrder = async (input, { branchId, userId }) => {
+const createOrder = async (input, { scope, userId }) => {
+  const branchId = assertBranchScope(scope).branchId;
+  const effectiveScope = scope;
   const { tableNumber, customerName, tableId, items } = input;
+  const table = await findTableInScope(effectiveScope, tableId);
+  if (!table) throw new AppError("Table not found", 404);
   const menuItems = await menuRepository.findByIds(
     items.map((item) => item.itemId),
   );
@@ -216,6 +256,7 @@ const createOrder = async (input, { branchId, userId }) => {
     };
   });
   const order = await orderRepository.createOrderDocument({
+    branchId,
     tableNumber,
     customerName: customerName || "Walk-in",
     tableId,
@@ -234,22 +275,20 @@ const createOrder = async (input, { branchId, userId }) => {
   return order;
 };
 
-const listOrders = async (branchMemberFilter, query = {}) => {
+const listOrders = async ({ scope }, query = {}) => {
+  assertBranchScope(scope);
   if (!hasQueryControls(query)) {
-    return { items: await orderRepository.listScoped(branchMemberFilter) };
+    return { items: await orderRepository.listScopedByAccess({ scope }) };
   }
   const paginated = usesPagination(query);
   const plan = buildOperationalPlan({
     query,
     policy: ORDER_QUERY_POLICY,
-    trustedConstraints: [branchMemberFilter],
+    trustedConstraints: [{ branchId: scope.branchId }],
   });
-  const dataPromise = orderRepository.listScoped(
-    plan.filter,
-    repositoryOptions(plan, paginated),
-  );
+  const dataPromise = orderRepository.listScopedByAccess({ scope, filter: plan.filter, options: repositoryOptions(plan, paginated) });
   const [items, total] = paginated
-    ? await Promise.all([dataPromise, orderRepository.countScoped(plan.filter)])
+    ? await Promise.all([dataPromise, orderRepository.countScopedByAccess({ scope, filter: plan.filter })])
     : [await dataPromise, null];
   return {
     items,
@@ -257,10 +296,8 @@ const listOrders = async (branchMemberFilter, query = {}) => {
   };
 };
 
-const getOrder = async (orderId, scopeToBranchMembers) => {
-  const order = await orderRepository.findScopedWithDetails(
-    scopeToBranchMembers({ _id: orderId }),
-  );
+const getOrder = async (orderId, { scope }) => {
+  const order = await orderRepository.findByAccess(scope, null, { _id: orderId });
   if (!order) throw new AppError("Order not found", 404);
   return order;
 };
@@ -268,15 +305,18 @@ const getOrder = async (orderId, scopeToBranchMembers) => {
 const sendToKitchen = async (
   orderId,
   {
-    scopeToBranchMembers,
-    branchId,
+    scope,
+    branchId: contextBranchId,
     userId = null,
     actorRole = null,
     correlationId = null,
     io,
   },
 ) => {
-  const filter = scopeToBranchMembers({ _id: orderId });
+  const effectiveScope = scopeForContext(scope, contextBranchId);
+  const branchId = assertBranchScope(effectiveScope).branchId;
+  assertBranchScope(effectiveScope);
+  const filter = { _id: orderId };
   let auditContext = orderAudit.createContext({
     actorId: userId,
     actorRole,
@@ -287,9 +327,9 @@ const sendToKitchen = async (
   let result;
   try {
     result = await transactionManager.execute(async (session) => {
-    const existing = await orderRepository.findOne(filter, undefined, {
-      session,
-    });
+    const existing = typeof orderRepository.findByAccess === "function"
+      ? await orderRepository.findByAccess(effectiveScope, null, filter, { session })
+      : await orderRepository.findOne({ branchId, ...filter }, undefined, { session });
     if (!existing) throw new AppError("Order not found", 404);
 
     const actorId = userId || existing.createdBy;
@@ -303,9 +343,8 @@ const sendToKitchen = async (
       correlationId: auditContext.correlationId,
     });
 
-    const table = await tableRepository.findById(
+    const table = await findTableInScope(effectiveScope, 
       existing.tableId,
-      undefined,
       { session },
     );
     if (!table) throw new AppError("Table not found", 404);
@@ -315,11 +354,9 @@ const sendToKitchen = async (
     }
     const previousStatus = existing.status;
 
-    const updatedOrder = await orderRepository.updateStatus(
-      filter,
-      "sent_to_kitchen",
-      { session },
-    );
+    const updatedOrder = typeof orderRepository.updateStatusByAccess === "function"
+      ? await orderRepository.updateStatusByAccess(effectiveScope, null, filter, "sent_to_kitchen", { session })
+      : await orderRepository.updateStatus({ branchId, ...filter }, "sent_to_kitchen", { session });
     if (!updatedOrder) throw new AppError("Order not found", 404);
 
     const createdKot = await kitchenRepository.createOrder(
@@ -372,11 +409,8 @@ const sendToKitchen = async (
   return order;
 };
 
-const updateStatus = async (orderId, status, scopeToBranchMembers) => {
-  const order = await orderRepository.updateStatus(
-    scopeToBranchMembers({ _id: orderId }),
-    status,
-  );
+const updateStatus = async (orderId, status, { scope }) => {
+  const order = await orderRepository.updateStatusByAccess(scope, null, { _id: orderId }, status);
   if (!order) throw new AppError("Order not found", 404);
   return order;
 };

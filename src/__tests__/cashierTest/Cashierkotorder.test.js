@@ -12,6 +12,33 @@ jest.mock("../../models/users");
 jest.mock("../../models/takeAway");
 jest.mock("../../models/menuItems");
 jest.mock("../../models/kot");
+jest.mock("../../repositories/TakeawayOrderRepository", () => {
+  const TakeAway = require("../../models/takeAway");
+  return {
+    createOrderDocument: jest.fn((data) => { const order = new TakeAway(data); return order.save().then(() => order); }),
+    findByAccess: jest.fn((_scope, _members, filter) => {
+      const query = TakeAway.findOne(filter);
+      if (!query || typeof query.populate !== "function") return query;
+      const populated = query.populate();
+      return populated && typeof populated.populate === "function" ? populated.populate() : populated;
+    }),
+    updateStatusByAccess: jest.fn((_scope, _members, filter, status) => TakeAway.findOneAndUpdate(filter, { status }, { new: true })),
+    listScopedByAccess: jest.fn(({ scope, filter }) => {
+      const query = TakeAway.find({ ...filter, branchId: scope.branchId });
+      return query && typeof query.sort === "function" ? query.sort() : query;
+    }),
+    countScopedByAccess: jest.fn().mockResolvedValue(0),
+  };
+});
+jest.mock("../../repositories/KitchenRepository", () => {
+  const Kot = require("../../models/kot");
+  return { createOrder: jest.fn((data) => Kot.create(data)) };
+});
+jest.mock("../../modules/orders/OrderAuditLogger", () => ({
+  createContext: jest.fn(() => ({ correlationId: "test-correlation" })),
+  sentToKitchen: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("../../infrastructure/transaction/TransactionManager", () =>
   jest.fn().mockImplementation(() => ({
     execute: jest.fn((work) => work({ id: "order-test-session" })),
@@ -88,6 +115,7 @@ function mockMenuItemDoc(overrides = {}) {
 function mockOrderDoc(overrides = {}) {
   return {
     _id: VALID_ORDER_ID,
+    branchId: VALID_BRANCH_ID,
     customerName: "Ravi Kumar",
     customerPhone: "9876543210",
     status: "pending",
@@ -327,6 +355,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/received", () => {
     TakeAway.findByIdAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "received" }),
     );
+    TakeAway.findOneAndUpdate.mockResolvedValue(mockOrderDoc({ status: "received" }));
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/received`)
@@ -339,6 +368,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/received", () => {
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
     TakeAway.findByIdAndUpdate.mockResolvedValue(null);
+    TakeAway.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/received`)
@@ -367,6 +397,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/cancel", () => {
     TakeAway.findByIdAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "cancelled" }),
     );
+    TakeAway.findOneAndUpdate.mockResolvedValue(mockOrderDoc({ status: "cancelled" }));
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/cancel`)
@@ -379,6 +410,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/cancel", () => {
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
     TakeAway.findByIdAndUpdate.mockResolvedValue(null);
+    TakeAway.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/cancel`)

@@ -9,6 +9,7 @@ jest.mock("../../infrastructure/transaction/TransactionManager", () =>
 );
 jest.mock("../../repositories/InventoryRepository", () => ({
   createInventory: jest.fn(),
+  findByScope: jest.fn(),
   findScopedById: jest.fn(),
   save: jest.fn(),
 }));
@@ -47,8 +48,12 @@ const otherBranchId = "branch-2";
 const userId = "user-1";
 const inventoryId = "inventory-1";
 const menuItemId = "menu-1";
-const branchFilter = { branchId };
-const context = { branchId, userId };
+const branchFilter = { type: "branch", isGlobal: false, branchId };
+const context = {
+  scope: { type: "branch", isGlobal: false, branchId },
+  branchId,
+  userId,
+};
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 let state;
@@ -130,6 +135,11 @@ beforeEach(() => {
       return item ? clone(item) : null;
     },
   );
+  inventoryRepository.findByScope.mockImplementation(async (id, scope) => {
+    const item = state.inventory.find((candidate) =>
+      candidate._id === id && candidate.branchId === scope.branchId);
+    return item ? clone(item) : null;
+  });
   inventoryRepository.save.mockImplementation(async (item) => {
     const index = state.inventory.findIndex(
       (candidate) => candidate._id === item._id,
@@ -197,7 +207,7 @@ describe("Inventory restock transaction", () => {
       }),
       { session },
     );
-    expect(inventoryRepository.findScopedById).toHaveBeenCalledWith(
+    expect(inventoryRepository.findByScope).toHaveBeenCalledWith(
       inventoryId,
       branchFilter,
       { session },

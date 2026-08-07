@@ -14,7 +14,7 @@ const createMenuItem = async (req, res, next) => {
 const listMenuItems = async (req, res, next) => {
   try {
     const { branchId: _branchId, ...query } = req.query;
-    const result = await menuService.listMenuItems(query, { branchId: req.branchId });
+    const result = await menuService.listMenuItems(query, { scope: req.accessScope });
     res.status(200).json({
       menuItems: result.items,
       ...(result.pagination && { pagination: result.pagination }),

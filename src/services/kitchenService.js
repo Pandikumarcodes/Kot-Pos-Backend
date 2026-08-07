@@ -1,5 +1,6 @@
 const kitchenRepository = require("../repositories/KitchenRepository");
 const AppError = require("../utils/AppError");
+const { assertBranchScope, branchConstraint } = require("../utils/accessScope");
 const { notify } = require("./notificationservices");
 const userRepository = require("../repositories/UserRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
@@ -46,23 +47,21 @@ const KITCHEN_QUERY_POLICY = Object.freeze({
 
 const transactionManager = new TransactionManager();
 
-const listActiveOrders = async (scopeToBranch, query = {}) => {
-  const activeFilter = scopeToBranch({ status: { $in: ACTIVE_KITCHEN_STATUSES } });
+const listActiveOrders = async (scope, query = {}) => {
+  assertBranchScope(scope);
+  const activeFilter = { ...branchConstraint(scope), status: { $in: ACTIVE_KITCHEN_STATUSES } };
   if (!hasQueryControls(query)) {
-    return { items: await kitchenRepository.listActive(activeFilter) };
+    return { items: await kitchenRepository.listScoped({ scope, filter: { status: activeFilter.status } }) };
   }
   const paginated = usesPagination(query);
   const plan = buildOperationalPlan({
     query,
     policy: KITCHEN_QUERY_POLICY,
-    trustedConstraints: [scopeToBranch({})],
+    trustedConstraints: [branchConstraint(scope)],
   });
-  const dataPromise = kitchenRepository.listActive(
-    plan.filter,
-    repositoryOptions(plan, paginated),
-  );
+  const dataPromise = kitchenRepository.listScoped({ scope, filter: plan.filter, options: repositoryOptions(plan, paginated) });
   const [items, total] = paginated
-    ? await Promise.all([dataPromise, kitchenRepository.countByFilter(plan.filter)])
+    ? await Promise.all([dataPromise, kitchenRepository.countScoped({ scope, filter: plan.filter })])
     : [await dataPromise, null];
   return {
     items,
@@ -70,10 +69,9 @@ const listActiveOrders = async (scopeToBranch, query = {}) => {
   };
 };
 
-const getOrder = async (orderId, scopeToBranch) => {
-  const order = await kitchenRepository.findScoped(
-    scopeToBranch({ _id: orderId }),
-  );
+const getOrder = async (orderId, scope) => {
+  assertBranchScope(scope);
+  const order = await kitchenRepository.findByScope(scope, { _id: orderId });
   if (!order) throw new AppError("Order not found", 404);
   return order;
 };
@@ -81,16 +79,16 @@ const getOrder = async (orderId, scopeToBranch) => {
 const updateOrderStatus = async (
   orderId,
   status,
-  scopeToBranch,
+  scope,
   io,
   { userId = null, actorRole = null, correlationId = null } = {},
 ) => {
-  const filter = scopeToBranch({ _id: orderId });
+  assertBranchScope(scope);
+  const filter = { _id: orderId };
   const action = orderAudit.kitchenAction(status);
   if (!action) {
-    const unchangedWorkflowOrder = await kitchenRepository.updateStatus(
-      filter,
-      status,
+    const unchangedWorkflowOrder = await kitchenRepository.updateStatusByScope(
+      scope, filter, status,
     );
     if (!unchangedWorkflowOrder) throw new AppError("Order not found", 404);
     notify.kotUpdated(io, unchangedWorkflowOrder);
@@ -100,13 +98,13 @@ const updateOrderStatus = async (
   let auditContext = orderAudit.createContext({
     actorId: userId,
     actorRole,
-    branchId: filter.branchId || null,
+    branchId: scope.branchId,
     correlationId,
   });
   let order;
   try {
     order = await transactionManager.execute(async (session) => {
-      const existing = await kitchenRepository.findScoped(filter, { session });
+      const existing = await kitchenRepository.findByScope(scope, filter, { session });
       if (!existing) throw new AppError("Order not found", 404);
 
       const actorId = userId || existing.createdBy;
@@ -116,12 +114,12 @@ const updateOrderStatus = async (
       auditContext = orderAudit.createContext({
         actorId,
         actorRole: actorRole || actor?.role || null,
-        branchId: existing.branchId || filter.branchId || null,
+        branchId: scope.branchId,
         correlationId: auditContext.correlationId,
       });
       const previousStatus = existing.status;
 
-      const updated = await kitchenRepository.updateStatus(filter, status, {
+      const updated = await kitchenRepository.updateStatusByScope(scope, filter, status, {
         session,
       });
       if (!updated) throw new AppError("Order not found", 404);

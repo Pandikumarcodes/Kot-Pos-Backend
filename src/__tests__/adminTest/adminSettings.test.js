@@ -46,8 +46,8 @@ function makeToken(role = "admin") {
   );
 }
 
-function mockUserDoc(role = "admin") {
-  return { _id: "user_id_123", username: "testuser", role };
+function mockUserDoc(role = "admin", branchId = VALID_BRANCH_ID) {
+  return { _id: "user_id_123", username: "testuser", role, branchId };
 }
 
 function mockSettingsDoc(overrides = {}) {
@@ -57,6 +57,9 @@ function mockSettingsDoc(overrides = {}) {
     address: "123 MG Road",
     phone: "9876543210",
     gstin: "29ABCDE1234F1Z5",
+    email: "admin@kotpos.example",
+    fssai: "FSSAI-SECRET-FOR-ADMIN",
+    paymentMethods: { cash: true, card: true, upi: true },
     ...overrides,
   };
 }
@@ -90,6 +93,17 @@ describe("GET /api/v1/admin/settings", () => {
     expect(res.status).toBe(200);
   });
 
+  it("200 — normalizes role casing and whitespace for reads", async () => {
+    User.findById.mockResolvedValue(mockUserDoc(" Cashier "));
+    Settings.findOne.mockResolvedValue(mockSettingsDoc());
+
+    const res = await request(app)
+      .get("/api/v1/admin/settings")
+      .set("Cookie", `token=${makeToken(" Cashier ")}`);
+
+    expect(res.status).toBe(200);
+  });
+
   it("200 — creates default settings when none exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
     Settings.findOne.mockResolvedValue(null);
@@ -100,7 +114,7 @@ describe("GET /api/v1/admin/settings", () => {
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
-    expect(Settings.create).toHaveBeenCalledWith({});
+    expect(Settings.create).toHaveBeenCalledWith({ branchId: VALID_BRANCH_ID });
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -121,12 +135,21 @@ describe("GET /api/v1/admin/settings", () => {
 
   it("403 — cashier cannot fetch settings", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
+    Settings.findOne.mockResolvedValue(mockSettingsDoc());
 
     const res = await request(app)
       .get("/api/v1/admin/settings")
       .set("Cookie", `token=${makeToken("cashier")}`);
 
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
+    expect(res.body.settings).toMatchObject({
+      businessName: "KOT POS",
+      paymentMethods: { cash: true, card: true, upi: true },
+    });
+    expect(res.body.settings).not.toHaveProperty("email");
+    expect(res.body.settings).not.toHaveProperty("gstin");
+    expect(res.body.settings).not.toHaveProperty("fssai");
+    expect(res.body.settings).not.toHaveProperty("_id");
   });
 });
 
@@ -169,7 +192,10 @@ describe("PUT /api/v1/admin/settings", () => {
       .send(validPayload);
 
     expect(res.status).toBe(200);
-    expect(Settings.create).toHaveBeenCalledWith(validPayload);
+    expect(Settings.create).toHaveBeenCalledWith({
+      ...validPayload,
+      branchId: VALID_BRANCH_ID,
+    });
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -211,5 +237,17 @@ describe("PUT /api/v1/admin/settings", () => {
       .send(validPayload);
 
     expect(res.status).toBe(403);
+  });
+});
+
+describe("settings reset contract", () => {
+  it("has no reset operation available to cashier", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("cashier"));
+
+    const res = await request(app)
+      .post("/api/v1/admin/settings/reset")
+      .set("Cookie", `token=${makeToken("cashier")}`);
+
+    expect(res.status).toBe(404);
   });
 });

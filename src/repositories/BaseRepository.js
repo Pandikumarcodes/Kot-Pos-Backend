@@ -1,4 +1,10 @@
 const createBaseRepository = (Model) => {
+  const assertOwnershipImmutable = (update = {}) => {
+    const hasBranchId = (value) => value && Object.prototype.hasOwnProperty.call(value, "branchId");
+    if (hasBranchId(update) || hasBranchId(update.$set) || hasBranchId(update.$unset)) {
+      throw new Error("branchId is immutable after creation");
+    }
+  };
   const hasOptions = (options) =>
     options && Object.keys(options).length > 0;
 
@@ -34,15 +40,19 @@ const createBaseRepository = (Model) => {
     return document;
   };
 
-  const updateById = (id, update, options = {}) =>
-    hasOptions(options)
+  const updateById = (id, update, options = {}) => {
+    assertOwnershipImmutable(update);
+    return hasOptions(options)
       ? Model.findByIdAndUpdate(id, update, options)
       : Model.findByIdAndUpdate(id, update);
+  };
 
-  const updateOne = (filter, update, options = {}) =>
-    hasOptions(options)
+  const updateOne = (filter, update, options = {}) => {
+    assertOwnershipImmutable(update);
+    return hasOptions(options)
       ? Model.updateOne(filter, update, options)
       : Model.updateOne(filter, update);
+  };
 
   const deleteById = (id, options = {}) =>
     hasOptions(options)

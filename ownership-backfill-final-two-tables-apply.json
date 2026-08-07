@@ -1,0 +1,4733 @@
+{
+  "mode": "apply",
+  "migrationVersion": "phase5b-1",
+  "writes": 2,
+  "collections": {
+    "Billing": {
+      "checkpoint": {
+        "migrationVersion": "phase5b-1",
+        "collection": "Billing",
+        "lastProcessedId": "6a74768564ae6cb504f8bf4f",
+        "scannedCount": 68,
+        "migratedCount": 0,
+        "skippedCount": 52,
+        "conflictCount": 0,
+        "unresolvedCount": 16,
+        "errorCount": 0,
+        "startedAt": "2026-08-07T06:12:01.486Z",
+        "updatedAt": "2026-08-07T06:12:11.482Z"
+      },
+      "summary": {
+        "total": 68,
+        "already-owned": 52,
+        "unresolved": 16
+      },
+      "decisions": [
+        {
+          "collection": "Billing",
+          "recordId": "69e35a5713f865ebe3fca1f3",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1f3"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca135"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151",
+            "69e35a5313f865ebe3fca135"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69e35a5713f865ebe3fca1f8",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1f8"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca135"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca135"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69e35a5713f865ebe3fca1fd",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1fd"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca135"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154",
+            "69e35a5313f865ebe3fca135"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69e4f03aaefa24e02617a61a",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e4f03aaefa24e02617a61a"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69e62fbdb77556c8a3b91b07",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e62fbdb77556c8a3b91b07"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69e62feab77556c8a3b91c02",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e62feab77556c8a3b91c02"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bbff958ad1d3ebf5cdec"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e0bbff958ad1d3ebf5cdec"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69e6301ab77556c8a3b91ca4",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e6301ab77556c8a3b91ca4"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69ea2737fc425b801b8eb0e6",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69ea2737fc425b801b8eb0e6"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bbff958ad1d3ebf5cdec"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e0bbff958ad1d3ebf5cdec"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "69ea2801fc425b801b8eb1e5",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69ea2801fc425b801b8eb1e5"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a460b23b1f83fd40a30d033",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a460b23b1f83fd40a30d033"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a477cf2354a6d2e6a36c49d",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477cf2354a6d2e6a36c49d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a477d23354a6d2e6a36c4cf",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a477d23354a6d2e6a36c4cf"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba33c4bf11a64def1f4af",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba33c4bf11a64def1f4af"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba34f4bf11a64def1f512",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a4ba34f4bf11a64def1f512"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba4304bf11a64def1f6fe",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a4ba4304bf11a64def1f6fe"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba4604bf11a64def1f82d",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba4604bf11a64def1f82d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba4ab4bf11a64def1fa9e",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a4ba4ab4bf11a64def1fa9e"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba4bd4bf11a64def1fb0b",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a4ba4bd4bf11a64def1fb0b"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4ba5f04bf11a64def20565",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4bad0d4bf11a64def20c7e",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4bad5e4bf11a64def20fd3",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4baf8d4bf11a64def2164c",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a4baf8f4bf11a64def2166e",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a5e2d67b6c85b83d8e352f3",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a5e2d67b6c85b83d8e352f3"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a5e2d82b6c85b83d8e3530d",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a5e2d82b6c85b83d8e3530d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a5e2db9b6c85b83d8e35571",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a5e2db9b6c85b83d8e35571"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a5e2f5eb6c85b83d8e35cd9",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a5e2f5eb6c85b83d8e35cd9"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a5e3360b6c85b83d8e36a6b",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a5e3360b6c85b83d8e36a6b"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a5e404bb6c85b83d8e36cdd",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a5e404bb6c85b83d8e36cdd"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a69d5e1c084b119b255de04",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a69d5e1c084b119b255de04"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a69d625c084b119b255de9d",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a69d625c084b119b255de9d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6a2f63143debb7ef05bd63",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6b53716c73f7dd78e5c775",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b53716c73f7dd78e5c775"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6b538c6c73f7dd78e5c7b1",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6b538e6c73f7dd78e5c7bb",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6b54036c73f7dd78e5ce26",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6b54036c73f7dd78e5ce26"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6b54b66c73f7dd78e5d95f",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b54b66c73f7dd78e5d95f"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6b7ec383e2d046012717e6",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6b7ec383e2d046012717e6"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dafce119092301c667e36",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a6dafce119092301c667e36"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dbee3e23949defc8f2afb",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dbee3e23949defc8f2afb"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dbef4e23949defc8f2b38",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6dbef4e23949defc8f2b38"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dd0c56fcde921ad6d1eff",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6df537d258593f8a5f4eab",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df537d258593f8a5f4eab"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6df6d9d258593f8a5f524d",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dfa7ed1aac66788957ca2",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6dfa7ed1aac66788957ca2"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dfadfd1aac66788957df0",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a6dfadfd1aac66788957df0"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6dfb32d1aac66788957e39",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dfb32d1aac66788957e39"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6e1b5c45ef35903b83e227",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6e1b5c45ef35903b83e227"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a6e1ba445ef35903b83e3af",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73555b37ed464248dd5066",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73555b37ed464248dd5066"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73556d37ed464248dd50b5",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a73556d37ed464248dd50b5"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73558237ed464248dd50ff",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a73558237ed464248dd50ff"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73559637ed464248dd514b",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73559637ed464248dd514b"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7355c037ed464248dd51ff",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a7355c037ed464248dd51ff"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7355d737ed464248dd5240",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a7355d737ed464248dd5240"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7355f437ed464248dd5261",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a7355f437ed464248dd5261"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73563037ed464248dd52ef",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a73563037ed464248dd52ef"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73563437ed464248dd5307",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73563437ed464248dd5307"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a69d672c084b119b255df12"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a69d672c084b119b255df12"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73575937ed464248dd54fd",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7357bd37ed464248dd5553",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7357d037ed464248dd5574",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7358c972a0a264417e2bd0",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7358c972a0a264417e2bd0"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a73590172a0a264417e2c45",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a73590172a0a264417e2c45"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7415eb61a243dbf35c3e3b",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a74163961a243dbf35c3e67",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": null,
+          "evidence": [],
+          "decision": "unresolved",
+          "reason": "no non-conflicting branch evidence",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7416d661a243dbf35c3f60",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7416d661a243dbf35c3f60"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a7416dd61a243dbf35c3f89",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a7416dd61a243dbf35c3f89"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "Billing",
+          "recordId": "6a74768564ae6cb504f8bf4f",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a74768564ae6cb504f8bf4f"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        }
+      ]
+    },
+    "Table": {
+      "checkpoint": {
+        "migrationVersion": "phase5b-1",
+        "collection": "Table",
+        "lastProcessedId": "6a732fefb3fe410c4a0cb0ac",
+        "scannedCount": 11,
+        "migratedCount": 2,
+        "skippedCount": 9,
+        "conflictCount": 0,
+        "unresolvedCount": 0,
+        "errorCount": 0,
+        "startedAt": "2026-08-07T06:12:11.492Z",
+        "updatedAt": "2026-08-07T06:12:11.978Z"
+      },
+      "summary": {
+        "total": 11,
+        "already-owned": 9,
+        "migrated": 2
+      },
+      "decisions": [
+        {
+          "collection": "Table",
+          "recordId": "69e35a5313f865ebe3fca142",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "69e35a5313f865ebe3fca145",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "69e35a5413f865ebe3fca148",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "69e35a5413f865ebe3fca14b",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "69e35a5413f865ebe3fca14e",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "69e35a5413f865ebe3fca151",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "69e35a5413f865ebe3fca154",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "6a477c66354a6d2e6a36c38a",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "6a69d672c084b119b255df12",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": null,
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a69d672c084b119b255df12"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "Table",
+          "recordId": "6a6b53f66c73f7dd78e5ce0f",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "table-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b53f66c73f7dd78e5ce0f"
+              ]
+            }
+          ],
+          "decision": "migrated",
+          "reason": "table-map",
+          "conflicts": [],
+          "referencedIds": [],
+          "previousBranchId": null,
+          "appliedAt": "2026-08-07T06:12:11.785Z",
+          "migrationVersion": "phase5b-1",
+          "write": {
+            "recordId": "6a6b53f66c73f7dd78e5ce0f",
+            "collection": "tables",
+            "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+            "matchedCount": 1,
+            "modifiedCount": 1,
+            "acknowledged": true,
+            "persistedBranchId": "69b7cdfb5ef4d3634c66ce06"
+          }
+        },
+        {
+          "collection": "Table",
+          "recordId": "6a732fefb3fe410c4a0cb0ac",
+          "currentBranchId": null,
+          "currentBranchState": "missing",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "table-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a732fefb3fe410c4a0cb0ac"
+              ]
+            }
+          ],
+          "decision": "migrated",
+          "reason": "table-map",
+          "conflicts": [],
+          "referencedIds": [],
+          "previousBranchId": null,
+          "appliedAt": "2026-08-07T06:12:11.978Z",
+          "migrationVersion": "phase5b-1",
+          "write": {
+            "recordId": "6a732fefb3fe410c4a0cb0ac",
+            "collection": "tables",
+            "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+            "matchedCount": 1,
+            "modifiedCount": 1,
+            "acknowledged": true,
+            "persistedBranchId": "69b7cdfb5ef4d3634c66ce06"
+          }
+        }
+      ]
+    },
+    "TableOrder": {
+      "checkpoint": {
+        "migrationVersion": "phase5b-1",
+        "collection": "TableOrder",
+        "lastProcessedId": "6a74768264ae6cb504f8bf14",
+        "scannedCount": 69,
+        "migratedCount": 0,
+        "skippedCount": 69,
+        "conflictCount": 0,
+        "unresolvedCount": 0,
+        "errorCount": 0,
+        "startedAt": "2026-08-07T06:12:11.982Z",
+        "updatedAt": "2026-08-07T06:12:21.213Z"
+      },
+      "summary": {
+        "total": 69,
+        "already-owned": 69
+      },
+      "decisions": [
+        {
+          "collection": "TableOrder",
+          "recordId": "69e35a5713f865ebe3fca1e3",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1e3"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca132"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151",
+            "69e35a5313f865ebe3fca132"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69e35a5713f865ebe3fca1e7",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1e7"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca132"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154",
+            "69e35a5313f865ebe3fca132"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69e4f036aefa24e02617a5f6",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e4f036aefa24e02617a5f6"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69e62fb9b77556c8a3b91aab",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e62fb9b77556c8a3b91aab"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69e63018b77556c8a3b91c6b",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e63018b77556c8a3b91c6b"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69e638da7210f11d53170874",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e638da7210f11d53170874"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69e638de7210f11d53170889",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e638de7210f11d53170889"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69ea27ecfc425b801b8eb14a",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69ea27ecfc425b801b8eb14a"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69ea2829fc425b801b8eb2d2",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69ea2829fc425b801b8eb2d2"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "69ea2832fc425b801b8eb2e5",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69ea2832fc425b801b8eb2e5"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a3d465630a21cb26adaf386",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a3d465630a21cb26adaf386"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a3d469030a21cb26adaf3d6",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a3d469030a21cb26adaf3d6"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bb8f958ad1d3ebf5cde9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142",
+            "69e0bb8f958ad1d3ebf5cde9"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a460be4b1f83fd40a30d0de",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a460be4b1f83fd40a30d0de"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a460bf7b1f83fd40a30d175",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a460bf7b1f83fd40a30d175"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a477c72354a6d2e6a36c392",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c72354a6d2e6a36c392"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a477cf9354a6d2e6a36c4ac",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477cf9354a6d2e6a36c4ac"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba3644bf11a64def1f53e",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a4ba3644bf11a64def1f53e"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba3814bf11a64def1f59d",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a4ba3814bf11a64def1f59d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba45d4bf11a64def1f78b",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba45d4bf11a64def1f78b"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba49e4bf11a64def1f997",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a4ba49e4bf11a64def1f997"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba4a84bf11a64def1fa3a",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a4ba4a84bf11a64def1fa3a"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba4b24bf11a64def1facc",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a4ba4b24bf11a64def1facc"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba4c64bf11a64def1fb21",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a4ba4c64bf11a64def1fb21"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a4ba5aa4bf11a64def2047c",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba5aa4bf11a64def2047c"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a5e2db7b6c85b83d8e3552a",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a5e2db7b6c85b83d8e3552a"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a5e2f5db6c85b83d8e35cae",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a5e2f5db6c85b83d8e35cae"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a5e335eb6c85b83d8e36a55",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a5e335eb6c85b83d8e36a55"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a5e4049b6c85b83d8e36ca4",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a5e4049b6c85b83d8e36ca4"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a5e4053b6c85b83d8e36cf3",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a5e4053b6c85b83d8e36cf3"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a69d5d9c084b119b255dde7",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a69d5d9c084b119b255dde7"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a69d5edc084b119b255de16",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a69d5edc084b119b255de16"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a69d5f5c084b119b255de29",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a69d5f5c084b119b255de29"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a69d5fac084b119b255de3d",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a69d5fac084b119b255de3d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca154"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca154"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a69d61dc084b119b255de6e",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a69d61dc084b119b255de6e"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a69d64cc084b119b255deb3",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a69d64cc084b119b255deb3"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6b53636c73f7dd78e5c6f4",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b53636c73f7dd78e5c6f4"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6b53686c73f7dd78e5c719",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b53686c73f7dd78e5c719"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6b536e6c73f7dd78e5c73c",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b536e6c73f7dd78e5c73c"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6b540a6c73f7dd78e5ce39",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6b540a6c73f7dd78e5ce39"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6b54b36c73f7dd78e5d934",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b54b36c73f7dd78e5d934"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6b7ebc83e2d046012717b8",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6b7ebc83e2d046012717b8"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6d92e40f16e8016cbf86a5",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6d92e40f16e8016cbf86a5"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6dafcb119092301c667e1d",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a6dafcb119092301c667e1d"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6db004119092301c668287",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a6db004119092301c668287"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6dbed9e23949defc8f2adb",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dbed9e23949defc8f2adb"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6dbef0e23949defc8f2b18",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6dbef0e23949defc8f2b18"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6df534d258593f8a5f4e91",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df534d258593f8a5f4e91"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6df54dd258593f8a5f4ec5",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df54dd258593f8a5f4ec5"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6df555d258593f8a5f4ee1",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df555d258593f8a5f4ee1"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6df561d258593f8a5f4f09",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df561d258593f8a5f4f09"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6dfa7bd1aac66788957c88",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6dfa7bd1aac66788957c88"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6dfb28d1aac66788957e18",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dfb28d1aac66788957e18"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6e1b5845ef35903b83e1f4",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6e1b5845ef35903b83e1f4"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a6e1b6245ef35903b83e243",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a6e1b6245ef35903b83e243"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73556937ed464248dd5082",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a73556937ed464248dd5082"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73557f37ed464248dd50da",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a73557f37ed464248dd50da"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73559337ed464248dd5118",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73559337ed464248dd5118"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73559d37ed464248dd5161",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73559d37ed464248dd5161"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14b"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a7355b137ed464248dd519e",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a7355b137ed464248dd519e"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a7355b837ed464248dd51c4",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a7355b837ed464248dd51c4"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca14e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca14e"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a7355d337ed464248dd5220",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a7355d337ed464248dd5220"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca151"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca151"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73560937ed464248dd527b",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a73560937ed464248dd527b"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73561437ed464248dd529f",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a73561437ed464248dd529f"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a477c66354a6d2e6a36c38a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a477c66354a6d2e6a36c38a"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73562637ed464248dd52c7",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73562637ed464248dd52c7"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a69d672c084b119b255df12"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "6a69d672c084b119b255df12"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a7358c772a0a264417e2ba4",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7358c772a0a264417e2ba4"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a7358fd72a0a264417e2c19",
+          "currentBranchId": "69bc3a288e828f43deb5b812",
+          "currentBranchState": "present",
+          "candidateBranchId": "69bc3a288e828f43deb5b812",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "6a7358fd72a0a264417e2c19"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69bc3a288e828f43deb5b812",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca145"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca145"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a73590e72a0a264417e2c65",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "6a73590e72a0a264417e2c65"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5413f865ebe3fca148"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5413f865ebe3fca148"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a7390e8f0612903b5da3128",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7390e8f0612903b5da3128"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        },
+        {
+          "collection": "TableOrder",
+          "recordId": "6a74768264ae6cb504f8bf14",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a74768264ae6cb504f8bf14"
+              ]
+            },
+            {
+              "source": "table.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca142"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca142"
+          ]
+        }
+      ]
+    },
+    "TakeAway": {
+      "checkpoint": {
+        "migrationVersion": "phase5b-1",
+        "collection": "TakeAway",
+        "lastProcessedId": "6a74163561a243dbf35c3e4a",
+        "scannedCount": 21,
+        "migratedCount": 0,
+        "skippedCount": 21,
+        "conflictCount": 0,
+        "unresolvedCount": 0,
+        "errorCount": 0,
+        "startedAt": "2026-08-07T06:12:21.219Z",
+        "updatedAt": "2026-08-07T06:12:24.132Z"
+      },
+      "summary": {
+        "total": 21,
+        "already-owned": 21
+      },
+      "decisions": [
+        {
+          "collection": "TakeAway",
+          "recordId": "69e35a5713f865ebe3fca1eb",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1eb"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca135"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca135"
+          ]
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "69e35a5713f865ebe3fca1ef",
+          "currentBranchId": "69e35a5313f865ebe3fca128",
+          "currentBranchState": "present",
+          "candidateBranchId": "69e35a5313f865ebe3fca128",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5713f865ebe3fca1ef"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69e35a5313f865ebe3fca128",
+              "referencedIds": [
+                "69e35a5313f865ebe3fca135"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e35a5313f865ebe3fca135"
+          ]
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "69e62f72b77556c8a3b919a7",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e62f72b77556c8a3b919a7"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bbff958ad1d3ebf5cdec"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e0bbff958ad1d3ebf5cdec"
+          ]
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "69ea271efc425b801b8eb07b",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69ea271efc425b801b8eb07b"
+              ]
+            },
+            {
+              "source": "creator.branchId",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "69e0bbff958ad1d3ebf5cdec"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": [
+            "69e0bbff958ad1d3ebf5cdec"
+          ]
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a4ba5504bf11a64def1ff63",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba5504bf11a64def1ff63"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba5504bf11a64def1ff63"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a4ba5e24bf11a64def204bf",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba5e24bf11a64def204bf"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4ba5e24bf11a64def204bf"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a4bacdf4bf11a64def20a66",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4bacdf4bf11a64def20a66"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4bacdf4bf11a64def20a66"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a4bad3b4bf11a64def20e43",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4bad3b4bf11a64def20e43"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4bad3b4bf11a64def20e43"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a4bad9a4bf11a64def21201",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4bad9a4bf11a64def21201"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a4bad9a4bf11a64def21201"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6a2f5f143debb7ef05bd47",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6a2f5f143debb7ef05bd47"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6a2f5f143debb7ef05bd47"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6b4e386c73f7dd78e5c6ab",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b4e386c73f7dd78e5c6ab"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b4e386c73f7dd78e5c6ab"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6b53896c73f7dd78e5c795",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b53896c73f7dd78e5c795"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6b53896c73f7dd78e5c795"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6dd0c36fcde921ad6d1eda",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dd0c36fcde921ad6d1eda"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dd0c36fcde921ad6d1eda"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6df6d6d258593f8a5f5228",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df6d6d258593f8a5f5228"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6df6d6d258593f8a5f5228"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6dfaa3d1aac66788957d3f",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dfaa3d1aac66788957d3f"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6dfaa3d1aac66788957d3f"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a6e1b9e45ef35903b83e2f9",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6e1b9e45ef35903b83e2f9"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a6e1b9e45ef35903b83e2f9"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a73575037ed464248dd54d7",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73575037ed464248dd54d7"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a73575037ed464248dd54d7"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a7357a837ed464248dd552b",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7357a837ed464248dd552b"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7357a837ed464248dd552b"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a7357ca37ed464248dd555e",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7357ca37ed464248dd555e"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7357ca37ed464248dd555e"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a7415e861a243dbf35c3e1c",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7415e861a243dbf35c3e1c"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a7415e861a243dbf35c3e1c"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        },
+        {
+          "collection": "TakeAway",
+          "recordId": "6a74163561a243dbf35c3e4a",
+          "currentBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "currentBranchState": "present",
+          "candidateBranchId": "69b7cdfb5ef4d3634c66ce06",
+          "evidence": [
+            {
+              "source": "takeaway-map",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a74163561a243dbf35c3e4a"
+              ]
+            },
+            {
+              "source": "direct",
+              "branchId": "69b7cdfb5ef4d3634c66ce06",
+              "referencedIds": [
+                "6a74163561a243dbf35c3e4a"
+              ]
+            }
+          ],
+          "decision": "already-owned",
+          "reason": "direct branchId is authoritative",
+          "conflicts": [],
+          "referencedIds": []
+        }
+      ]
+    }
+  }
+}

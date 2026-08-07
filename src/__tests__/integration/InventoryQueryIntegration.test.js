@@ -13,8 +13,8 @@ jest.mock("../../config/logger", () => ({
   warn: jest.fn(),
 }));
 jest.mock("../../repositories/InventoryRepository", () => ({
-  findActive: jest.fn(),
-  count: jest.fn(),
+  findActive: jest.fn(), listScoped: jest.fn(),
+  count: jest.fn(), countScoped: jest.fn(),
 }));
 
 const User = require("../../models/users");
@@ -109,6 +109,10 @@ describe("Inventory query integration", () => {
       branchId: BRANCH_A,
       status: "active",
     });
+    inventoryRepository.listScoped.mockImplementation(async ({ filter, options }) =>
+      inventory.filter((item) => matches(item, filter))
+        .sort(compareBySort(options.sort)).slice(options.skip, options.skip + options.limit)
+        .map((item) => ({ ...item })));
     inventoryRepository.findActive.mockImplementation(
       async (filter, { sort, skip, limit }) =>
         inventory
@@ -117,7 +121,7 @@ describe("Inventory query integration", () => {
           .slice(skip, skip + limit)
           .map((item) => ({ ...item })),
     );
-    inventoryRepository.count.mockImplementation(async (filter) =>
+    inventoryRepository.countScoped.mockImplementation(async ({ filter }) =>
       inventory.filter((item) => matches(item, filter)).length,
     );
   });
@@ -135,8 +139,8 @@ describe("Inventory query integration", () => {
       hasNext: true,
       hasPrev: false,
     });
-    expect(inventoryRepository.findActive).toHaveBeenCalledTimes(1);
-    expect(inventoryRepository.count).toHaveBeenCalledTimes(1);
+    expect(inventoryRepository.listScoped).toHaveBeenCalledTimes(1);
+    expect(inventoryRepository.countScoped).toHaveBeenCalledTimes(1);
   });
 
   test("returns the second page", async () => {
@@ -204,7 +208,7 @@ describe("Inventory query integration", () => {
     const response = await getInventory("?sort=branchId&order=asc");
 
     expect(response.status).toBe(400);
-    expect(inventoryRepository.findActive).not.toHaveBeenCalled();
+    expect(inventoryRepository.listScoped).not.toHaveBeenCalled();
   });
 
   test("filters by category", async () => {
@@ -232,13 +236,7 @@ describe("Inventory query integration", () => {
   test("preserves trusted branch isolation when the client supplies another branch", async () => {
     const response = await getInventory(`?branchId=${BRANCH_B}&search=rice`);
 
-    expect(response.status).toBe(200);
-    expect(response.body.items.map((item) => item.name).sort()).toEqual([
-      "Basmati Rice",
-      "Brown rice",
-    ]);
-    expect(response.body.items.every((item) => item.branchId === BRANCH_A))
-      .toBe(true);
+    expect(response.status).toBe(403);
   });
 
   test("combines search, filter, sort and pagination", async () => {

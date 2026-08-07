@@ -67,8 +67,8 @@ const createMenuItem = async ({ ItemName, category, price, available }) => {
   return toMenuResponse(menuItem);
 };
 
-const listMenuItems = async (query = {}, { branchId } = {}) => {
-  const key = cacheKeys.menu({ branchId, query });
+const listMenuItems = async (query = {}, { scope } = {}) => {
+  const key = cacheKeys.menu({ scope, query });
   if (!hasQueryControls(query)) {
     const items = await cache.getOrSet(key, () => menuRepository.listAll(), { ttlSeconds: 300 });
     return { items };

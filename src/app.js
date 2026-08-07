@@ -25,15 +25,26 @@ const {
 
 const { initSocket } = require("./socket/index.js");
 const mongoose = require("mongoose");
-const { STATES, LifecycleState } = require("./infrastructure/health/lifecycleState");
-const { validateEnvironment } = require("./infrastructure/health/startupValidator");
+const {
+  STATES,
+  LifecycleState,
+} = require("./infrastructure/health/lifecycleState");
+const {
+  validateEnvironment,
+} = require("./infrastructure/health/startupValidator");
 const { HealthService } = require("./infrastructure/health/healthService");
-const { createHealthController } = require("./infrastructure/health/healthController");
+const {
+  createHealthController,
+} = require("./infrastructure/health/healthController");
 const { createHealthRouter } = require("./infrastructure/health/healthRoutes");
 const { ShutdownManager } = require("./infrastructure/health/shutdownManager");
-const { createGracefulShutdown } = require("./infrastructure/health/gracefulShutdown");
+const {
+  createGracefulShutdown,
+} = require("./infrastructure/health/gracefulShutdown");
 const { connectRedis, disconnectRedis } = require("./infrastructure/cache");
-const { startBackgroundJobs } = require("./infrastructure/queue/backgroundJobs");
+const {
+  startBackgroundJobs,
+} = require("./infrastructure/queue/backgroundJobs");
 const { mountSwagger } = require("./docs/swagger");
 
 // ── Winston ───────────────────────────────────────────────────
@@ -76,11 +87,16 @@ const healthService = new HealthService({
   version: "v1",
 });
 const healthController = createHealthController(healthService);
-const configuredShutdownTimeout = Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000);
-const shutdownTimeoutMs = Number.isFinite(configuredShutdownTimeout) && configuredShutdownTimeout > 0
-  ? configuredShutdownTimeout
-  : 10000;
-const shutdownManager = new ShutdownManager({ defaultTimeoutMs: shutdownTimeoutMs });
+const configuredShutdownTimeout = Number(
+  process.env.SHUTDOWN_TIMEOUT_MS || 10000,
+);
+const shutdownTimeoutMs =
+  Number.isFinite(configuredShutdownTimeout) && configuredShutdownTimeout > 0
+    ? configuredShutdownTimeout
+    : 10000;
+const shutdownManager = new ShutdownManager({
+  defaultTimeoutMs: shutdownTimeoutMs,
+});
 let backgroundJobs;
 const gracefulShutdown = createGracefulShutdown({
   server,
@@ -210,7 +226,9 @@ app.use("/api/v1/chef", chefRouter);
 app.use("/api/v1/ai", aiLimiter, aiRouter);
 
 // ── Health Check ──────────────────────────────────────────────
-app.use(createHealthRouter({ service: healthService, controller: healthController }));
+app.use(
+  createHealthRouter({ service: healthService, controller: healthController }),
+);
 
 // ── 404 Handler ───────────────────────────────────────────────
 app.use((req, res) => {
@@ -263,11 +281,19 @@ if (process.env.NODE_ENV === "production" && process.env.BACKEND_URL) {
     },
     14 * 60 * 1000,
   ); // every 14 minutes
-  shutdownManager.register(() => clearInterval(keepAliveInterval), { name: "keep-alive" });
+  shutdownManager.register(() => clearInterval(keepAliveInterval), {
+    name: "keep-alive",
+  });
 }
 
 // ── Start server ──────────────────────────────────────────────
-async function startServer({ validate = validateEnvironment, connect = connectDB, indexes = ensureIndexes, connectCache = connectRedis, listen = (onReady) => server.listen(PORT, onReady) } = {}) {
+async function startServer({
+  validate = validateEnvironment,
+  connect = connectDB,
+  indexes = ensureIndexes,
+  connectCache = connectRedis,
+  listen = (onReady) => server.listen(PORT, onReady),
+} = {}) {
   try {
     validate();
     await connect();
@@ -275,7 +301,10 @@ async function startServer({ validate = validateEnvironment, connect = connectDB
     await connectCache();
     if (process.env.ENABLE_BACKGROUND_JOBS === "true") {
       backgroundJobs = await startBackgroundJobs();
-      if (backgroundJobs) shutdownManager.register(() => backgroundJobs.close(), { name: "background-jobs" });
+      if (backgroundJobs)
+        shutdownManager.register(() => backgroundJobs.close(), {
+          name: "background-jobs",
+        });
     }
     listen(() => {
       lifecycle.transition(STATES.READY);
@@ -288,7 +317,8 @@ async function startServer({ validate = validateEnvironment, connect = connectDB
       logger.info("Socket.io ready");
     });
   } catch (err) {
-    if (lifecycle.getState() === STATES.STARTING) lifecycle.transition(STATES.FAILED);
+    if (lifecycle.getState() === STATES.STARTING)
+      lifecycle.transition(STATES.FAILED);
     if (err?.code === "ENVIRONMENT_VALIDATION_ERROR") {
       logger.error("Startup validation failed", {
         code: err.code,
@@ -296,7 +326,10 @@ async function startServer({ validate = validateEnvironment, connect = connectDB
         lifecycleState: lifecycle.getState(),
       });
     } else {
-      logger.error("Database connection failed", { message: err.message, lifecycleState: lifecycle.getState() });
+      logger.error("Database connection failed", {
+        message: err.message,
+        lifecycleState: lifecycle.getState(),
+      });
     }
     process.exit(1);
   }
@@ -304,4 +337,14 @@ async function startServer({ validate = validateEnvironment, connect = connectDB
 
 if (require.main === module) startServer();
 
-module.exports = { app, server, io, lifecycle, healthService, startServer, shutdownManager, gracefulShutdown, removeSignalHandlers };
+module.exports = {
+  app,
+  server,
+  io,
+  lifecycle,
+  healthService,
+  startServer,
+  shutdownManager,
+  gracefulShutdown,
+  removeSignalHandlers,
+};

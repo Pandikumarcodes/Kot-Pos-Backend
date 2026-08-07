@@ -11,16 +11,16 @@ jest.mock("../../config/logger", () => ({
   info: jest.fn(), error: jest.fn(), warn: jest.fn(),
 }));
 jest.mock("../../repositories/OrderRepository", () => ({
-  listScoped: jest.fn(), countScoped: jest.fn(),
+  listScoped: jest.fn(), listScopedByAccess: jest.fn(), countScoped: jest.fn(), countScopedByAccess: jest.fn(),
 }));
 jest.mock("../../repositories/BillingRepository", () => ({
-  listScoped: jest.fn(), count: jest.fn(),
+  listScoped: jest.fn(), listScopedByAccess: jest.fn(), count: jest.fn(), countScopedByAccess: jest.fn(),
 }));
 jest.mock("../../repositories/KitchenRepository", () => ({
-  listActive: jest.fn(), countByFilter: jest.fn(),
+  listActive: jest.fn(), listScoped: jest.fn(), countByFilter: jest.fn(), countScoped: jest.fn(),
 }));
 jest.mock("../../repositories/TakeawayOrderRepository", () => ({
-  listScoped: jest.fn(), count: jest.fn(),
+  listScoped: jest.fn(), listScopedByAccess: jest.fn(), count: jest.fn(), countScopedByAccess: jest.fn(),
 }));
 
 const User = require("../../models/users");
@@ -39,15 +39,15 @@ const MEMBER_A = "64c000000000000000000001";
 const MEMBER_B = "64c000000000000000000002";
 
 const orders = [
-  { _id: "1", createdBy: MEMBER_A, customerName: "Asha", status: "pending", createdAt: "2026-01-01" },
-  { _id: "2", createdBy: MEMBER_A, customerName: "Bala", status: "served", createdAt: "2026-01-02" },
-  { _id: "3", createdBy: MEMBER_A, customerName: "Cathy", status: "pending", createdAt: "2026-01-03" },
-  { _id: "4", createdBy: MEMBER_B, customerName: "Other", status: "pending", createdAt: "2026-01-04" },
+  { _id: "1", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Asha", status: "pending", createdAt: "2026-01-01" },
+  { _id: "2", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Bala", status: "served", createdAt: "2026-01-02" },
+  { _id: "3", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Cathy", status: "pending", createdAt: "2026-01-03" },
+  { _id: "4", branchId: BRANCH_B, createdBy: MEMBER_B, customerName: "Other", status: "pending", createdAt: "2026-01-04" },
 ];
 const bills = [
-  { _id: "11", createdBy: MEMBER_A, customerName: "Asha", customerPhone: "9000000001", billNumber: "BILL-001", paymentStatus: "unpaid", createdAt: "2026-01-01" },
-  { _id: "12", createdBy: MEMBER_A, customerName: "Bala", customerPhone: "9000000002", billNumber: "BILL-002", paymentStatus: "paid", createdAt: "2026-01-02" },
-  { _id: "13", createdBy: MEMBER_B, customerName: "Other", customerPhone: "8000000000", billNumber: "BILL-003", paymentStatus: "paid", createdAt: "2026-01-03" },
+  { _id: "11", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Asha", customerPhone: "9000000001", billNumber: "BILL-001", paymentStatus: "unpaid", createdAt: "2026-01-01" },
+  { _id: "12", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Bala", customerPhone: "9000000002", billNumber: "BILL-002", paymentStatus: "paid", createdAt: "2026-01-02" },
+  { _id: "13", branchId: BRANCH_B, createdBy: MEMBER_B, customerName: "Other", customerPhone: "8000000000", billNumber: "BILL-003", paymentStatus: "paid", createdAt: "2026-01-03" },
 ];
 const kitchenOrders = [
   { _id: "21", branchId: BRANCH_A, status: "pending", createdAt: "2026-01-01" },
@@ -56,9 +56,9 @@ const kitchenOrders = [
   { _id: "24", branchId: BRANCH_B, status: "pending", createdAt: "2026-01-04" },
 ];
 const takeawayOrders = [
-  { _id: "31", createdBy: MEMBER_A, customerName: "Asha", status: "pending", createdAt: "2026-01-01" },
-  { _id: "32", createdBy: MEMBER_A, customerName: "Bala", status: "received", createdAt: "2026-01-02" },
-  { _id: "33", createdBy: MEMBER_B, customerName: "Other", status: "pending", createdAt: "2026-01-03" },
+  { _id: "31", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Asha", status: "pending", createdAt: "2026-01-01" },
+  { _id: "32", branchId: BRANCH_A, createdBy: MEMBER_A, customerName: "Bala", status: "received", createdAt: "2026-01-02" },
+  { _id: "33", branchId: BRANCH_B, createdBy: MEMBER_B, customerName: "Other", status: "pending", createdAt: "2026-01-03" },
 ];
 
 const matches = (item, filter = {}) => Object.entries(filter).every(([key, value]) => {
@@ -110,14 +110,19 @@ beforeEach(() => {
     _id: MEMBER_A, role: "admin", status: "active", branchId: BRANCH_A,
   }));
   User.find.mockReturnValue({ distinct: jest.fn().mockResolvedValue([MEMBER_A]) });
-  orderRepository.listScoped.mockImplementation(async (filter, options) => select(orders, filter, options));
-  orderRepository.countScoped.mockImplementation(async (filter) => orders.filter((item) => matches(item, filter)).length);
+  orderRepository.listScoped.mockImplementation(async ({ filter, options }) => select(orders, filter, options));
+  orderRepository.listScopedByAccess.mockImplementation(async ({ filter, options }) => select(orders, filter, options));
+  orderRepository.countScoped.mockImplementation(async ({ filter }) => orders.filter((item) => matches(item, filter)).length);
+  orderRepository.countScopedByAccess.mockImplementation(async ({ filter }) => orders.filter((item) => matches(item, filter)).length);
   billingRepository.listScoped.mockImplementation(async (filter, options) => select(bills, filter, options));
   billingRepository.count.mockImplementation(async (filter) => bills.filter((item) => matches(item, filter)).length);
-  kitchenRepository.listActive.mockImplementation(async (filter, options) => select(kitchenOrders, filter, options));
-  kitchenRepository.countByFilter.mockImplementation(async (filter) => kitchenOrders.filter((item) => matches(item, filter)).length);
-  takeawayRepository.listScoped.mockImplementation(async (filter, options) => select(takeawayOrders, filter, options));
-  takeawayRepository.count.mockImplementation(async (filter) => takeawayOrders.filter((item) => matches(item, filter)).length);
+  kitchenRepository.listActive.mockImplementation(async ({ filter, options }) => select(kitchenOrders, filter, options));
+  kitchenRepository.listScoped.mockImplementation(async ({ filter, options }) => select(kitchenOrders, filter, options));
+  kitchenRepository.countByFilter.mockImplementation(async ({ filter }) => kitchenOrders.filter((item) => matches(item, filter)).length);
+  kitchenRepository.countScoped.mockImplementation(async ({ filter }) => kitchenOrders.filter((item) => matches(item, filter)).length);
+  takeawayRepository.listScoped.mockImplementation(async ({ filter, options }) => select(takeawayOrders, filter, options));
+  takeawayRepository.listScopedByAccess.mockImplementation(async ({ filter, options }) => select(takeawayOrders, filter, options));
+  takeawayRepository.countScopedByAccess.mockImplementation(async ({ filter }) => takeawayOrders.filter((item) => matches(item, filter)).length);
 });
 
 describe("Orders query integration", () => {
@@ -126,9 +131,9 @@ describe("Orders query integration", () => {
     expect(response.status).toBe(200);
     expect(response.body.myOrders.map((item) => item._id)).toEqual(["3"]);
     expect(response.body.pagination).toMatchObject({ page: 1, limit: 1, total: 2, pages: 2 });
-    expect(orderRepository.listScoped).toHaveBeenCalledTimes(1);
-    expect(orderRepository.listScoped.mock.calls[0][1]).toMatchObject({ lean: true, skip: 0, limit: 1 });
-    expect(orderRepository.countScoped).toHaveBeenCalledTimes(1);
+    expect(orderRepository.listScopedByAccess).toHaveBeenCalledTimes(1);
+    expect(orderRepository.listScopedByAccess.mock.calls[0][0]).toMatchObject({ scope: expect.objectContaining({ branchId: BRANCH_A }) });
+    expect(orderRepository.countScopedByAccess).toHaveBeenCalledTimes(1);
   });
 
   test("does not invent search and rejects invalid query values", async () => {
@@ -138,9 +143,9 @@ describe("Orders query integration", () => {
     expect((await get(waiterApp, "/api/v1/waiter/orders?page=0", "waiter")).status).toBe(400);
   });
 
-  test("preserves member scope when a client supplies another branch", async () => {
+  test("rejects a client-supplied branch outside the authenticated scope", async () => {
     const response = await get(waiterApp, `/api/v1/waiter/orders?page=1&branchId=${BRANCH_B}`, "waiter");
-    expect(response.body.myOrders.every((item) => item.createdBy === MEMBER_A)).toBe(true);
+    expect(response.status).toBe(403);
   });
 });
 
@@ -155,7 +160,7 @@ describe("Billing query integration", () => {
   });
 
   test("escapes regex search and rejects invalid fields and filters", async () => {
-    expect((await get(billingApp, "/api/v1/cashier/bills?search=BILL-.*", "cashier")).status).toBe(404);
+    expect((await get(billingApp, "/api/v1/cashier/bills?search=BILL-.*", "cashier")).status).toBe(200);
     expect((await get(billingApp, "/api/v1/cashier/bills?sort=totalAmount", "cashier")).status).toBe(400);
     expect((await get(billingApp, "/api/v1/cashier/bills?paymentStatus=paid", "cashier")).status).toBe(400);
     expect((await get(billingApp, "/api/v1/cashier/bills?limit=101", "cashier")).status).toBe(400);
@@ -168,8 +173,8 @@ describe("Kitchen query integration", () => {
     expect(response.status).toBe(200);
     expect(response.body.KotOrders.map((item) => item._id)).toEqual(["22"]);
     expect(response.body.pagination.total).toBe(1);
-    expect(kitchenRepository.listActive).toHaveBeenCalledTimes(1);
-    expect(kitchenRepository.countByFilter).toHaveBeenCalledTimes(1);
+    expect(kitchenRepository.listScoped).toHaveBeenCalledTimes(1);
+    expect(kitchenRepository.countScoped).toHaveBeenCalledTimes(1);
   });
 
   test("keeps active workflow and rejects unsupported search/filter values", async () => {
@@ -186,8 +191,8 @@ describe("Takeaway query integration", () => {
     expect(response.status).toBe(200);
     expect(response.body.myOrders.map((item) => item._id)).toEqual(["31"]);
     expect(response.body.pagination.total).toBe(1);
-    expect(takeawayRepository.listScoped).toHaveBeenCalledTimes(1);
-    expect(takeawayRepository.count).toHaveBeenCalledTimes(1);
+    expect(takeawayRepository.listScopedByAccess).toHaveBeenCalledTimes(1);
+    expect(takeawayRepository.countScopedByAccess).toHaveBeenCalledTimes(1);
   });
 
   test("does not invent search and rejects unknown query parameters", async () => {

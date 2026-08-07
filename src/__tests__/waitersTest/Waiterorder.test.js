@@ -14,6 +14,61 @@ jest.mock("../../models/menuItems");
 jest.mock("../../models/kot");
 jest.mock("../../models/tables");
 jest.mock("../../models/billings");
+jest.mock("../../models/Counter");
+jest.mock("../../repositories/TableRepository", () => {
+  const Table = require("../../models/tables");
+  return {
+    findByIdInScope: jest.fn((_scope, id) => Table.findById(id)),
+    updateStateInScope: jest.fn((_scope, id, update) => Table.findOneAndUpdate(id, update)),
+  };
+});
+jest.mock("../../repositories/OrderRepository", () => {
+  const Order = require("../../models/waiter");
+  return {
+    listScopedByAccess: jest.fn(({ filter }) => {
+      const query = Order.find(filter);
+      return query && typeof query.populate === "function"
+        ? query.populate().sort()
+        : query;
+    }),
+    findManyByAccess: jest.fn((_scope, _memberIds, filter) => Order.find(filter)),
+    createOrderDocument: jest.fn((data) => {
+      const order = new Order(data);
+      return order.save().then(() => order);
+    }),
+    findByAccess: jest.fn((_scope, _memberIds, filter) => {
+      const query = Order.findOne(filter);
+      if (!query || typeof query.populate !== "function") return query;
+      const populated = query.populate();
+      return populated && typeof populated.populate === "function"
+        ? populated.populate()
+        : populated;
+    }),
+    updateStatusByAccess: jest.fn((_scope, _memberIds, filter, status) => Order.findOneAndUpdate(filter, { status })),
+    updateManyStatus: jest.fn().mockResolvedValue({}),
+  };
+});
+jest.mock("../../repositories/BillingRepository", () => {
+  const Billing = require("../../models/billings");
+  return {
+    findScoped: jest.fn((filter) => Billing.findOne(filter)),
+    createBill: jest.fn((data) => Billing.create([data]).then((items) => items[0])),
+  };
+});
+jest.mock("../../repositories/MenuRepository", () => {
+  const MenuItem = require("../../models/menuItems");
+  return {
+    findByIds: jest.fn((ids) => MenuItem.find({ _id: { $in: ids } })),
+    listAvailable: jest.fn((filter) => {
+      const query = MenuItem.find(filter);
+      return query.select().sort();
+    }),
+  };
+});
+jest.mock("../../repositories/KitchenRepository", () => {
+  const Kot = require("../../models/kot");
+  return { createOrder: jest.fn((data) => Kot.create(data)) };
+});
 jest.mock("../../infrastructure/transaction/TransactionManager", () =>
   jest.fn().mockImplementation(() => ({
     execute: jest.fn((work) => work({ id: "billing-test-session" })),
@@ -51,6 +106,11 @@ jest.mock("../../modules/billing/BillingAuditLogger", () => ({
   billCreated: jest.fn().mockResolvedValue(undefined),
   failure: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("../../modules/orders/OrderAuditLogger", () => ({
+  createContext: jest.fn(() => ({ correlationId: "test-correlation" })),
+  sentToKitchen: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 
 const User = require("../../models/users");
 const TableOrder = require("../../models/waiter");
@@ -58,6 +118,7 @@ const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Table = require("../../models/tables");
 const Billing = require("../../models/billings");
+const Counter = require("../../models/Counter");
 const { waiterOrderRouter } = require("../../routes/waiter/waiterOrderRouter");
 
 // ── Mock socket.io instance ───────────────────────────────────
@@ -119,6 +180,7 @@ function mockOrderDoc(overrides = {}) {
     _id: VALID_ORDER_ID,
     tableId: VALID_TABLE_ID,
     tableNumber: 1,
+    branchId: VALID_BRANCH_ID,
     customerName: "Walk-in",
     status: "pending",
     items: [
@@ -150,6 +212,7 @@ function mockBillDoc(overrides = {}) {
     totalAmount: 560,
     paymentStatus: "unpaid",
     tableId: VALID_TABLE_ID,
+    branchId: VALID_BRANCH_ID,
     ...overrides,
   };
 }
@@ -158,7 +221,10 @@ function mockBillDoc(overrides = {}) {
 // Middleware — branchScope blocking unassigned non-admin
 // ─────────────────────────────────────────────────────────────
 describe("branchScope middleware", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID });
+  });
 
   it("403 — blocks non-admin user with no branchId", async () => {
     // branchId: null + role: waiter → blocked by branchScope
@@ -204,7 +270,7 @@ describe("branchScope middleware", () => {
 // GET /api/v1/waiter/menu
 // ─────────────────────────────────────────────────────────────
 describe("GET /api/v1/waiter/menu", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   it("200 — waiter can fetch available menu items", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
@@ -282,7 +348,7 @@ describe("GET /api/v1/waiter/menu", () => {
 // GET /api/v1/waiter/orders/table/:tableId
 // ─────────────────────────────────────────────────────────────
 describe("GET /api/v1/waiter/orders/table/:tableId", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   it("200 — returns all active orders for a table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
@@ -324,7 +390,7 @@ describe("GET /api/v1/waiter/orders/table/:tableId", () => {
 // POST /api/v1/waiter/orders
 // ─────────────────────────────────────────────────────────────
 describe("POST /api/v1/waiter/orders", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   const validPayload = {
     tableId: VALID_TABLE_ID,
@@ -393,7 +459,7 @@ describe("POST /api/v1/waiter/orders", () => {
 // GET /api/v1/waiter/orders
 // ─────────────────────────────────────────────────────────────
 describe("GET /api/v1/waiter/orders", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   it("200 — returns all orders for the branch", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
@@ -432,7 +498,7 @@ describe("GET /api/v1/waiter/orders", () => {
 // GET /api/v1/waiter/orders/:orderId
 // ─────────────────────────────────────────────────────────────
 describe("GET /api/v1/waiter/orders/:orderId", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   it("200 — returns a single order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
@@ -471,7 +537,7 @@ describe("GET /api/v1/waiter/orders/:orderId", () => {
 // PUT /api/v1/waiter/orders/:orderId/send
 // ─────────────────────────────────────────────────────────────
 describe("PUT /api/v1/waiter/orders/:orderId/send", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   it("200 — sends order to kitchen and creates KOT", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
@@ -480,9 +546,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/send", () => {
       mockOrderDoc({ status: "sent_to_kitchen" }),
     );
     Table.findById.mockResolvedValue({ tableNumber: 1 });
-    Kot.create.mockResolvedValue([
-      { _id: "kot_id", branchId: VALID_BRANCH_ID, orderType: "dine-in" },
-    ]);
+    Kot.create.mockResolvedValue({ _id: "kot_id", branchId: VALID_BRANCH_ID, orderType: "dine-in" });
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/send`)
@@ -524,7 +588,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/send", () => {
 // PUT /api/v1/waiter/orders/:orderId/served
 // ─────────────────────────────────────────────────────────────
 describe("PUT /api/v1/waiter/orders/:orderId/served", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); Table.findById.mockResolvedValue({ tableNumber: 1, branchId: VALID_BRANCH_ID }); });
 
   it("200 — marks order as served", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
@@ -543,6 +607,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/served", () => {
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     TableOrder.findByIdAndUpdate.mockResolvedValue(null);
+    TableOrder.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/served`)
@@ -564,6 +629,9 @@ describe("PUT /api/v1/waiter/orders/:orderId/cancel", () => {
     TableOrder.findByIdAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "cancelled" }),
     );
+    TableOrder.findOneAndUpdate.mockResolvedValue(
+      mockOrderDoc({ status: "cancelled" }),
+    );
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/cancel`)
@@ -576,6 +644,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/cancel", () => {
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     TableOrder.findByIdAndUpdate.mockResolvedValue(null);
+    TableOrder.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/cancel`)
@@ -592,6 +661,8 @@ describe("PUT /api/v1/waiter/orders/:orderId/cancel", () => {
 describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Counter.findOne.mockResolvedValue({ key: "billing:test", sequence: 0 });
+    Counter.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
     Table.findById.mockResolvedValue({ _id: VALID_TABLE_ID });
     TableOrder.find.mockResolvedValue([mockOrderDoc()]);
   });
@@ -664,9 +735,8 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
 
     expect(res.status).toBe(201);
     // Billing.create should have been called with "0000000000"
-    expect(Billing.create).toHaveBeenCalledWith(
-      [expect.objectContaining({ customerPhone: "0000000000" })],
-      { session: { id: "billing-test-session" } },
+    expect(Billing.create.mock.calls[0][0][0]).toEqual(
+      expect.objectContaining({ customerPhone: "0000000000", branchId: VALID_BRANCH_ID }),
     );
   });
 
@@ -685,9 +755,8 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
       .send({ tableNumber: 1 });
 
     expect(res.status).toBe(201);
-    expect(Billing.create).toHaveBeenCalledWith(
-      [expect.objectContaining({ customerName: "Walk-in" })],
-      { session: { id: "billing-test-session" } },
+    expect(Billing.create.mock.calls[0][0][0]).toEqual(
+      expect.objectContaining({ customerName: "Walk-in", branchId: VALID_BRANCH_ID }),
     );
   });
 });

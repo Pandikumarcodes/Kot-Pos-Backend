@@ -179,7 +179,7 @@ describe("Dine-in order to kitchen transaction", () => {
     expect(orderRepository.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
         _id: dineInOrder._id,
-        createdBy: { $in: ["branch-user-1"] },
+        branchId,
       }),
       undefined,
       { session },
@@ -260,7 +260,7 @@ describe("Takeaway order to kitchen transaction", () => {
     expect(takeawayOrderRepository.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
         _id: takeawayOrder._id,
-        createdBy: { $in: ["branch-user-1"] },
+        branchId,
       }),
       undefined,
       { session },

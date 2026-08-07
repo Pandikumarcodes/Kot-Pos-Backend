@@ -8173,7 +8173,7 @@
           "Settings"
         ],
         "summary": "Get branch settings",
-        "description": "Get branch settings. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+        "description": "Cashiers receive a read-only sanitized response containing only billing, receipt, payment, and branch display settings. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager, cashier. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
         "operationId": "get-api-v1-admin-settings",
         "parameters": [
           {
@@ -8329,7 +8329,8 @@
         "x-branch-scope": true,
         "x-required-roles": [
           "admin",
-          "manager"
+          "manager",
+          "cashier"
         ]
       },
       "put": {
@@ -15235,6 +15236,9 @@
       },
       "Payment": {
         "type": "object",
+        "required": [
+          "paymentMethod"
+        ],
         "properties": {
           "paymentMethod": {
             "type": "string",

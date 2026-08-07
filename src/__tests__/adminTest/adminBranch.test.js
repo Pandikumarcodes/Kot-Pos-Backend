@@ -9,7 +9,10 @@ process.env.NODE_ENV = "test";
 
 jest.mock("../../models/users");
 jest.mock("../../modules/administration/AdministrationAuditLogger", () => ({
-  createContext: jest.fn((values = {}) => ({ correlationId: "test-correlation", ...values })),
+  createContext: jest.fn((values = {}) => ({
+    correlationId: "test-correlation",
+    ...values,
+  })),
   branchCreated: jest.fn().mockResolvedValue(undefined),
   branchUpdated: jest.fn().mockResolvedValue(undefined),
   branchDeleted: jest.fn().mockResolvedValue(undefined),

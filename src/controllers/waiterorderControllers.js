@@ -17,7 +17,7 @@ const getTableOrders = async (req, res, next) => {
       .json(
         await service.getTableOrders(
           req.params.tableId,
-          req.scopeToBranchMembers,
+          { scope: req.accessScope },
         ),
       );
   } catch (err) {
@@ -27,8 +27,7 @@ const getTableOrders = async (req, res, next) => {
 const sendToCashier = async (req, res, next) => {
   try {
     const bill = await service.sendToCashier(req.params.tableId, req.body, {
-      scopeToBranchMembers: req.scopeToBranchMembers,
-      branchId: req.branchId,
+      scope: req.accessScope,
       userId: req.user._id,
       io: req.app.get("io"),
     });
@@ -40,7 +39,7 @@ const sendToCashier = async (req, res, next) => {
 const createOrder = async (req, res, next) => {
   try {
     const order = await service.createOrder(req.body, {
-      branchId: req.branchId,
+      scope: req.accessScope,
       userId: req.user._id,
     });
     res.status(201).json({ message: "Order created successfully", order });
@@ -51,7 +50,7 @@ const createOrder = async (req, res, next) => {
 const getOrders = async (req, res, next) => {
   try {
     const { branchId: _branchId, ...query } = req.query;
-    const result = await service.listOrders(req.branchMemberFilter, query);
+    const result = await service.listOrders({ scope: req.accessScope }, query);
     res.status(200).json({
       myOrders: result.items,
       ...(result.pagination && { pagination: result.pagination }),
@@ -65,7 +64,7 @@ const getOrder = async (req, res, next) => {
     res.status(200).json({
       order: await service.getOrder(
         req.params.orderId,
-        req.scopeToBranchMembers,
+        { scope: req.accessScope },
       ),
     });
   } catch (err) {
@@ -75,8 +74,7 @@ const getOrder = async (req, res, next) => {
 const sendToKitchen = async (req, res, next) => {
   try {
     const order = await service.sendToKitchen(req.params.orderId, {
-      scopeToBranchMembers: req.scopeToBranchMembers,
-      branchId: req.branchId,
+      scope: req.accessScope,
       io: req.app.get("io"),
     });
     res.status(200).json({ message: "Order sent to kitchen (KOT)", order });
@@ -89,7 +87,7 @@ const markServed = async (req, res, next) => {
     const order = await service.updateStatus(
       req.params.orderId,
       "served",
-      req.scopeToBranchMembers,
+      { scope: req.accessScope },
     );
     res.status(200).json({ message: "Order marked as served", order });
   } catch (err) {
@@ -101,7 +99,7 @@ const cancelOrder = async (req, res, next) => {
     const order = await service.updateStatus(
       req.params.orderId,
       "cancelled",
-      req.scopeToBranchMembers,
+      { scope: req.accessScope },
     );
     res.status(200).json({ message: "Order has been cancelled", order });
   } catch (err) {
