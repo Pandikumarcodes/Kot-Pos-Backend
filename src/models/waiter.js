@@ -21,6 +21,12 @@ const tableOrderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    billingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Billing",
+      default: null,
+      index: true,
+    },
     items: [
       {
         itemId: {

@@ -37,11 +37,13 @@ const update = (status, message) => async (req, res, next) => {
 };
 const startOrder = update("preparing", "Order marked as preparing");
 const markReady = update("ready", "Order marked as ready");
+const markServed = update("served", "Order marked as served");
 const cancelOrder = update("cancelled", "Order cancelled");
 module.exports = {
   listActiveOrders,
   getOrder,
   startOrder,
   markReady,
+  markServed,
   cancelOrder,
 };

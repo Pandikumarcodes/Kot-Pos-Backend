@@ -7,10 +7,12 @@ const STATUSES = ["active", "locked"];
 
 const createUserBody = signupBody.keys({
   role: Joi.string()
-    .custom((value) => (ROLES.includes(value) ? value : "waiter"))
+    .valid(...ROLES)
+    .messages({ "any.only": "Invalid role" })
     .default("waiter"),
   status: Joi.string()
-    .custom((value) => (STATUSES.includes(value) ? value : "active"))
+    .valid(...STATUSES)
+    .messages({ "any.only": "Invalid status" })
     .default("active"),
 });
 const roleBody = Joi.object({

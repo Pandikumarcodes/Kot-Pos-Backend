@@ -1,6 +1,6 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
-const branchScope = require("../../middlewares/branchScope");
+const { allowGlobalOrSelectedBranch } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/tableController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
@@ -10,7 +10,7 @@ const {
 } = require("../../validators/tables");
 
 const adminTableRouter = express.Router();
-adminTableRouter.use(userAuth, branchScope);
+adminTableRouter.use(userAuth, allowGlobalOrSelectedBranch);
 adminTableRouter.post(
   "/tables",
   allowRoles(["admin", "manager"]),

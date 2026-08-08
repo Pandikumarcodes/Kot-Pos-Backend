@@ -46,12 +46,14 @@ jest.mock("../../repositories/OrderRepository", () => {
     }),
     updateStatusByAccess: jest.fn((_scope, _memberIds, filter, status) => Order.findOneAndUpdate(filter, { status })),
     updateManyStatus: jest.fn().mockResolvedValue({}),
+    updateManyBilledByAccess: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
 });
 jest.mock("../../repositories/BillingRepository", () => {
   const Billing = require("../../models/billings");
   return {
     findScoped: jest.fn((filter) => Billing.findOne(filter)),
+    findMaxSequenceForDate: jest.fn().mockResolvedValue(0),
     createBill: jest.fn((data) => Billing.create([data]).then((items) => items[0])),
   };
 });
@@ -114,6 +116,7 @@ jest.mock("../../modules/orders/OrderAuditLogger", () => ({
 
 const User = require("../../models/users");
 const TableOrder = require("../../models/waiter");
+const orderRepository = require("../../repositories/OrderRepository");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Table = require("../../models/tables");
@@ -178,6 +181,7 @@ function mockMenuItemDoc(overrides = {}) {
 function mockOrderDoc(overrides = {}) {
   return {
     _id: VALID_ORDER_ID,
+    branchId: VALID_BRANCH_ID,
     tableId: VALID_TABLE_ID,
     tableNumber: 1,
     branchId: VALID_BRANCH_ID,
@@ -383,6 +387,71 @@ describe("GET /api/v1/waiter/orders/table/:tableId", () => {
     expect(res.status).toBe(200);
     expect(res.body.orders).toHaveLength(0);
     expect(res.body.grandTotal).toBe(0);
+  });
+
+  it("200 — keeps a served but unbilled order accessible", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    const servedOrder = mockOrderDoc({ status: "served", billingId: null });
+    TableOrder.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({
+        sort: jest.fn().mockResolvedValue([servedOrder]),
+      }),
+    });
+
+    const res = await request(app)
+      .get(`/api/v1/waiter/orders/table/${VALID_TABLE_ID}`)
+      .set("Cookie", `token=${makeToken("waiter")}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.orders[0].status).toBe("served");
+    expect(res.body.allItems[0].status).toBe("served");
+    expect(res.body.grandTotal).toBe(560);
+  });
+
+  it.each(["pending", "sent_to_kitchen"])(
+    "200 — loads a %s order when repository returns lean items",
+    async (status) => {
+      User.findById.mockResolvedValue(mockUserDoc("waiter"));
+      const leanOrder = mockOrderDoc({
+        status,
+        items: [{
+          itemId: VALID_ITEM_ID,
+          name: "Paneer Butter Masala",
+          quantity: 2,
+          price: 280,
+        }],
+      });
+      TableOrder.find.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockResolvedValue([leanOrder]),
+        }),
+      });
+
+      const res = await request(app)
+        .get(`/api/v1/waiter/orders/table/${VALID_TABLE_ID}`)
+        .set("Cookie", `token=${makeToken("waiter")}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.allItems[0]).toEqual(expect.objectContaining({
+        name: "Paneer Butter Masala",
+        status,
+      }));
+    },
+  );
+
+  it("500 — does not turn an unexpected table-order failure into 400", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    TableOrder.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({
+        sort: jest.fn().mockRejectedValue(new Error("database unavailable")),
+      }),
+    });
+
+    const res = await request(app)
+      .get(`/api/v1/waiter/orders/table/${VALID_TABLE_ID}`)
+      .set("Cookie", `token=${makeToken("waiter")}`);
+
+    expect(res.status).toBe(500);
   });
 });
 
@@ -663,8 +732,8 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
     jest.clearAllMocks();
     Counter.findOne.mockResolvedValue({ key: "billing:test", sequence: 0 });
     Counter.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
-    Table.findById.mockResolvedValue({ _id: VALID_TABLE_ID });
-    TableOrder.find.mockResolvedValue([mockOrderDoc()]);
+    Table.findById.mockResolvedValue({ _id: VALID_TABLE_ID, branchId: VALID_BRANCH_ID });
+    TableOrder.find.mockResolvedValue([mockOrderDoc({ status: "sent_to_kitchen" })]);
   });
 
   const validPayload = {
@@ -676,7 +745,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
   it("201 — sends bill to cashier successfully", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     Billing.findOne.mockResolvedValue(null); // no existing unpaid bill
-    TableOrder.find.mockResolvedValue([mockOrderDoc()]);
+    TableOrder.find.mockResolvedValue([mockOrderDoc({ status: "sent_to_kitchen" })]);
     Billing.countDocuments.mockResolvedValue(0);
     Billing.create.mockResolvedValue([mockBillDoc()]);
     TableOrder.updateMany.mockResolvedValue({});
@@ -690,6 +759,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Bill sent to cashier");
     expect(Billing.create).toHaveBeenCalled();
+    expect(orderRepository.updateManyBilledByAccess).toHaveBeenCalled();
   });
 
   it("400 — rejects when unpaid bill already exists", async () => {
@@ -703,6 +773,21 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain("unpaid bill already exists");
+  });
+
+  it("400 — does not hand off a draft order before kitchen send", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    Billing.findOne.mockResolvedValue(null);
+    TableOrder.find.mockResolvedValue([mockOrderDoc({ status: "pending" })]);
+
+    const res = await request(app)
+      .post(`/api/v1/waiter/orders/table/${VALID_TABLE_ID}/send-to-cashier`)
+      .set("Cookie", `token=${makeToken("waiter")}`)
+      .send(validPayload);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("All active orders must be sent to kitchen before cashier handoff");
+    expect(Billing.create).not.toHaveBeenCalled();
   });
 
   it("400 — rejects when no active orders for the table", async () => {
@@ -722,7 +807,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
   it("201 — uses placeholder phone when invalid phone provided", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     Billing.findOne.mockResolvedValue(null);
-    TableOrder.find.mockResolvedValue([mockOrderDoc()]);
+    TableOrder.find.mockResolvedValue([mockOrderDoc({ status: "sent_to_kitchen" })]);
     Billing.countDocuments.mockResolvedValue(2);
     Billing.create.mockResolvedValue([mockBillDoc()]);
     TableOrder.updateMany.mockResolvedValue({});
@@ -743,7 +828,7 @@ describe("POST /api/v1/waiter/orders/table/:tableId/send-to-cashier", () => {
   it("201 — uses Walk-in when no customerName provided", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     Billing.findOne.mockResolvedValue(null);
-    TableOrder.find.mockResolvedValue([mockOrderDoc()]);
+    TableOrder.find.mockResolvedValue([mockOrderDoc({ status: "sent_to_kitchen" })]);
     Billing.countDocuments.mockResolvedValue(0);
     Billing.create.mockResolvedValue([mockBillDoc()]);
     TableOrder.updateMany.mockResolvedValue({});

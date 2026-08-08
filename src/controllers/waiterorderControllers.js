@@ -21,7 +21,9 @@ const getTableOrders = async (req, res, next) => {
         ),
       );
   } catch (err) {
-    forwardError(next, err, err.message, 400);
+    // A database/runtime failure is not a bad request. Preserve AppError
+    // statuses while allowing unexpected failures to reach the 500 handler.
+    forwardError(next, err);
   }
 };
 const sendToCashier = async (req, res, next) => {

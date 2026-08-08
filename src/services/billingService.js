@@ -75,6 +75,10 @@ const normalizeBillingScopeFilter = (filter = {}) => {
   };
 };
 
+const isDuplicateCounterKey = (error) =>
+  error?.code === 11000 &&
+  (error.keyPattern?.key === 1 || String(error.message || "").includes("counters"));
+
 const generateBillNumber = async (options = {}) => {
   const now = new Date();
   const today = now.toISOString().slice(0, 10).replace(/-/g, "");
@@ -84,28 +88,37 @@ const generateBillNumber = async (options = {}) => {
   const key = `billing:${today}`;
   const session = options.session;
 
-  // Bootstrap a counter from existing bills once. This prevents a newly
-  // introduced counter from issuing BILL-...-001 when that number already exists.
-  const existingCounter = await counterRepository.findOne({ key }, { session });
-  if (!existingCounter) {
-    const existingMax = await billingRepository.findMaxSequenceForDate(
-      todayStart,
-      tomorrow,
-      today,
-      options,
-    );
-    await counterRepository.findOneAndUpdate(
+  // Synchronize on every allocation. Historical bills may predate the
+  // counter, or the counter may be stale after a failed/older deployment.
+  const existingMax = await billingRepository.findMaxSequenceForDate(
+    todayStart,
+    tomorrow,
+    today,
+    options,
+  );
+  try {
+    await counterRepository.updateOne(
       { key },
-      { $setOnInsert: { key, sequence: existingMax } },
+      { $max: { sequence: existingMax } },
       {
         upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
         session,
       },
     );
+  } catch (error) {
+    // Two first-time allocators may race on the unique counter key. Once the
+    // winner has inserted the document, synchronize the existing document
+    // without another upsert and continue to the atomic increment.
+    if (!isDuplicateCounterKey(error)) throw error;
+    await counterRepository.updateOne(
+      { key },
+      { $max: { sequence: existingMax } },
+      { session },
+    );
   }
 
+  // Keep allocation as one atomic increment. Do not combine this with $max:
+  // MongoDB rejects multiple operators targeting sequence in one update.
   const counter = await counterRepository.findOneAndUpdate(
     { key },
     { $inc: { sequence: 1 } },
@@ -150,6 +163,7 @@ const createBill = async (input, { userId, branchId, scope, io }) => {
     ),
     paymentStatus,
     paymentMethod,
+    paidAt: paymentStatus === "paid" ? new Date() : undefined,
     branchId: scope.branchId,
     createdBy: userId,
   });

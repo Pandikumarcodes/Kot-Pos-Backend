@@ -58,5 +58,17 @@ const billSchema = new mongoose.Schema(
 
 billSchema.index({ branchId: 1, createdAt: -1 });
 billSchema.index({ branchId: 1, paymentStatus: 1, createdAt: -1 });
+// A table may have many historical paid bills, but only one unpaid bill at a
+// time. This protects concurrent waiter double-clicks at the database level.
+billSchema.index(
+  { branchId: 1, tableId: 1, paymentStatus: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      tableId: { $type: "objectId" },
+      paymentStatus: "unpaid",
+    },
+  },
+);
 
 module.exports = mongoose.model("Billing", billSchema);

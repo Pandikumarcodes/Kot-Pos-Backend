@@ -50,8 +50,18 @@ async function ensureIndexes() {
     // ── Table ─────────────────────────────────────────────────
     await Table.collection.createIndex({ branchId: 1, status: 1 }); // floor view filter
     await Table.collection.createIndex({ branchId: 1, createdAt: -1 }); // branch-owned tables
-    // Deferred: { branchId: 1, tableNumber: 1 }, unique. Existing global
-    // tableNumber uniqueness remains until a duplicate/ownership audit and backfill.
+    // Table numbers are floor-local: the same number may be used in different
+    // branches, but not twice within one branch. Remove the legacy global
+    // unique index before creating the branch-scoped constraint.
+    try {
+      await Table.collection.dropIndex("tableNumber_1");
+    } catch (error) {
+      if (error?.codeName !== "IndexNotFound" && error?.code !== 27) throw error;
+    }
+    await Table.collection.createIndex(
+      { branchId: 1, tableNumber: 1 },
+      { unique: true },
+    );
 
     // ── MenuItem ──────────────────────────────────────────────
     await MenuItem.collection.createIndex({ category: 1, available: 1 }); // menu by category

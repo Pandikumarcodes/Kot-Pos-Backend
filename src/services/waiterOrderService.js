@@ -7,6 +7,7 @@ const userRepository = require("../repositories/UserRepository");
 const TransactionManager = require("../infrastructure/transaction/TransactionManager");
 const AppError = require("../utils/AppError");
 const { assertBranchScope } = require("../utils/accessScope");
+const { assertSameBranch } = require("../utils/operationalOwnership");
 const { generateBillNumber } = require("./billingService");
 const { deductStockForKot } = require("./inventoryService");
 const { notify } = require("./notificationservices");
@@ -71,17 +72,24 @@ const isBillAllocationDuplicate = (error) =>
     (error.keyPattern?.key === 1 ||
       String(error.message || "").includes("counters")));
 
+const isUnpaidTableDuplicate = (error) =>
+  error?.code === 11000 &&
+  (error.keyPattern?.tableId === 1 ||
+    String(error.message || "").includes("branchId_1_tableId_1_paymentStatus_1"));
+
 const getTableOrders = async (tableId, { scope }) => {
   assertBranchScope(scope);
   const table = await findTableInScope(scope, tableId);
   if (!table) throw new AppError("Table not found", 404);
   const orders = await orderRepository.listScopedByAccess({
     scope,
-    filter: { tableId, status: { $nin: ["cancelled", "served"] } },
+    filter: { tableId, status: { $ne: "cancelled" }, billingId: { $in: [null] } },
   });
   const allItems = orders.flatMap((order, index) =>
     order.items.map((item) => ({
-      ...item.toObject(),
+      // listScopedByAccess returns lean documents by default. Keep this
+      // endpoint compatible with both lean and hydrated repository results.
+      ...(typeof item.toObject === "function" ? item.toObject() : item),
       orderId: order._id,
       round: index + 1,
       status: order.status,
@@ -126,16 +134,22 @@ const sendToCashier = async (tableId, input, context) => {
     });
     if (!table) throw new AppError("Table not found", 404);
 
+    assertSameBranch(branchId, table.branchId, "Table belongs to another branch");
+
+    // Read every non-cancelled round first. Filtering out pending
+    // rounds here made the old pending-order guard unreachable for mixed
+    // tables (one sent round + one draft round).
+    const allOrdersFilter = { tableId, status: { $ne: "cancelled" } };
+    const allOrders = typeof orderRepository.findManyByAccess === "function"
+      ? await orderRepository.findManyByAccess(effectiveScope, null, allOrdersFilter, { session })
+      : await orderRepository.findMany({ branchId, ...allOrdersFilter }, undefined, { session });
     const activeFilter = {
       tableId,
-      status: { $nin: ["cancelled", "served"] },
+      status: { $ne: "cancelled" },
+      billingId: { $in: [null] },
     };
-    const scopedActiveFilter = { ...activeFilter, branchId };
-    const orders = typeof orderRepository.findManyByAccess === "function"
-      ? await orderRepository.findManyByAccess(effectiveScope, null, activeFilter, { session })
-      : await orderRepository.findMany({ branchId, ...activeFilter }, undefined, { session });
-    if (!orders.length)
-      throw new AppError("No active orders found for this table", 400);
+    const orders = allOrders.filter((order) => order.billingId == null);
+    allOrders.forEach((order) => assertSameBranch(branchId, order.branchId, "Order belongs to another branch"));
 
     const existingBill = await billingRepository.findScoped(
       { tableId, paymentStatus: "unpaid" },
@@ -143,10 +157,22 @@ const sendToCashier = async (tableId, input, context) => {
       effectiveScope,
     );
     if (existingBill) {
+      const isLinked = allOrders.some(
+        (order) => order.billingId && String(order.billingId) === String(existingBill._id),
+      );
+      if (isLinked || !orders.length) return existingBill;
       throw new AppError(
         "An unpaid bill already exists for this table. Please ask the cashier to collect payment first.",
         400,
       );
+    }
+    if (!orders.length)
+      throw new AppError("No active orders found for this table", 400);
+    if (orders.some((order) => order.status === "pending")) {
+      throw new AppError("All active orders must be sent to kitchen before cashier handoff", 400);
+    }
+    if (orders.some((order) => !["sent_to_kitchen", "served"].includes(order.status))) {
+      throw new AppError("Only kitchen-sent or served orders can be handed to cashier", 400);
     }
 
     const orderStatusBefore =
@@ -159,7 +185,10 @@ const sendToCashier = async (tableId, input, context) => {
     const allItems = orders.flatMap((order) => order.items);
     const createdBill = await billingRepository.createBill(
       {
-        billNumber: await generateBillNumber({ session }),
+        // Keep number allocation outside this transaction. A bill-number
+        // collision must not roll back the counter increment that lets the
+        // next bounded retry advance to a new candidate.
+        billNumber: await generateBillNumber(),
         branchId,
         customerName: customerName || "Walk-in",
         customerPhone: validPhone,
@@ -180,9 +209,14 @@ const sendToCashier = async (tableId, input, context) => {
       { session },
     );
     createdBillId = createdBill._id;
-    await orderRepository.updateManyStatus(
-      scopedActiveFilter,
-      "served",
+    if (typeof orderRepository.updateManyBilledByAccess !== "function") {
+      throw new AppError("Billing linkage is unavailable", 503);
+    }
+    await orderRepository.updateManyBilledByAccess(
+      effectiveScope,
+      null,
+      activeFilter,
+      createdBill._id,
       { session },
     );
     if (typeof tableRepository.updateStateInScope === "function") {
@@ -205,8 +239,19 @@ const sendToCashier = async (tableId, input, context) => {
         });
         break;
       } catch (error) {
-        if (!isBillAllocationDuplicate(error)) throw error;
+        if (!isBillAllocationDuplicate(error) && !isUnpaidTableDuplicate(error)) throw error;
         if (attempt === BILL_NUMBER_RETRY_LIMIT - 1) {
+          if (isUnpaidTableDuplicate(error)) {
+            const existingBill = await billingRepository.findScoped(
+              { tableId, paymentStatus: "unpaid" },
+              {},
+              effectiveScope,
+            );
+            if (existingBill) {
+              bill = existingBill;
+              break;
+            }
+          }
           throw new AppError(
             "Unable to allocate a unique bill number. Please try again later.",
             503,
@@ -235,7 +280,7 @@ const sendToCashier = async (tableId, input, context) => {
 const createOrder = async (input, { scope, userId }) => {
   const branchId = assertBranchScope(scope).branchId;
   const effectiveScope = scope;
-  const { tableNumber, customerName, tableId, items } = input;
+  const { customerName, tableId, items } = input;
   const table = await findTableInScope(effectiveScope, tableId);
   if (!table) throw new AppError("Table not found", 404);
   const menuItems = await menuRepository.findByIds(
@@ -257,7 +302,7 @@ const createOrder = async (input, { scope, userId }) => {
   });
   const order = await orderRepository.createOrderDocument({
     branchId,
-    tableNumber,
+    tableNumber: table.tableNumber,
     customerName: customerName || "Walk-in",
     tableId,
     createdBy: userId,

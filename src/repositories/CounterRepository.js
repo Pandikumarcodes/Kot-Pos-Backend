@@ -8,4 +8,7 @@ const findOne = (filter, options = {}) =>
 const findOneAndUpdate = (filter, update, options = {}) =>
   Counter.findOneAndUpdate(filter, update, options);
 
-module.exports = { findOne, findOneAndUpdate };
+const updateOne = (filter, update, options = {}) =>
+  Counter.updateOne(filter, update, options);
+
+module.exports = { findOne, findOneAndUpdate, updateOne };

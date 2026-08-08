@@ -20,7 +20,6 @@ const findMaxSequenceForDate = async (dateStart, dateEnd, date, options = {}) =>
   const bills = await baseRepository
     .findMany(
       {
-        createdAt: { $gte: dateStart, $lt: dateEnd },
         billNumber: new RegExp(`^BILL-${date}-(\\d+)$`),
       },
       { billNumber: 1 },

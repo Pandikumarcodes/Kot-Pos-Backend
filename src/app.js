@@ -179,6 +179,7 @@ const {
 const {
   adminSettingsRouter,
 } = require("./routes/admin/adminSettingsRouter.js");
+const { settingsRouter } = require("./routes/settingsRouter.js");
 const { adminBranchRouter } = require("./routes/admin/adminBranchRouter");
 const inventoryRouter = require("./routes/admin/InventoryRouter.js");
 const { cashierbillingRouter } = require("./routes/cashier/cashierBilling.js");
@@ -211,6 +212,7 @@ app.use("/api/v1/admin", adminUserRouter);
 app.use("/api/v1/admin", adminReportRouter);
 app.use("/api/v1/admin", adminCustomerRouter);
 app.use("/api/v1/admin", adminSettingsRouter);
+app.use("/api/v1", settingsRouter);
 app.use("/api/v1/admin", adminBranchRouter);
 app.use("/api/v1/admin/inventory", inventoryRouter);
 

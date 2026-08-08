@@ -138,4 +138,16 @@ describe("kitchen audit transactions", () => {
     });
     expect(notify.kotUpdated).not.toHaveBeenCalled();
   });
+
+  test("rejects an invalid status transition without notifying", async () => {
+    state.kot.status = "pending";
+
+    await expect(
+      kitchenService.updateOrderStatus(orderId, "ready", scopeToBranch, io),
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(state.kot.status).toBe("pending");
+    expect(notify.kotUpdated).not.toHaveBeenCalled();
+    expect(orderAudit.kitchenStatusChanged).not.toHaveBeenCalled();
+  });
 });

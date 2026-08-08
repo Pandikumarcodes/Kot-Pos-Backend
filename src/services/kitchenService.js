@@ -15,6 +15,12 @@ const {
 } = require("./operationalQuery");
 
 const ACTIVE_KITCHEN_STATUSES = Object.freeze(["pending", "preparing", "ready"]);
+const ALLOWED_TRANSITIONS = Object.freeze({
+  preparing: ["pending"],
+  ready: ["preparing"],
+  served: ["ready"],
+  cancelled: ["pending", "preparing"],
+});
 const KITCHEN_QUERY_POLICY = Object.freeze({
   pagination: { defaultPage: 1, defaultLimit: 20, maxLimit: 100 },
   searchableFields: [],
@@ -87,10 +93,16 @@ const updateOrderStatus = async (
   const filter = { _id: orderId };
   const action = orderAudit.kitchenAction(status);
   if (!action) {
+    const existing = await kitchenRepository.findByScope(scope, filter);
+    if (!existing) throw new AppError("Order not found", 404);
+    const expectedStatuses = ALLOWED_TRANSITIONS[status] || [];
+    if (!expectedStatuses.includes(existing.status)) {
+      throw new AppError(`Cannot change order from ${existing.status} to ${status}`, 409);
+    }
     const unchangedWorkflowOrder = await kitchenRepository.updateStatusByScope(
-      scope, filter, status,
+      scope, { ...filter, status: existing.status }, status,
     );
-    if (!unchangedWorkflowOrder) throw new AppError("Order not found", 404);
+    if (!unchangedWorkflowOrder) throw new AppError("Order status changed; refresh and try again", 409);
     notify.kotUpdated(io, unchangedWorkflowOrder);
     return unchangedWorkflowOrder;
   }
@@ -118,11 +130,18 @@ const updateOrderStatus = async (
         correlationId: auditContext.correlationId,
       });
       const previousStatus = existing.status;
+      const expectedStatuses = ALLOWED_TRANSITIONS[status] || [];
+      if (!expectedStatuses.includes(previousStatus)) {
+        throw new AppError(`Cannot change order from ${previousStatus} to ${status}`, 409);
+      }
 
-      const updated = await kitchenRepository.updateStatusByScope(scope, filter, status, {
-        session,
-      });
-      if (!updated) throw new AppError("Order not found", 404);
+      const updated = await kitchenRepository.updateStatusByScope(
+        scope,
+        { ...filter, status: previousStatus },
+        status,
+        { session },
+      );
+      if (!updated) throw new AppError("Order status changed; refresh and try again", 409);
       await orderAudit.kitchenStatusChanged(
         {
           context: auditContext,

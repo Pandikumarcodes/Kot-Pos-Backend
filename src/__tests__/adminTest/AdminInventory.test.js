@@ -65,6 +65,17 @@ function mockUserDoc(role = "admin", branchId = VALID_BRANCH_ID) {
 describe("GET /api/v1/admin/inventory", () => {
   beforeEach(() => jest.clearAllMocks());
 
+  it("200 — global admin resolves a selected branch", async () => {
+    const selectedBranchId = new mongoose.Types.ObjectId().toString();
+    User.findById.mockResolvedValue(mockUserDoc("admin", null));
+
+    const res = await request(app)
+      .get(`/api/v1/admin/inventory?branchId=${selectedBranchId}`)
+      .set("Cookie", `token=${makeToken("admin", null)}`);
+
+    expect(res.status).toBe(200);
+  });
+
   it("200 — admin can fetch inventory", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
 

@@ -34,6 +34,7 @@ jest.mock("../../config/logger", () => ({
 
 const User = require("../../models/users");
 const Table = require("../../models/tables");
+const tableRepository = require("../../repositories/TableRepository");
 const { adminTableRouter } = require("../../routes/admin/adminTable");
 
 // ── Build minimal Express app ─────────────────────────────────
@@ -46,9 +47,9 @@ app.use("/api/v1/admin", adminTableRouter);
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
-function makeToken(role = "admin") {
+function makeToken(role = "admin", branchId = VALID_BRANCH_ID) {
   return jwt.sign(
-    { _id: "user_id_123", username: "testuser", role, branchId: VALID_BRANCH_ID },
+    { _id: "user_id_123", username: "testuser", role, branchId },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
@@ -93,6 +94,25 @@ describe("POST /api/v1/admin/tables", () => {
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Table created");
     expect(res.body.table).toMatchObject({ tableNumber: 1, capacity: 4 });
+  });
+
+  it("201 — global admin creates in the selected branch scope", async () => {
+    const selectedBranchId = new mongoose.Types.ObjectId().toString();
+    User.findById.mockResolvedValue(mockUserDoc("admin"));
+    User.findById.mockResolvedValue({ ...mockUserDoc("admin"), branchId: null });
+    Table.findOne.mockResolvedValue(null);
+    const saved = mockTableDoc({ branchId: selectedBranchId, tableNumber: 8 });
+    Table.mockImplementation(() => saved);
+
+    const res = await request(app)
+      .post(`/api/v1/admin/tables?branchId=${selectedBranchId}`)
+      .set("Cookie", `token=${makeToken("admin", null)}`)
+      .send({ tableNumber: 8, capacity: 4 });
+
+    expect(res.status).toBe(201);
+    expect(tableRepository.createTableDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ branchId: selectedBranchId }),
+    );
   });
 
   it("201 — manager can create a table", async () => {

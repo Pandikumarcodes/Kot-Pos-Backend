@@ -25,6 +25,7 @@ const Settings = require("../../models/settings");
 const {
   adminSettingsRouter,
 } = require("../../routes/admin/adminSettingsRouter");
+const { settingsRouter } = require("../../routes/settingsRouter");
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
@@ -32,14 +33,15 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/v1/admin", adminSettingsRouter);
+app.use("/api/v1", settingsRouter);
 
-function makeToken(role = "admin") {
+function makeToken(role = "admin", branchId = VALID_BRANCH_ID) {
   return jwt.sign(
     {
       _id: "user_id_123",
       username: "testuser",
       role,
-      branchId: VALID_BRANCH_ID,
+      branchId,
     },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
@@ -70,6 +72,19 @@ function mockSettingsDoc(overrides = {}) {
 describe("GET /api/v1/admin/settings", () => {
   beforeEach(() => jest.clearAllMocks());
 
+  it("200 — global admin resolves a selected branch", async () => {
+    const selectedBranchId = new mongoose.Types.ObjectId().toString();
+    User.findById.mockResolvedValue(mockUserDoc("admin", null));
+    Settings.findOne.mockResolvedValue(mockSettingsDoc({ branchId: selectedBranchId }));
+
+    const res = await request(app)
+      .get(`/api/v1/admin/settings?branchId=${selectedBranchId}`)
+      .set("Cookie", `token=${makeToken("admin", null)}`);
+
+    expect(res.status).toBe(200);
+    expect(Settings.findOne).toHaveBeenCalledWith({ branchId: selectedBranchId });
+  });
+
   it("200 — admin can fetch settings", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
     Settings.findOne.mockResolvedValue(mockSettingsDoc());
@@ -93,12 +108,12 @@ describe("GET /api/v1/admin/settings", () => {
     expect(res.status).toBe(200);
   });
 
-  it("200 — normalizes role casing and whitespace for reads", async () => {
+  it("200 — normalizes role casing and whitespace for operational reads", async () => {
     User.findById.mockResolvedValue(mockUserDoc(" Cashier "));
     Settings.findOne.mockResolvedValue(mockSettingsDoc());
 
     const res = await request(app)
-      .get("/api/v1/admin/settings")
+      .get("/api/v1/settings")
       .set("Cookie", `token=${makeToken(" Cashier ")}`);
 
     expect(res.status).toBe(200);
@@ -133,12 +148,27 @@ describe("GET /api/v1/admin/settings", () => {
     expect(res.body.error).toBe("Forbidden - insufficient role");
   });
 
-  it("403 — cashier cannot fetch settings", async () => {
+  it("403 — cashier cannot fetch admin settings", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
     Settings.findOne.mockResolvedValue(mockSettingsDoc());
 
     const res = await request(app)
       .get("/api/v1/admin/settings")
+      .set("Cookie", `token=${makeToken("cashier")}`);
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("GET /api/v1/settings operational cashier settings", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("allows a cashier to read only its assigned branch", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("cashier"));
+    Settings.findOne.mockResolvedValue(mockSettingsDoc());
+
+    const res = await request(app)
+      .get(`/api/v1/settings?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("cashier")}`);
 
     expect(res.status).toBe(200);
@@ -149,7 +179,28 @@ describe("GET /api/v1/admin/settings", () => {
     expect(res.body.settings).not.toHaveProperty("email");
     expect(res.body.settings).not.toHaveProperty("gstin");
     expect(res.body.settings).not.toHaveProperty("fssai");
-    expect(res.body.settings).not.toHaveProperty("_id");
+  });
+
+  it("rejects a cashier requesting another branch", async () => {
+    const otherBranchId = new mongoose.Types.ObjectId().toString();
+    User.findById.mockResolvedValue(mockUserDoc("cashier"));
+
+    const res = await request(app)
+      .get(`/api/v1/settings?branchId=${otherBranchId}`)
+      .set("Cookie", `token=${makeToken("cashier")}`);
+
+    expect(res.status).toBe(403);
+    expect(Settings.findOne).not.toHaveBeenCalled();
+  });
+
+  it("does not expose settings mutation on the operational route", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("cashier"));
+    const res = await request(app)
+      .put("/api/v1/settings")
+      .set("Cookie", `token=${makeToken("cashier")}`)
+      .send({ businessName: "Nope" });
+
+    expect(res.status).toBe(404);
   });
 });
 

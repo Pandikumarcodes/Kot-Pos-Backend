@@ -1,6 +1,6 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
-const branchScope = require("../../middlewares/branchScope");
+const { allowGlobalOrSelectedBranch } = require("../../middlewares/accessScope");
 const controller = require("../../controllers/menuController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
@@ -10,7 +10,7 @@ const {
 } = require("../../validators/menu");
 
 const adminMenuRouter = express.Router();
-adminMenuRouter.use(userAuth, branchScope);
+adminMenuRouter.use(userAuth, allowGlobalOrSelectedBranch);
 adminMenuRouter.post(
   "/menu",
   allowRoles(["admin", "manager"]),

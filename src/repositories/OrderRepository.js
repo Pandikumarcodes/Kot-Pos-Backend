@@ -67,6 +67,12 @@ const updateStatusByAccess = (scope, memberIds, filter, status, options = {}) =>
   TableOrder.findOneAndUpdate(scopedFilter(scope, memberIds, filter), { status }, { new: true, ...options });
 const updateManyStatusByAccess = (scope, memberIds, filter, status, options = {}) =>
   TableOrder.updateMany(scopedFilter(scope, memberIds, filter), { status }, options);
+const updateManyBilledByAccess = (scope, memberIds, filter, billingId, options = {}) =>
+  TableOrder.updateMany(
+    scopedFilter(scope, memberIds, filter),
+    { $set: { billingId } },
+    options,
+  );
 
 module.exports = {
   ...baseRepository,
@@ -85,4 +91,5 @@ module.exports = {
   findManyByAccess,
   updateStatusByAccess,
   updateManyStatusByAccess,
+  updateManyBilledByAccess,
 };

@@ -5,6 +5,7 @@ const reportQuery = Joi.object({
   range: Joi.string().valid("today", "week", "month", "custom").optional(),
   from: Joi.date().iso().optional(),
   to: Joi.date().iso().min(Joi.ref("from")).optional(),
+  branchId: Joi.string().pattern(/^[a-f\d]{24}$/i).optional(),
 });
 const settingsBody = Joi.object({
   branchId: Joi.any().strip(),

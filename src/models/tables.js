@@ -16,7 +16,6 @@ const tableSchema = new mongoose.Schema(
     tableNumber: {
       type: Number,
       required: false,
-      unique: true,
     },
     capacity: {
       type: Number,
@@ -24,7 +23,7 @@ const tableSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["available", "occupied", "reserved"],
+      enum: ["available", "occupied", "billing", "reserved"],
       default: "available",
     },
     assignedWaiter: {
@@ -38,6 +37,7 @@ const tableSchema = new mongoose.Schema(
 
 tableSchema.index({ branchId: 1, status: 1 });
 tableSchema.index({ branchId: 1, createdAt: -1 });
+tableSchema.index({ branchId: 1, tableNumber: 1 }, { unique: true });
 
 const Table = mongoose.model("Table", tableSchema);
 

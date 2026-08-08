@@ -16,11 +16,13 @@ jest.mock("../../repositories/BillingRepository", () => ({
 }));
 jest.mock("../../repositories/CounterRepository", () => ({
   findOne: jest.fn(),
+  updateOne: jest.fn(),
   findOneAndUpdate: jest.fn(),
 }));
 jest.mock("../../repositories/OrderRepository", () => ({
   findMany: jest.fn(),
   updateManyStatus: jest.fn(),
+  updateManyBilledByAccess: jest.fn(),
 }));
 jest.mock("../../repositories/TableRepository", () => ({
   findById: jest.fn(),
@@ -54,6 +56,7 @@ const tableId = "table-1";
 const billId = "bill-1";
 const originalOrder = {
   _id: "order-1",
+  branchId: "branch-1",
   tableId,
   createdBy: "user-1",
   status: "sent_to_kitchen",
@@ -85,6 +88,7 @@ const initialState = () => ({
   tables: {
     [tableId]: {
       _id: tableId,
+      branchId: "branch-1",
       status: "occupied",
       currentCustomer: { name: "Ravi", phone: "9876543210" },
     },
@@ -186,6 +190,7 @@ beforeEach(() => {
   });
   billingRepository.countCreatedSince.mockResolvedValue(0);
   counterRepository.findOne.mockResolvedValue({ key: "billing:test", sequence: 0 });
+  counterRepository.updateOne.mockResolvedValue({ acknowledged: true });
   counterRepository.findOneAndUpdate.mockResolvedValue({ sequence: 1 });
   billingRepository.createBill.mockImplementation(async (data) => {
     const bill = { _id: `bill-${state.bills.length + 1}`, ...clone(data) };
@@ -196,6 +201,13 @@ beforeEach(() => {
   orderRepository.updateManyStatus.mockImplementation(async (_filter, status) => {
     state.orders.forEach((order) => {
       order.status = status;
+    });
+    if (failure.orderUpdate) throw failure.orderUpdate;
+    return { modifiedCount: state.orders.length };
+  });
+  orderRepository.updateManyBilledByAccess.mockImplementation(async (_scope, _members, _filter, billingId) => {
+    state.orders.forEach((order) => {
+      order.billingId = billingId;
     });
     if (failure.orderUpdate) throw failure.orderUpdate;
     return { modifiedCount: state.orders.length };
@@ -235,7 +247,7 @@ describe("Send Table to Cashier transaction", () => {
 
     expect(bill._id).toBe("bill-1");
     expect(state.bills).toHaveLength(1);
-    expect(state.orders[0].status).toBe("served");
+    expect(state.orders[0].billingId).toBe("bill-1");
     expect(state.tables[tableId].status).toBe("billing");
     expect(state.audits).toEqual([
       expect.objectContaining({
@@ -262,9 +274,11 @@ describe("Send Table to Cashier transaction", () => {
       expect.any(Object),
       { session },
     );
-    expect(orderRepository.updateManyStatus).toHaveBeenCalledWith(
+    expect(orderRepository.updateManyBilledByAccess).toHaveBeenCalledWith(
       expect.any(Object),
-      "served",
+      null,
+      expect.any(Object),
+      "bill-1",
       { session },
     );
     expect(tableRepository.updateState).toHaveBeenCalledWith(
@@ -293,6 +307,24 @@ describe("Send Table to Cashier transaction", () => {
     expect(mockExecute).toHaveBeenCalledTimes(2);
   });
 
+  test("reuses the existing unpaid bill on a duplicate handoff", async () => {
+    const firstBill = await waiterOrderService.sendToCashier(
+      tableId,
+      input,
+      transactionContext,
+    );
+    const secondBill = await waiterOrderService.sendToCashier(
+      tableId,
+      input,
+      transactionContext,
+    );
+
+    expect(secondBill._id).toBe(firstBill._id);
+    expect(state.bills).toHaveLength(1);
+    expect(state.orders[0].billingId).toBe(firstBill._id);
+    expect(counterRepository.findOneAndUpdate).toHaveBeenCalledTimes(1);
+  });
+
   test("returns a controlled error after bounded bill-number retries", async () => {
     const duplicate = Object.assign(new Error("duplicate bill number"), {
       code: 11000,
@@ -312,7 +344,7 @@ describe("Send Table to Cashier transaction", () => {
 
   test.each([
     ["bill creation", "billCreate"],
-    ["order update", "orderUpdate"],
+    ["billing linkage", "orderUpdate"],
     ["table update", "tableUpdate"],
   ])("rolls back all writes when %s fails", async (_label, failureKey) => {
     const originalError = new Error(`${failureKey} failed`);

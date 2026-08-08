@@ -9,7 +9,7 @@ const adminSettingsRouter = express.Router();
 adminSettingsRouter.use(userAuth);
 adminSettingsRouter.get(
   "/settings",
-  allowRoles(["admin", "manager", "cashier"]),
+  allowRoles(["admin", "manager"]),
   allowGlobalOrSelectedBranch,
   requireBranchScope,
   controller.getSettings,

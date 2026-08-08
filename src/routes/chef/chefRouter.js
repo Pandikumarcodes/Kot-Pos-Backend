@@ -12,6 +12,7 @@ chefRouter.get("/kot", controller.listActiveOrders);
 chefRouter.get("/kot/:orderId", validateOrderId, controller.getOrder);
 chefRouter.put("/kot/:orderId/start", validateOrderId, controller.startOrder);
 chefRouter.put("/kot/:orderId/ready", validateOrderId, controller.markReady);
+chefRouter.put("/kot/:orderId/served", validateOrderId, controller.markServed);
 chefRouter.put("/kot/:orderId/cancel", validateOrderId, controller.cancelOrder);
 chefRouter.use(handleControllerError);
 
