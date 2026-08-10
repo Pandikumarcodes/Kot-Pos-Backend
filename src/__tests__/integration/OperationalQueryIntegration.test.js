@@ -25,6 +25,7 @@ jest.mock("../../repositories/TakeawayOrderRepository", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const orderRepository = require("../../repositories/OrderRepository");
 const billingRepository = require("../../repositories/BillingRepository");
 const kitchenRepository = require("../../repositories/KitchenRepository");
@@ -111,6 +112,7 @@ const get = (app, path, role) => request(app).get(path)
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockActiveBranch(BRANCH_A);
   User.findById.mockImplementation(async (id) => ({
     _id: id,
     role: String(id).split(":")[0],

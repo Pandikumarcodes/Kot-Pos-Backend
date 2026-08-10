@@ -24,6 +24,7 @@ jest.mock("../../models/billings");
 jest.mock("../../models/Inventory");
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const MenuItem = require("../../models/menuItems");
 const Customer = require("../../models/customer");
 const Table = require("../../models/tables");
@@ -84,6 +85,7 @@ const NOSQL_PAYLOADS = [
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockActiveBranch(VALID_BRANCH_ID);
 });
 
 // ─────────────────────────────────────────────────────────────

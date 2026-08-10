@@ -5,6 +5,8 @@ const controller = require("../../controllers/branchController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
   validateBranchCreate,
+  validateBranchAdminAssignment,
+  validateBranchAdminCreate,
   validateBranchId,
   validateBranchStaff,
   validateBranchUpdate,
@@ -39,6 +41,20 @@ router.post(
   requireSuperAdmin,
   validateBranchStaff,
   controller.assignStaff,
+);
+router.post(
+  "/branches/:id/assign-admin",
+  userAuth,
+  requireSuperAdmin,
+  validateBranchAdminAssignment,
+  controller.assignBranchAdmin,
+);
+router.post(
+  "/branches/:id/admin",
+  userAuth,
+  requireSuperAdmin,
+  validateBranchAdminCreate,
+  controller.createBranchAdmin,
 );
 router.post(
   "/branches/:id/remove-staff",

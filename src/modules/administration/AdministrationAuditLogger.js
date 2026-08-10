@@ -175,6 +175,25 @@ class AdministrationAuditLogger {
       before: { isActive: previousActive }, after: { isActive: branch.isActive } }, options);
   }
 
+  branchAdminAssigned({ context, branchId, newAdmin }, options) {
+    return this.changed({ action: AUDIT_ACTIONS.BRANCH_ADMIN_ASSIGN, context,
+      entityId: branchId, operation: CHANGE_OPERATIONS.UPDATE,
+      before: { adminUser: null },
+      after: { adminUser: identifier(newAdmin?._id ?? newAdmin?.id ?? newAdmin) },
+      metadata: { newAdmin: identifier(newAdmin?._id ?? newAdmin?.id ?? newAdmin) } }, options);
+  }
+
+  branchAdminReplaced({ context, branchId, previousAdmin, newAdmin }, options) {
+    return this.changed({ action: AUDIT_ACTIONS.BRANCH_ADMIN_REPLACE, context,
+      entityId: branchId, operation: CHANGE_OPERATIONS.UPDATE,
+      before: { adminUser: identifier(previousAdmin?._id ?? previousAdmin?.id ?? previousAdmin) },
+      after: { adminUser: identifier(newAdmin?._id ?? newAdmin?.id ?? newAdmin) },
+      metadata: {
+        previousAdmin: identifier(previousAdmin?._id ?? previousAdmin?.id ?? previousAdmin),
+        newAdmin: identifier(newAdmin?._id ?? newAdmin?.id ?? newAdmin),
+      } }, options);
+  }
+
   settingsChanged({ context, settingsId, before, after, category = "general", reset = false }, options) {
     const fields = ["businessName", "email", "phone", "address", "gstin", "currency",
       "timezone", "openTime", "closeTime", "avgServiceTime", "maxCapacity",

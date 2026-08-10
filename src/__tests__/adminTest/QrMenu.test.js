@@ -88,6 +88,18 @@ function mockKotDoc(overrides = {}) {
   };
 }
 
+function mockBranchLookup(overrides = {}) {
+  Branch.findById.mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue({
+        _id: VALID_BRANCH_ID,
+        isActive: true,
+        ...overrides,
+      }),
+    }),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // GET /api/v1/public/menu/:tableId
 // ─────────────────────────────────────────────────────────────
@@ -214,7 +226,10 @@ describe("GET /api/v1/public/menu/:tableId", () => {
 // POST /api/v1/public/order/:tableId
 // ─────────────────────────────────────────────────────────────
 describe("POST /api/v1/public/order/:tableId", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockBranchLookup();
+  });
 
   const validPayload = {
     customerName: "Ravi Kumar",
@@ -414,7 +429,10 @@ describe("POST /api/v1/public/order/:tableId", () => {
 // GET /api/v1/public/order/:orderId/status
 // ─────────────────────────────────────────────────────────────
 describe("public QR table ownership", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockBranchLookup();
+  });
 
   it("fails safely when a QR table has no persisted branch", async () => {
     Table.findById.mockReturnValue({
@@ -588,5 +606,26 @@ describe("GET /api/v1/public/order/:orderId/status", () => {
     );
 
     expect(res.status).toBe(500);
+  });
+});
+
+describe("public QR inactive branch enforcement", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("rejects public ordering when the table branch is inactive", async () => {
+    mockBranchLookup({ isActive: false });
+    Table.findById.mockReturnValue({
+      lean: jest.fn().mockResolvedValue(mockTableDoc()),
+    });
+
+    const res = await request(app)
+      .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
+      .send({ items: [{ itemId: VALID_ITEM_ID_1, quantity: 1 }] });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Branch is inactive");
+    expect(MenuItem.find).not.toHaveBeenCalled();
+    expect(Kot.create).not.toHaveBeenCalled();
+    expect(Table.findOneAndUpdate).not.toHaveBeenCalled();
   });
 });

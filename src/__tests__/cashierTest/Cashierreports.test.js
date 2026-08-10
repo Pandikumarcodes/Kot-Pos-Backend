@@ -9,6 +9,8 @@ process.env.NODE_ENV = "test";
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
+
 jest.mock("../../models/users");
 jest.mock("../../models/billings");
 jest.mock("../../config/logger", () => ({
@@ -18,6 +20,7 @@ jest.mock("../../config/logger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Billing = require("../../models/billings");
 const { cashierReportsRouter } = require("../../routes/cashier/cashierReports");
 

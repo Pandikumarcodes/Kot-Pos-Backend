@@ -31,6 +31,7 @@ jest.mock("../config/logger", () => ({
 }));
 
 const User = require("../models/users");
+const { mockActiveBranch } = require("./helpers/mockBranch");
 const Settings = require("../models/settings");
 const { RECEIPT_SETTINGS_FIELDS } = require("../services/settingsService");
 const { settingsRouter } = require("../routes/settingsRouter");
@@ -40,6 +41,8 @@ const {
 
 const BRANCH_A = new mongoose.Types.ObjectId().toString();
 const BRANCH_B = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(BRANCH_A));
 
 const app = express();
 app.use(express.json());
@@ -82,7 +85,10 @@ const settingsDocument = (businessName = "Branch A") => ({
 });
 
 describe("GET /api/v1/settings receipt contract", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockActiveBranch(BRANCH_A);
+  });
 
   it("lets a cashier read only the receipt projection for their branch", async () => {
     User.findById.mockResolvedValue(user("cashier", BRANCH_A));
@@ -127,16 +133,16 @@ describe("GET /api/v1/settings receipt contract", () => {
     expect(Settings.findOne).toHaveBeenCalledWith({ branchId: BRANCH_A });
   });
 
-  it("uses the global admin's operational branch", async () => {
-    User.findById.mockResolvedValue(user("admin", null));
+  it("does not grant superadmin branch settings access implicitly", async () => {
+    User.findById.mockResolvedValue(user("superadmin", null));
     Settings.findOne.mockResolvedValue(settingsDocument("Branch B"));
 
     const response = await request(app)
       .get(`/api/v1/settings?branchId=${BRANCH_B}`)
-      .set("Cookie", `token=${token("admin")}`);
+      .set("Cookie", `token=${token("superadmin")}`);
 
-    expect(response.status).toBe(200);
-    expect(Settings.findOne).toHaveBeenCalledWith({ branchId: BRANCH_B });
+    expect(response.status).toBe(403);
+    expect(Settings.findOne).not.toHaveBeenCalled();
   });
 });
 

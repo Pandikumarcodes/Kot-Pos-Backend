@@ -45,10 +45,10 @@ app.use("/api/v1/admin", adminBranchRouter);
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 const VALID_USER_ID = new mongoose.Types.ObjectId().toString();
 
-// Super-admin: role=admin, branchId=null
+// Super-admin has an explicit role and no branch.
 function makeSuperAdminToken() {
   return jwt.sign(
-    { _id: "admin_id", username: "superadmin", role: "admin", branchId: null },
+    { _id: "admin_id", username: "superadmin", role: "superadmin", branchId: null },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
@@ -66,7 +66,7 @@ function mockSuperAdminDoc() {
   return {
     _id: "admin_id",
     username: "superadmin",
-    role: "admin",
+    role: "superadmin",
     branchId: null,
   };
 }
@@ -218,6 +218,7 @@ describe("PUT /api/v1/admin/branches/:id", () => {
 
   it("200 — super-admin can update a branch", async () => {
     User.findById.mockResolvedValue(mockSuperAdminDoc());
+    Branch.findById.mockResolvedValue(mockBranchDoc());
     Branch.findByIdAndUpdate.mockResolvedValue(
       mockBranchDoc({ name: "Updated Branch" }),
     );
@@ -233,6 +234,8 @@ describe("PUT /api/v1/admin/branches/:id", () => {
 
   it("404 — returns 404 when branch not found", async () => {
     User.findById.mockResolvedValue(mockSuperAdminDoc());
+    Branch.findById.mockResolvedValue(null);
+    Branch.findByIdAndUpdate.mockReset();
     Branch.findByIdAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
@@ -274,6 +277,7 @@ describe("DELETE /api/v1/admin/branches/:id", () => {
 
   it("404 — returns 404 when branch not found", async () => {
     User.findById.mockResolvedValue(mockSuperAdminDoc());
+    Branch.findByIdAndUpdate.mockReset();
     Branch.findByIdAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
@@ -335,7 +339,7 @@ describe("POST /api/v1/admin/branches/:id/assign-staff", () => {
   it("400 — rejects assigning super-admin to a branch", async () => {
     User.findById
       .mockResolvedValueOnce(mockSuperAdminDoc())
-      .mockResolvedValueOnce(mockUserDoc({ role: "admin", branchId: null }));
+      .mockResolvedValueOnce(mockUserDoc({ role: "superadmin", branchId: null }));
     Branch.findById.mockResolvedValue(mockBranchDoc());
 
     const res = await request(app)

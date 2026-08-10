@@ -53,6 +53,9 @@ const clearRefreshToken = (userId, options = {}) =>
     options,
   );
 
+const findBranchAdmin = (branchId, options = {}) =>
+  baseRepository.findOne({ branchId, role: "admin" }, undefined, options);
+
 module.exports = {
   ...baseRepository,
   findByUsername,
@@ -62,4 +65,5 @@ module.exports = {
   updateRole,
   deleteByScope,
   clearRefreshToken,
+  findBranchAdmin,
 };

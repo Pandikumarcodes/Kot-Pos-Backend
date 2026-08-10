@@ -103,6 +103,7 @@ describe("required Table index reconciliation", () => {
     await expect(
       ensureIndexes({
         tableCollection: collection,
+        requiredBranchAdminInitializer: jest.fn(),
         optionalInitializer: jest.fn(),
       }),
     ).rejects.toMatchObject({
@@ -118,7 +119,11 @@ describe("required Table index reconciliation", () => {
       .mockRejectedValue(new Error("optional unavailable"));
 
     await expect(
-      ensureIndexes({ tableCollection: collection, optionalInitializer }),
+      ensureIndexes({
+        tableCollection: collection,
+        requiredBranchAdminInitializer: jest.fn(),
+        optionalInitializer,
+      }),
     ).resolves.toBeUndefined();
     expect(optionalInitializer).toHaveBeenCalledTimes(1);
   });

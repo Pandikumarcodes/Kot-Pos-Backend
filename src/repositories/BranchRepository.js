@@ -26,6 +26,9 @@ const deactivate = (id, options = {}) =>
 const findFirstActive = (options = {}) =>
   baseRepository.findOne({ isActive: true }, undefined, options).lean();
 
+const findByAdminUser = (adminUser, options = {}) =>
+  baseRepository.findOne({ adminUser }, undefined, options);
+
 module.exports = {
   ...baseRepository,
   listWithAdmin,
@@ -33,4 +36,5 @@ module.exports = {
   updateBranch,
   deactivate,
   findFirstActive,
+  findByAdminUser,
 };

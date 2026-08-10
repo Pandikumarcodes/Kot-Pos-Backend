@@ -22,6 +22,7 @@ jest.mock("../../repositories/CustomerRepository", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const userRepository = require("../../repositories/UserRepository");
 const menuRepository = require("../../repositories/MenuRepository");
 const customerRepository = require("../../repositories/CustomerRepository");
@@ -92,6 +93,7 @@ const get = (app, path) => request(app).get(path).set("Cookie", `token=${token}`
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockActiveBranch(BRANCH_A);
   User.findById.mockResolvedValue({
     _id: "query-manager", role: "manager", status: "active", branchId: BRANCH_A_OBJECT_ID,
   });

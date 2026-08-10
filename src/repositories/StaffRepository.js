@@ -13,7 +13,7 @@ const listByBranch = (branchId, options = {}) =>
 const listUnassigned = (options = {}) =>
   leanQuery(userRepository
     .findMany(
-      { branchId: null, role: { $ne: "admin" } },
+      { branchId: null, role: { $ne: "superadmin" } },
       undefined,
       options,
     )

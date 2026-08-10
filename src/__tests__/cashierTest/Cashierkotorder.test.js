@@ -43,6 +43,7 @@ jest.mock("../../services/notificationservices", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const TakeAway = require("../../models/takeAway");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
@@ -68,6 +69,8 @@ app.use("/api/v1/cashier", cashierKotRouter);
 const VALID_ORDER_ID = new mongoose.Types.ObjectId().toString();
 const VALID_ITEM_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 
 function makeToken(role = "cashier", branchId = VALID_BRANCH_ID) {
   return jwt.sign(

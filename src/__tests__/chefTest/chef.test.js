@@ -9,6 +9,8 @@ process.env.NODE_ENV = "test";
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
+
 // ── Mock models ───────────────────────────────────────────────
 jest.mock("../../models/users");
 jest.mock("../../models/kot");
@@ -39,6 +41,7 @@ jest.mock("../../services/notificationservices", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Kot = require("../../models/kot");
 const { notify } = require("../../services/notificationservices");
 const { chefRouter } = require("../../routes/chef/chefRouter");
@@ -63,7 +66,7 @@ app.use("/api/v1/chef", chefRouter);
 const VALID_ORDER_ID = new mongoose.Types.ObjectId().toString();
 
 function makeToken(role = "chef") {
-  const branchId = role === "admin" ? null : VALID_BRANCH_ID;
+  const branchId = role === "superadmin" ? null : VALID_BRANCH_ID;
   return jwt.sign(
     { _id: "user_id_123", username: "testchef", role, branchId },
     process.env.JWT_SECRET,
@@ -76,7 +79,7 @@ function mockUserDoc(role = "chef") {
     _id: "user_id_123",
     username: "testchef",
     role,
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
   };
 }
 
@@ -250,6 +253,17 @@ describe("GET /api/v1/chef/kot/:orderId", () => {
 // ─────────────────────────────────────────────────────────────
 describe("PUT /api/v1/chef/kot/:orderId/start", () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it("403 — superadmin cannot start kitchen work", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("superadmin"));
+
+    const res = await request(app)
+      .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/start`)
+      .set("Cookie", `token=${makeToken("superadmin")}`);
+
+    expect(res.status).toBe(403);
+    expect(Kot.findOne).not.toHaveBeenCalled();
+  });
 
   it("200 — chef can mark order as preparing", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));

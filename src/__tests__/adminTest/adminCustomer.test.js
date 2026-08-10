@@ -16,6 +16,7 @@ jest.mock("../../config/logger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Customer = require("../../models/customer");
 const {
   adminCustomerRouter,
@@ -32,6 +33,8 @@ app.use("/api/v1/admin", adminCustomerRouter);
 
 const VALID_CUSTOMER_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 
 function makeToken(role = "admin", branchId = VALID_BRANCH_ID) {
   return jwt.sign(

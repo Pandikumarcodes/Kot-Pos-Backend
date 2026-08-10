@@ -22,6 +22,7 @@ jest.mock("../../config/logger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Table = require("../../models/tables");
 const { notify } = require("../../services/notificationservices");
 const { adminTableRouter } = require("../../routes/admin/adminTable");
@@ -51,12 +52,14 @@ function mockUserDoc(role = "admin") {
     _id: "user_id_123",
     username: "testuser",
     role,
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
   };
 }
 
 const VALID_TABLE_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 const OTHER_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
 function mockTableDoc(overrides = {}) {
@@ -151,7 +154,7 @@ describe("POST /api/v1/admin/tables", () => {
     });
   });
 
-  it("201 — allows the same table number to be checked in two branches", async () => {
+  it("201 — branch admin ignores query branch overrides", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
     Table.findOne.mockResolvedValue(null);
     Table.mockImplementation((data) => mockTableDoc(data));
@@ -172,23 +175,21 @@ describe("POST /api/v1/admin/tables", () => {
       tableNumber: 9,
     });
     expect(Table.findOne).toHaveBeenNthCalledWith(2, {
-      branchId: OTHER_BRANCH_ID,
+      branchId: VALID_BRANCH_ID,
       tableNumber: 9,
     });
   });
 
-  it("400 — global admin must select an operational branch", async () => {
-    User.findById.mockResolvedValue(mockUserDoc("admin"));
+  it("403 — superadmin cannot create operational tables", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("superadmin"));
 
     const res = await request(app)
       .post("/api/v1/admin/tables")
-      .set("Cookie", `token=${makeToken("admin")}`)
+      .set("Cookie", `token=${makeToken("superadmin")}`)
       .send({ tableNumber: 1, capacity: 4 });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe(
-      "A valid branchId query parameter is required",
-    );
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Forbidden - insufficient role");
     expect(Table.findOne).not.toHaveBeenCalled();
   });
 
@@ -271,16 +272,16 @@ describe("GET /api/v1/admin/tables", () => {
     expect(Table.find).toHaveBeenCalledWith({ branchId: VALID_BRANCH_ID });
   });
 
-  it("scopes a global admin list to the selected branch", async () => {
-    User.findById.mockResolvedValue(mockUserDoc("admin"));
+  it("403 — superadmin does not inherit table read access", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("superadmin"));
     Table.find.mockResolvedValue([mockTableDoc({ branchId: OTHER_BRANCH_ID })]);
 
     const res = await request(app)
       .get(`/api/v1/admin/tables?branchId=${OTHER_BRANCH_ID}`)
-      .set("Cookie", `token=${makeToken("admin")}`);
+      .set("Cookie", `token=${makeToken("superadmin")}`);
 
-    expect(res.status).toBe(200);
-    expect(Table.find).toHaveBeenCalledWith({ branchId: OTHER_BRANCH_ID });
+    expect(res.status).toBe(403);
+    expect(Table.find).not.toHaveBeenCalled();
   });
 
   it("200 — manager can fetch all tables", async () => {

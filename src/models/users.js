@@ -36,7 +36,14 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "waiter", "chef", "cashier", "manager"],
+      enum: [
+        "superadmin",
+        "admin",
+        "manager",
+        "waiter",
+        "chef",
+        "cashier",
+      ],
       default: "waiter",
     },
     status: {
@@ -73,6 +80,12 @@ const userSchema = new mongoose.Schema(
     },
   },
 );
+
+userSchema.pre("validate", function () {
+  if (this.role === "superadmin" && this.branchId != null) {
+    this.invalidate("branchId", "Superadmin cannot be assigned to a branch");
+  }
+});
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {

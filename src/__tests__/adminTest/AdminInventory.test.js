@@ -37,9 +37,12 @@ jest.mock("../../controllers/inventoryController", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const inventoryRouter = require("../../routes/admin/InventoryRouter");
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 const VALID_ITEM_ID = new mongoose.Types.ObjectId().toString();
 
 const app = express();

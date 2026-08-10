@@ -19,6 +19,7 @@ jest.mock("../../repositories/InventoryRepository", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const inventoryRepository = require("../../repositories/InventoryRepository");
 const inventoryRouter = require("../../routes/admin/InventoryRouter");
 
@@ -105,6 +106,7 @@ const getInventory = (query = "") =>
 describe("Inventory query integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockActiveBranch(BRANCH_A);
     User.findById.mockResolvedValue({
       _id: "inventory-query-user",
       role: "manager",

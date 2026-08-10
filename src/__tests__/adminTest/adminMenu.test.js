@@ -24,6 +24,7 @@ jest.mock("../../utils/validation", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const MenuItem = require("../../models/menuItems");
 const { validateMenuData } = require("../../utils/validation");
 const { adminMenuRouter } = require("../../routes/admin/adminMenu");
@@ -40,8 +41,10 @@ app.use("/api/v1/admin", adminMenuRouter);
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
+
 function makeToken(role = "admin") {
-  const branchId = role === "admin" ? null : VALID_BRANCH_ID;
+  const branchId = role === "superadmin" ? null : VALID_BRANCH_ID;
   return jwt.sign(
     { _id: "user_id_123", username: "testuser", role, branchId },
     process.env.JWT_SECRET,
@@ -54,7 +57,7 @@ function mockUserDoc(role = "admin") {
     _id: "user_id_123",
     username: "testuser",
     role,
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
   };
 }
 

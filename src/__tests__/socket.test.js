@@ -3,7 +3,9 @@ const jwt = require("jsonwebtoken");
 process.env.JWT_SECRET = "socket_test_secret";
 
 jest.mock("../models/users");
+jest.mock("../models/Branch", () => ({ findById: jest.fn() }));
 const User = require("../models/users");
+const Branch = require("../models/Branch");
 
 const {
   authenticateSocket,
@@ -25,6 +27,14 @@ const makeSocket = (overrides = {}) => ({
 const makeToken = (userId = "user_123") =>
   jwt.sign({ _id: userId }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
+const mockBranchActive = (isActive = true) => {
+  Branch.findById.mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue({ _id: "branch_123", isActive }),
+    }),
+  });
+};
+
 describe("Socket.IO authentication", () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -32,6 +42,7 @@ describe("Socket.IO authentication", () => {
     const socket = makeSocket({ handshake: { auth: { token: makeToken() }, headers: {} } });
     const user = { _id: "user_123", role: "chef", branchId: "branch_123", status: "active" };
     User.findById.mockResolvedValue(user);
+    mockBranchActive(true);
     const next = jest.fn();
 
     await authenticateSocket(socket, next);
@@ -39,6 +50,23 @@ describe("Socket.IO authentication", () => {
     expect(next).toHaveBeenCalledWith();
     expect(socket.data.user).toEqual({ id: "user_123", role: "chef", branchId: "branch_123" });
     expect(getSocketRoom(socket.data.user)).toBe("branch:branch_123:role:chef");
+  });
+
+  it("rejects branch staff assigned to an inactive branch", async () => {
+    const socket = makeSocket({ handshake: { auth: { token: makeToken() }, headers: {} } });
+    User.findById.mockResolvedValue({
+      _id: "user_123",
+      role: "waiter",
+      branchId: "branch_123",
+      status: "active",
+    });
+    mockBranchActive(false);
+    const next = jest.fn();
+
+    await authenticateSocket(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: "Unauthorized" }));
+    expect(socket.data.user).toBeUndefined();
   });
 
   it("rejects a missing or invalid user even with a valid JWT", async () => {
@@ -55,6 +83,45 @@ describe("Socket.IO authentication", () => {
   it("rejects inactive accounts", async () => {
     const socket = makeSocket({ handshake: { auth: { token: makeToken() }, headers: {} } });
     User.findById.mockResolvedValue({ _id: "user_123", role: "admin", status: "locked" });
+    const next = jest.fn();
+
+    await authenticateSocket(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: "Unauthorized" }));
+  });
+
+  it("authenticates a branchless superadmin in its distinct global room", async () => {
+    const socket = makeSocket({ handshake: { auth: { token: makeToken() }, headers: {} } });
+    User.findById.mockResolvedValue({
+      _id: "user_123", role: "superadmin", branchId: null, status: "active",
+    });
+    const next = jest.fn();
+
+    await authenticateSocket(socket, next);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(getSocketRoom(socket.data.user)).toBe("branch:global:role:superadmin");
+    expect(Branch.findById).not.toHaveBeenCalled();
+  });
+
+  it("does not infer global identity for a branchless admin", async () => {
+    const socket = makeSocket({ handshake: { auth: { token: makeToken() }, headers: {} } });
+    User.findById.mockResolvedValue({
+      _id: "user_123", role: "admin", branchId: null, status: "active",
+    });
+    const next = jest.fn();
+
+    await authenticateSocket(socket, next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: "Unauthorized" }));
+    expect(socket.data.user).toBeUndefined();
+  });
+
+  it("rejects a branch-assigned superadmin", async () => {
+    const socket = makeSocket({ handshake: { auth: { token: makeToken() }, headers: {} } });
+    User.findById.mockResolvedValue({
+      _id: "user_123", role: "superadmin", branchId: "branch_123", status: "active",
+    });
     const next = jest.fn();
 
     await authenticateSocket(socket, next);
@@ -108,9 +175,8 @@ describe("table:updated invalidation", () => {
       "branch:branch_operational:role:admin",
       "branch:branch_operational:role:manager",
       "branch:branch_operational:role:waiter",
-      "branch:global:role:admin",
     ]);
-    expect(io.emit).toHaveBeenCalledTimes(4);
+    expect(io.emit).toHaveBeenCalledTimes(3);
     expect(io.emit).toHaveBeenCalledWith(EVENTS.TABLE_UPDATED, table);
   });
 

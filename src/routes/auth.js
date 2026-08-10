@@ -14,7 +14,7 @@ authRouter.post("/login", validateLogin, controller.login);
 authRouter.get(
   "/me",
   userAuth,
-  allowRoles(["admin", "manager", "waiter", "chef", "cashier"]),
+  allowRoles(["superadmin", "admin", "manager", "waiter", "chef", "cashier"]),
   controller.me,
 );
 authRouter.post("/refresh", controller.refresh);

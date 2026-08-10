@@ -77,6 +77,7 @@ app.use("/api/v1/chef", chefRouter);
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 const VALID_ID = new mongoose.Types.ObjectId().toString();
 const User = require("../../models/users");
+const Branch = require("../../models/Branch");
 
 function makeToken(role, branchId = VALID_BRANCH_ID) {
   return jwt.sign(
@@ -103,7 +104,17 @@ const tokens = {
   chef: makeToken("chef"),
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  Branch.findById.mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      lean: jest.fn().mockResolvedValue({
+        _id: VALID_BRANCH_ID,
+        isActive: true,
+      }),
+    }),
+  });
+});
 
 // ── Helpers ───────────────────────────────────────────────────
 async function expectBlocked(method, url, role) {

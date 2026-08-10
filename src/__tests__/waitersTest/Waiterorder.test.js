@@ -58,6 +58,7 @@ jest.mock("../../modules/orders/OrderAuditLogger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const TableOrder = require("../../models/waiter");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
@@ -88,18 +89,11 @@ const VALID_ORDER_ID = new mongoose.Types.ObjectId().toString();
 const VALID_ITEM_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
+
 function makeToken(role = "waiter", branchId = VALID_BRANCH_ID) {
   return jwt.sign(
     { _id: "user_id_123", username: "testuser", role, branchId },
-    process.env.JWT_SECRET,
-    { expiresIn: "15m" },
-  );
-}
-
-// Admin token has no branchId (super-admin)
-function makeAdminToken() {
-  return jwt.sign(
-    { _id: "admin_id_123", username: "admin", role: "admin", branchId: null },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );

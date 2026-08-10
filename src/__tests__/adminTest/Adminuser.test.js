@@ -32,6 +32,7 @@ jest.mock("../../utils/validation", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const { validateSignupData } = require("../../utils/validation");
 const { adminUserRouter } = require("../../routes/admin/adminUser");
 
@@ -60,7 +61,7 @@ function mockUserDoc(overrides = {}) {
     username: "testuser",
     role,
     status: "active",
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
     save: jest.fn().mockResolvedValue(true),
     ...overrides,
   };
@@ -68,6 +69,8 @@ function mockUserDoc(overrides = {}) {
 
 const VALID_USER_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/v1/admin/create-user
@@ -92,6 +95,19 @@ describe("POST /api/v1/admin/create-user", () => {
       username: "newstaff",
       role: "waiter",
     });
+  });
+
+  it("400 — generic staff creation rejects superadmin", async () => {
+    User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
+
+    const res = await request(app)
+      .post("/api/v1/admin/create-user")
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ username: "forbidden-global", password: "Test@1234!", role: "superadmin" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Superadmin cannot be created through the staff API");
+    expect(User).not.toHaveBeenCalled();
   });
 
   it("400 — rejects duplicate username", async () => {
@@ -288,6 +304,19 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("User role updated successfully");
     expect(res.body.user.newRole).toBe("chef");
+  });
+
+  it("400 — generic role updates reject superadmin", async () => {
+    User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
+
+    const res = await request(app)
+      .put(`/api/v1/admin/update-role/${VALID_USER_ID}`)
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ role: "superadmin" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid role");
+    expect(User.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it("200 — manager can update a user role", async () => {

@@ -43,6 +43,50 @@ const assignStaff = async (req, res, next) => {
     forwardError(next, err);
   }
 };
+const assignBranchAdmin = async (req, res, next) => {
+  try {
+    const { branch, user, replaced, previousAdmin } =
+      await branchService.assignBranchAdmin({
+        branchId: req.params.id,
+        userId: req.body.userId,
+      }, {
+        actorId: req.user?._id,
+        actorRole: req.user?.role,
+        branchId: req.params.id,
+      });
+    res.json({
+      message: replaced ? "Branch admin replaced" : "Branch admin assigned",
+      branch,
+      user,
+      previousAdmin,
+    });
+  } catch (err) {
+    forwardError(next, err);
+  }
+};
+const createBranchAdmin = async (req, res, next) => {
+  try {
+    const { branch, user, replaced, previousAdmin } =
+      await branchService.createBranchAdmin({
+        branchId: req.params.id,
+        username: req.body.username,
+        password: req.body.password,
+        status: req.body.status,
+      }, {
+        actorId: req.user?._id,
+        actorRole: req.user?.role,
+        branchId: req.params.id,
+      });
+    res.status(201).json({
+      message: replaced ? "Branch admin replaced" : "Branch admin created",
+      branch,
+      user,
+      previousAdmin,
+    });
+  } catch (err) {
+    forwardError(next, err);
+  }
+};
 const removeStaff = async (req, res, next) => {
   try {
     const user = await branchService.removeStaff(
@@ -81,6 +125,8 @@ module.exports = {
   createBranch,
   updateBranch,
   deactivateBranch,
+  assignBranchAdmin,
+  createBranchAdmin,
   assignStaff,
   removeStaff,
   listBranchStaff,

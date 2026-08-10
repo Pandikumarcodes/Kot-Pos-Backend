@@ -6,6 +6,23 @@ const MenuItem = require("./menuItems");
 const Branch = require("./Branch");
 
 const REQUIRED_TABLE_INDEX = Object.freeze({ branchId: 1, tableNumber: 1 });
+const REQUIRED_BRANCH_ADMIN_USER_INDEX = Object.freeze({ branchId: 1, role: 1 });
+const REQUIRED_BRANCH_ADMIN_POINTER_INDEX = Object.freeze({ adminUser: 1 });
+const BRANCH_ADMIN_USER_INDEX_OPTIONS = Object.freeze({
+  unique: true,
+  name: "uniq_user_branch_admin_per_branch",
+  partialFilterExpression: {
+    role: "admin",
+    branchId: { $type: "objectId" },
+  },
+});
+const BRANCH_ADMIN_POINTER_INDEX_OPTIONS = Object.freeze({
+  unique: true,
+  name: "uniq_branch_admin_user_when_present",
+  partialFilterExpression: {
+    adminUser: { $type: "objectId" },
+  },
+});
 
 const hasExactKey = (index, expectedKey) => {
   const actualEntries = Object.entries(index?.key || {});
@@ -28,6 +45,18 @@ const isRequiredTableIndex = (index) =>
 
 const isObsoleteGlobalTableNumberIndex = (index) =>
   index?.unique === true && hasExactKey(index, { tableNumber: 1 });
+
+const isRequiredBranchAdminUserIndex = (index) =>
+  index?.unique === true &&
+  hasExactKey(index, REQUIRED_BRANCH_ADMIN_USER_INDEX) &&
+  JSON.stringify(index.partialFilterExpression || {}) ===
+    JSON.stringify(BRANCH_ADMIN_USER_INDEX_OPTIONS.partialFilterExpression);
+
+const isRequiredBranchAdminPointerIndex = (index) =>
+  index?.unique === true &&
+  hasExactKey(index, REQUIRED_BRANCH_ADMIN_POINTER_INDEX) &&
+  JSON.stringify(index.partialFilterExpression || {}) ===
+    JSON.stringify(BRANCH_ADMIN_POINTER_INDEX_OPTIONS.partialFilterExpression);
 
 const listTableIndexes = async (collection) => {
   try {
@@ -66,6 +95,66 @@ async function ensureRequiredTableIndexes(collection = Table.collection) {
     throw new Error(
       "Obsolete global Table tableNumber unique index remains after reconciliation",
     );
+  }
+}
+
+async function assertNoDuplicateBranchAdmins() {
+  const conflicts = await User.aggregate([
+    { $match: { role: "admin", branchId: { $type: "objectId" } } },
+    { $group: { _id: "$branchId", count: { $sum: 1 }, users: { $push: "$_id" } } },
+    { $match: { count: { $gt: 1 } } },
+    { $limit: 1 },
+  ]);
+  if (conflicts.length) {
+    throw new Error(
+      `Duplicate branch admins exist for branch ${conflicts[0]._id}; reconcile data before startup`,
+    );
+  }
+}
+
+async function assertNoDuplicateBranchAdminPointers() {
+  const conflicts = await Branch.aggregate([
+    { $match: { adminUser: { $type: "objectId" } } },
+    { $group: { _id: "$adminUser", count: { $sum: 1 }, branches: { $push: "$_id" } } },
+    { $match: { count: { $gt: 1 } } },
+    { $limit: 1 },
+  ]);
+  if (conflicts.length) {
+    throw new Error(
+      `Branch admin user ${conflicts[0]._id} is assigned to multiple branches; reconcile data before startup`,
+    );
+  }
+}
+
+async function ensureRequiredBranchAdminIndexes({
+  userCollection = User.collection,
+  branchCollection = Branch.collection,
+} = {}) {
+  await assertNoDuplicateBranchAdmins();
+  await assertNoDuplicateBranchAdminPointers();
+
+  let userIndexes = await listTableIndexes(userCollection);
+  if (!userIndexes.some(isRequiredBranchAdminUserIndex)) {
+    await userCollection.createIndex(
+      REQUIRED_BRANCH_ADMIN_USER_INDEX,
+      BRANCH_ADMIN_USER_INDEX_OPTIONS,
+    );
+    userIndexes = await listTableIndexes(userCollection);
+  }
+  if (!userIndexes.some(isRequiredBranchAdminUserIndex)) {
+    throw new Error("Required User branch-admin unique index was not established");
+  }
+
+  let branchIndexes = await listTableIndexes(branchCollection);
+  if (!branchIndexes.some(isRequiredBranchAdminPointerIndex)) {
+    await branchCollection.createIndex(
+      REQUIRED_BRANCH_ADMIN_POINTER_INDEX,
+      BRANCH_ADMIN_POINTER_INDEX_OPTIONS,
+    );
+    branchIndexes = await listTableIndexes(branchCollection);
+  }
+  if (!branchIndexes.some(isRequiredBranchAdminPointerIndex)) {
+    throw new Error("Required Branch adminUser unique index was not established");
   }
 }
 
@@ -114,6 +203,7 @@ async function ensureOptionalIndexes() {
 
 async function ensureIndexes({
   tableCollection = Table.collection,
+  requiredBranchAdminInitializer = ensureRequiredBranchAdminIndexes,
   optionalInitializer = ensureOptionalIndexes,
 } = {}) {
   try {
@@ -121,6 +211,14 @@ async function ensureIndexes({
   } catch (err) {
     err.code = err.code || "REQUIRED_TABLE_INDEX_INITIALIZATION_FAILED";
     console.error("Required Table index initialization failed:", err.message);
+    throw err;
+  }
+
+  try {
+    await requiredBranchAdminInitializer();
+  } catch (err) {
+    err.code = err.code || "REQUIRED_BRANCH_ADMIN_INDEX_INITIALIZATION_FAILED";
+    console.error("Required index initialization failed:", err.message);
     throw err;
   }
 
@@ -134,8 +232,15 @@ async function ensureIndexes({
 
 module.exports = {
   REQUIRED_TABLE_INDEX,
+  REQUIRED_BRANCH_ADMIN_POINTER_INDEX,
+  REQUIRED_BRANCH_ADMIN_USER_INDEX,
+  BRANCH_ADMIN_POINTER_INDEX_OPTIONS,
+  BRANCH_ADMIN_USER_INDEX_OPTIONS,
+  assertNoDuplicateBranchAdminPointers,
+  assertNoDuplicateBranchAdmins,
   ensureIndexes,
   ensureOptionalIndexes,
+  ensureRequiredBranchAdminIndexes,
   ensureRequiredTableIndexes,
   hasExactKey,
   isObsoleteGlobalTableNumberIndex,

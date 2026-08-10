@@ -52,9 +52,10 @@ register([A.PERMISSION_CHANGE], E.STAFF, L.CRITICAL, R.SECURITY,
   ["permission"]);
 register(
   [A.BRANCH_CREATE, A.BRANCH_UPDATE, A.BRANCH_ACTIVATE, A.BRANCH_DEACTIVATE,
-    A.BRANCH_DELETE],
+    A.BRANCH_DELETE, A.BRANCH_ADMIN_ASSIGN, A.BRANCH_ADMIN_REPLACE],
   E.BRANCH, L.CRITICAL, R.SECURITY,
-  ["name", "address", "phone", "email", "gstin", "isActive"],
+  ["name", "address", "phone", "email", "gstin", "isActive", "adminUser",
+    "previousAdmin", "newAdmin"],
 );
 register([A.SETTINGS_CREATE, A.SETTINGS_UPDATE, A.SETTINGS_RESET], E.SETTINGS, L.CRITICAL,
   R.SECURITY,

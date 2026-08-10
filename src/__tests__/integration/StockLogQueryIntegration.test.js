@@ -15,6 +15,7 @@ jest.mock("../../repositories/StockLogRepository", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const stockLogRepository = require("../../repositories/StockLogRepository");
 const inventoryRouter = require("../../routes/admin/InventoryRouter");
 
@@ -62,6 +63,7 @@ const getLogs = (query = "") => request(app)
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockActiveBranch(BRANCH_A);
   User.findById.mockResolvedValue({
     _id: "stock-admin", role: "admin", status: "active", branchId: BRANCH_A,
   });

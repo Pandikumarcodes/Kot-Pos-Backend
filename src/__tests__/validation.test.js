@@ -75,6 +75,10 @@ describe("validateSignupData", () => {
 // validateRole
 // ─────────────────────────────────────────────────────────────
 describe("validateRole", () => {
+  it('returns "superadmin" for the explicit global role', () => {
+    expect(validateRole({ role: "superadmin" })).toBe("superadmin");
+  });
+
   it('returns "admin" for valid role admin', () => {
     expect(validateRole({ role: "admin" })).toBe("admin");
   });

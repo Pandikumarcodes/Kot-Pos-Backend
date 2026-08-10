@@ -132,6 +132,24 @@ describe("POST /api/v1/auth/signup", () => {
     expect(res.body.user.role).toBe("waiter");
   });
 
+  it("201 — ignores a requested superadmin role and creates a waiter", async () => {
+    User.findOne.mockResolvedValue(null);
+    const savedUser = mockUserDoc({ role: "waiter" });
+    User.mockImplementation(() => savedUser);
+
+    const res = await request(app).post("/api/v1/auth/signup").send({
+      username: "public-superadmin-attempt",
+      password: "Test@1234!",
+      role: "superadmin",
+    });
+
+    expect(res.status).toBe(201);
+    expect(User).toHaveBeenCalledWith(
+      expect.objectContaining({ role: "waiter" }),
+    );
+    expect(res.body.user.role).toBe("waiter");
+  });
+
   it("400 — rejects duplicate username", async () => {
     User.findOne.mockResolvedValue(mockUserDoc()); // username already exists
 
@@ -177,6 +195,26 @@ describe("POST /api/v1/auth/login", () => {
       username: "testuser",
       role: "admin",
     });
+  });
+
+  it("200 — logs in an explicit superadmin without changing the response shape", async () => {
+    User.findOne.mockResolvedValue(mockUserDoc({
+      username: "global-admin",
+      role: "superadmin",
+      branchId: null,
+    }));
+
+    const res = await request(app).post("/api/v1/auth/login").send({
+      username: "global-admin",
+      password: "Test@1234!",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.role).toBe("superadmin");
+    expect(res.body.user.branchId).toBeNull();
+    expect(Object.keys(res.body.user).sort()).toEqual(
+      ["branchId", "id", "role", "status", "username"].sort(),
+    );
   });
 
   it("200 — sets HttpOnly cookies on successful login", async () => {
@@ -309,6 +347,23 @@ describe("GET /api/v1/auth/me", () => {
     });
   });
 
+  it("200 — returns an explicit superadmin with the unchanged contract", async () => {
+    User.findById.mockResolvedValue(mockUserDoc({
+      username: "global-admin", role: "superadmin", branchId: null,
+    }));
+
+    const res = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Cookie", `token=${makeAccessToken({ role: "superadmin" })}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.role).toBe("superadmin");
+    expect(res.body.user.branchId).toBeNull();
+    expect(Object.keys(res.body.user).sort()).toEqual(
+      ["branchId", "email", "id", "name", "role"].sort(),
+    );
+  });
+
   it("200 — also accepts token via Authorization header", async () => {
     User.findById.mockResolvedValue(mockUserDoc());
 
@@ -362,6 +417,19 @@ describe("POST /api/v1/auth/refresh", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Token refreshed");
+  });
+
+  it("200 — refresh continues to work for superadmin", async () => {
+    User.findById.mockResolvedValue(mockUserDoc({
+      role: "superadmin", branchId: null,
+    }));
+
+    const res = await request(app)
+      .post("/api/v1/auth/refresh")
+      .set("Cookie", `refreshToken=${makeRefreshToken()}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: "Token refreshed" });
   });
 
   it("200 — rotates both cookies on refresh", async () => {

@@ -15,11 +15,8 @@ const emitToRoles = (io, branchId, roles, event, payload) => {
 
   roles.forEach((role) => io.to(roleRoom(branchId, role)).emit(event, payload));
 
-  // A branchless admin is the explicit super-admin role and may observe all
-  // branches. Other clients only receive their own branch room.
-  roles
-    .filter((role) => role === "admin")
-    .forEach((role) => io.to(roleRoom("global", role)).emit(event, payload));
+  // Operational events remain branch-local. Superadmin event delivery is a
+  // separate policy decision and is intentionally not inherited from admin.
 };
 
 // ─────────────────────────────────────────────────────────────

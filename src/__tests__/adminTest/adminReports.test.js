@@ -18,12 +18,15 @@ jest.mock("../../config/logger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Billing = require("../../models/billings");
 const Kot = require("../../models/kot");
 const TableOrder = require("../../models/waiter");
 const { adminReportRouter } = require("../../routes/admin/adminReportRouter");
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 
 const app = express();
 app.use(express.json());
@@ -48,7 +51,7 @@ function mockUserDoc(role = "admin") {
     _id: "user_id_123",
     username: "testuser",
     role,
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
   };
 }
 

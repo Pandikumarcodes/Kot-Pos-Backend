@@ -1,4 +1,5 @@
 const userRepository = require("../repositories/UserRepository");
+const branchRepository = require("../repositories/BranchRepository");
 const AppError = require("../utils/AppError");
 const administrationAudit = require("../modules/administration/AdministrationAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
@@ -17,7 +18,7 @@ const STAFF_QUERY_POLICY = Object.freeze({
     role: {
       field: "role",
       type: "enum",
-      values: ["admin", "waiter", "chef", "cashier", "manager"],
+      values: ["superadmin", "admin", "manager", "waiter", "chef", "cashier"],
     },
     status: {
       field: "status",
@@ -54,14 +55,39 @@ const writeFailure = async (values) => {
   }
 };
 
+const ADMIN_PROTECTED_ERROR = "Assigned Branch Admin must be replaced through the Branch Admin lifecycle";
+const BRANCH_STAFF_ROLES = new Set(["manager", "waiter", "chef", "cashier"]);
+
+const assertBranchStaffRole = (role, action = "managed") => {
+  if (role === "superadmin") {
+    throw new AppError("Superadmin cannot be assigned through the staff API", 403);
+  }
+  if (role === "admin") {
+    throw new AppError(`Admin cannot be ${action} through the staff API`, 403);
+  }
+  if (!BRANCH_STAFF_ROLES.has(role)) {
+    throw new AppError("Invalid role", 400);
+  }
+};
+
+const assertNotAssignedBranchAdmin = async (user, action) => {
+  if (!user) return;
+  if (user.role !== "admin") return;
+  const branch = await branchRepository.findByAdminUser(user._id);
+  if (!branch) return;
+  throw new AppError(`${ADMIN_PROTECTED_ERROR}; cannot ${action}`, 409);
+};
+
 const createUser = async ({ username, role, password, status }, branchId, audit = {}) => {
   const context = administrationAudit.createContext({ ...audit, branchId });
   let staffId = "staff:pending";
   try {
+    const requestedRole = role || "waiter";
+    assertBranchStaffRole(requestedRole, "created");
     if (await userRepository.findByUsername(username))
       throw new AppError("username already exists", 400);
     const user = await userRepository.createUserDocument({
-      username, role, password, status, branchId,
+      username, role: requestedRole, password, status, branchId,
     });
     staffId = user._id;
     await administrationAudit.staffCreated({ context, staff: user });
@@ -107,11 +133,22 @@ const updateUserRole = async ({ userId, role, actorRole, scopeToBranch, actorId,
   if (actorRole === "manager" && role === "admin") {
     throw new AppError("Managers cannot assign admin role", 403);
   }
+  assertBranchStaffRole(role, "assigned");
   const previous = await userRepository.findOne(
     scopeToBranch({ _id: userId }),
     "role status branchId username",
   );
   previousRole = previous?.role ?? null;
+  if (previous?.role === "superadmin") {
+    throw new AppError("Superadmin cannot be modified through the staff API", 403);
+  }
+  if (previous?.role === "admin") {
+    throw new AppError("Admin cannot be modified through the staff API", 403);
+  }
+  if (actorRole === "manager" && previous?.role === "admin") {
+    throw new AppError("Managers cannot modify admin users", 403);
+  }
+  await assertNotAssignedBranchAdmin(previous, "change role");
   const user = await userRepository.updateRole(
     scopeToBranch({ _id: userId }),
     role,
@@ -132,6 +169,18 @@ const updateUserRole = async ({ userId, role, actorRole, scopeToBranch, actorId,
 const deleteUser = async (userId, scopeToBranch, audit = {}) => {
   const context = administrationAudit.createContext(audit);
   try {
+    const existing = await userRepository.findOne(
+      scopeToBranch({ _id: userId }),
+      "role status branchId username",
+    );
+    if (!existing) throw new AppError("User not found", 404);
+    if (existing.role === "superadmin") {
+      throw new AppError("Superadmin cannot be deleted through the staff API", 403);
+    }
+    if (existing.role === "admin") {
+      throw new AppError("Admin cannot be deleted through the staff API", 403);
+    }
+    await assertNotAssignedBranchAdmin(existing, "delete");
     const user = await userRepository.deleteByScope(scopeToBranch({ _id: userId }));
     if (!user) throw new AppError("User not found", 404);
     const scopedContext = administrationAudit.createContext({ ...audit,
@@ -144,4 +193,12 @@ const deleteUser = async (userId, scopeToBranch, audit = {}) => {
   }
 };
 
-module.exports = { createUser, listUsers, updateUserRole, deleteUser };
+module.exports = {
+  ADMIN_PROTECTED_ERROR,
+  assertBranchStaffRole,
+  assertNotAssignedBranchAdmin,
+  createUser,
+  listUsers,
+  updateUserRole,
+  deleteUser,
+};

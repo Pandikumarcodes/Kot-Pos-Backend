@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/users");
+const Branch = require("../models/Branch");
 
 const BRANCH_ERRORS = Object.freeze({
   BRANCH_REQUIRED:
@@ -7,6 +8,8 @@ const BRANCH_ERRORS = Object.freeze({
   INVALID_BRANCH: "Invalid branchId",
   SELECT_BRANCH: "A valid branchId query parameter is required",
   SUPER_ADMIN_ONLY: "Super-admin access only",
+  SUPER_ADMIN_BRANCH: "Super-admin cannot be assigned to a branch",
+  BRANCH_INACTIVE: "Branch is inactive",
 });
 
 const hasBranchId = (branchId) =>
@@ -16,7 +19,7 @@ const hasBranchId = (branchId) =>
   branchId !== "";
 
 const isSuperAdminUser = (user) =>
-  user?.role === "admin" && !hasBranchId(user.branchId);
+  user?.role === "superadmin" && !hasBranchId(user.branchId);
 
 const attachBranchContext = (req, branchId, isSuperAdmin) => {
   const branchFilter = branchId ? { branchId } : {};
@@ -30,28 +33,48 @@ const attachBranchContext = (req, branchId, isSuperAdmin) => {
   });
 };
 
-function branchScope(req, res, next) {
+async function assertActiveBranch(branchId) {
+  const branch = await Branch.findById(branchId).select("isActive").lean();
+  if (!branch || branch.isActive !== true) {
+    const err = new Error(BRANCH_ERRORS.BRANCH_INACTIVE);
+    err.status = 403;
+    throw err;
+  }
+}
+
+async function branchScope(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
   const userBranchId = req.user.branchId;
-  if (hasBranchId(userBranchId)) {
-    attachBranchContext(req, userBranchId, false);
+  if (req.user.role === "superadmin") {
+    if (hasBranchId(userBranchId)) {
+      return res.status(403).json({ error: BRANCH_ERRORS.SUPER_ADMIN_BRANCH });
+    }
+
+    const requestedBranchId = req.query?.branchId;
+    if (requestedBranchId && !mongoose.isValidObjectId(requestedBranchId)) {
+      return res.status(400).json({ error: BRANCH_ERRORS.INVALID_BRANCH });
+    }
+
+    attachBranchContext(req, requestedBranchId || null, true);
     return next();
   }
 
-  if (!isSuperAdminUser(req.user)) {
-    return res.status(403).json({ error: BRANCH_ERRORS.BRANCH_REQUIRED });
+  if (hasBranchId(userBranchId)) {
+    try {
+      await assertActiveBranch(userBranchId);
+      attachBranchContext(req, userBranchId, false);
+      return next();
+    } catch (err) {
+      const status = err.status || 500;
+      const message = status === 403 ? BRANCH_ERRORS.BRANCH_INACTIVE : err.message;
+      return res.status(status).json({ error: message });
+    }
   }
 
-  const requestedBranchId = req.query?.branchId;
-  if (requestedBranchId && !mongoose.isValidObjectId(requestedBranchId)) {
-    return res.status(400).json({ error: BRANCH_ERRORS.INVALID_BRANCH });
-  }
-
-  attachBranchContext(req, requestedBranchId || null, true);
-  return next();
+  return res.status(403).json({ error: BRANCH_ERRORS.BRANCH_REQUIRED });
 }
 
 function requireBranch(req, res, next) {
@@ -111,3 +134,4 @@ module.exports.requireSuperAdmin = requireSuperAdmin;
 module.exports.branchMemberScope = branchMemberScope;
 module.exports.isSuperAdminUser = isSuperAdminUser;
 module.exports.BRANCH_ERRORS = BRANCH_ERRORS;
+module.exports.assertActiveBranch = assertActiveBranch;

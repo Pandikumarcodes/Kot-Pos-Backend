@@ -2,9 +2,22 @@ const tableRepository = require("../repositories/TableRepository");
 const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const settingsRepository = require("../repositories/SettingsRepository");
+const Branch = require("../models/Branch");
 const AppError = require("../utils/AppError");
 const { cache, cacheKeys } = require("../infrastructure/cache");
 const { notify } = require("./notificationservices");
+
+const findBranchStatus = async (branchId) => {
+  const query = Branch.findById(branchId);
+  return query?.select ? query.select("isActive").lean() : query;
+};
+
+const assertPublicOrderingBranchActive = async (branchId) => {
+  const branch = await findBranchStatus(branchId);
+  if (!branch || branch.isActive !== true) {
+    throw new AppError("Branch is inactive", 403);
+  }
+};
 
 const getQrMenu = async (tableId) => {
   const table = await tableRepository.findByIdLean(tableId);
@@ -68,6 +81,7 @@ const placePublicOrder = async (
       400,
     );
   }
+  await assertPublicOrderingBranchActive(branchId);
   const menuItems = await menuRepository.findByIds(
     items.map((item) => item.itemId),
     { availableOnly: true, lean: true },

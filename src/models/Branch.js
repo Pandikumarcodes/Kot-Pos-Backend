@@ -17,6 +17,7 @@ const branchSchema = new mongoose.Schema(
     adminUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: null,
     },
   },
   { timestamps: true },

@@ -26,6 +26,7 @@ jest.mock("../../services/notificationservices", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Table = require("../../models/tables");
 const { notify } = require("../../services/notificationservices");
 const { waiterTableRouter } = require("../../routes/waiter/waiterTableRouter");
@@ -50,6 +51,8 @@ app.use("/api/v1/waiter", waiterTableRouter);
 const VALID_TABLE_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
+
 function makeToken(role = "waiter") {
   return jwt.sign(
     { _id: "user_id_123", username: "testuser", role },
@@ -63,7 +66,7 @@ function mockUserDoc(role = "waiter") {
     _id: "user_id_123",
     username: "testuser",
     role,
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
   };
 }
 
@@ -157,21 +160,18 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
     );
   });
 
-  it("200 — Global Admin uses the resolved operational branch", async () => {
-    User.findById.mockResolvedValue(mockUserDoc("admin"));
+  it("403 — superadmin cannot allocate a table", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("superadmin"));
     const table = mockTableDoc();
     Table.findOne.mockResolvedValue(table);
 
     const res = await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
-      .set("Cookie", `token=${makeToken("admin")}`)
+      .set("Cookie", `token=${makeToken("superadmin")}`)
       .send({ name: "Arjun", phone: "9876543210" });
 
-    expect(res.status).toBe(200);
-    expect(notify.tableUpdated).toHaveBeenCalledWith(
-      mockIo,
-      table,
-    );
+    expect(res.status).toBe(403);
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
   });
 
   it("200 — branch-assigned waiter ignores a selected branch", async () => {

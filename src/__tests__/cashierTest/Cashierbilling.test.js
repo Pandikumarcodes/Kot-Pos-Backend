@@ -42,6 +42,7 @@ jest.mock("../../modules/billing/BillingAuditLogger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Billing = require("../../models/billings");
 const MenuItem = require("../../models/menuItems");
 const Table = require("../../models/tables");
@@ -77,6 +78,8 @@ afterAll(() => {
 const VALID_BILL_ID = new mongoose.Types.ObjectId().toString();
 const VALID_ITEM_ID = new mongoose.Types.ObjectId().toString();
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 
 function makeToken(role = "cashier", branchId = VALID_BRANCH_ID) {
   return jwt.sign(
@@ -129,6 +132,18 @@ function mockBillDoc(overrides = {}) {
 // ─────────────────────────────────────────────────────────────
 describe("POST /api/v1/cashier/billing", () => {
   beforeEach(() => jest.clearAllMocks());
+
+  it("403 — superadmin cannot create an operational bill", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("superadmin", null));
+
+    const res = await request(app)
+      .post("/api/v1/cashier/billing")
+      .set("Cookie", `token=${makeToken("superadmin", null)}`)
+      .send({});
+
+    expect(res.status).toBe(403);
+    expect(Billing).not.toHaveBeenCalled();
+  });
 
   const validPayload = {
     customerName: "Ravi Kumar",

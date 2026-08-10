@@ -21,12 +21,15 @@ jest.mock("../../config/logger", () => ({
 }));
 
 const User = require("../../models/users");
+const { mockActiveBranch } = require("../helpers/mockBranch");
 const Settings = require("../../models/settings");
 const {
   adminSettingsRouter,
 } = require("../../routes/admin/adminSettingsRouter");
 
 const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
+beforeEach(() => mockActiveBranch(VALID_BRANCH_ID));
 
 const app = express();
 app.use(express.json());
@@ -51,7 +54,7 @@ function mockUserDoc(role = "admin") {
     _id: "user_id_123",
     username: "testuser",
     role,
-    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+    branchId: role === "superadmin" ? null : VALID_BRANCH_ID,
   };
 }
 
@@ -105,7 +108,7 @@ describe("GET /api/v1/admin/settings", () => {
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
-    expect(Settings.create).toHaveBeenCalledWith({ branchId: null });
+    expect(Settings.create).toHaveBeenCalledWith({ branchId: VALID_BRANCH_ID });
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -176,7 +179,7 @@ describe("PUT /api/v1/admin/settings", () => {
     expect(res.status).toBe(200);
     expect(Settings.create).toHaveBeenCalledWith({
       ...validPayload,
-      branchId: null,
+      branchId: VALID_BRANCH_ID,
     });
   });
 

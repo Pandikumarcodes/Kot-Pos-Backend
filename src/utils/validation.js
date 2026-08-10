@@ -13,7 +13,7 @@ const validateSignupData = ({ username, password }) => {
 };
 
 const validateRole = ({ role }) =>
-  ["admin", "waiter", "chef", "cashier", "manager"].includes(role)
+  ["superadmin", "admin", "manager", "waiter", "chef", "cashier"].includes(role)
     ? role
     : "waiter";
 

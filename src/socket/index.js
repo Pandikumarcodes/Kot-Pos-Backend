@@ -1,7 +1,15 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/users");
+const Branch = require("../models/Branch");
 
-const SOCKET_ROLES = new Set(["admin", "manager", "chef", "waiter", "cashier"]);
+const SOCKET_ROLES = new Set([
+  "superadmin",
+  "admin",
+  "manager",
+  "chef",
+  "waiter",
+  "cashier",
+]);
 
 const getCookieValue = (cookieHeader, name) => {
   if (!cookieHeader) return null;
@@ -32,6 +40,11 @@ const getSocketRoom = (user) => {
   return `branch:${branchId}:role:${user.role}`;
 };
 
+const findBranchStatus = async (branchId) => {
+  const query = Branch.findById(branchId);
+  return query?.select ? query.select("isActive").lean() : query;
+};
+
 const authenticateSocket = async (socket, next) => {
   try {
     const token = getHandshakeToken(socket);
@@ -44,9 +57,15 @@ const authenticateSocket = async (socket, next) => {
       throw new Error("Unauthorized socket user");
     }
 
-    // Only a branchless admin is permitted to receive global events.
-    if (!user.branchId && user.role !== "admin") {
+    if (user.role === "superadmin" ? user.branchId : !user.branchId) {
       throw new Error("User has no branch assignment");
+    }
+
+    if (user.role !== "superadmin") {
+      const branch = await findBranchStatus(user.branchId);
+      if (!branch || branch.isActive !== true) {
+        throw new Error("Branch is inactive");
+      }
     }
 
     socket.data.user = {

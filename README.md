@@ -798,3 +798,15 @@ Protected routes require a valid JWT stored in an HTTP-only cookie (set on login
 ## 📄 License
 
 [MIT](LICENSE)
+
+# RBAC Phase 2 database migration requirement
+
+Global administration now requires the explicit `superadmin` role with
+`branchId: null`. Existing branchless `admin` records are deliberately not
+converted during application startup. Before deploying this phase, choose one
+intended global administrator (for example, either `admin` or `admin_test`),
+verify that its `branchId` is null, and update only that selected record's role
+to `superadmin` using an audited, operator-run database command. Do not bulk
+convert every branchless admin. Until one record is explicitly migrated, login
+and refresh remain compatible, but global branch-management routes will
+correctly reject the legacy branchless admin records.
