@@ -7,9 +7,22 @@ const mongoose = require("mongoose");
 process.env.JWT_SECRET = "test_jwt_secret";
 process.env.NODE_ENV = "test";
 
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
 // ── Mock models ───────────────────────────────────────────────
 jest.mock("../../models/users");
 jest.mock("../../models/kot");
+jest.mock("../../infrastructure/transaction/TransactionManager", () =>
+  jest.fn().mockImplementation(() => ({
+    execute: jest.fn((work) => work({ id: "kitchen-test-session" })),
+  })),
+);
+jest.mock("../../modules/orders/OrderAuditLogger", () => ({
+  createContext: jest.fn((values = {}) => ({ correlationId: "test-correlation", ...values })),
+  kitchenAction: jest.fn(() => "KITCHEN_STATUS_CHANGED"),
+  kitchenStatusChanged: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
@@ -50,15 +63,21 @@ app.use("/api/v1/chef", chefRouter);
 const VALID_ORDER_ID = new mongoose.Types.ObjectId().toString();
 
 function makeToken(role = "chef") {
+  const branchId = role === "admin" ? null : VALID_BRANCH_ID;
   return jwt.sign(
-    { _id: "user_id_123", username: "testchef", role },
+    { _id: "user_id_123", username: "testchef", role, branchId },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
 }
 
 function mockUserDoc(role = "chef") {
-  return { _id: "user_id_123", username: "testchef", role };
+  return {
+    _id: "user_id_123",
+    username: "testchef",
+    role,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+  };
 }
 
 function mockKotDoc(overrides = {}) {
@@ -187,7 +206,7 @@ describe("GET /api/v1/chef/kot/:orderId", () => {
 
   it("200 — chef can fetch a single KOT order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findById.mockResolvedValue(mockKotDoc());
+    Kot.findOne.mockResolvedValue(mockKotDoc());
 
     const res = await request(app)
       .get(`/api/v1/chef/kot/${VALID_ORDER_ID}`)
@@ -200,7 +219,7 @@ describe("GET /api/v1/chef/kot/:orderId", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findById.mockResolvedValue(null);
+    Kot.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .get(`/api/v1/chef/kot/${VALID_ORDER_ID}`)
@@ -234,7 +253,8 @@ describe("PUT /api/v1/chef/kot/:orderId/start", () => {
 
   it("200 — chef can mark order as preparing", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findByIdAndUpdate.mockResolvedValue(
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(
       mockKotDoc({ status: "preparing" }),
     );
 
@@ -250,7 +270,8 @@ describe("PUT /api/v1/chef/kot/:orderId/start", () => {
   it("200 — calls notify.kotUpdated after marking preparing", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
     const order = mockKotDoc({ status: "preparing" });
-    Kot.findByIdAndUpdate.mockResolvedValue(order);
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(order);
 
     await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/start`)
@@ -261,7 +282,7 @@ describe("PUT /api/v1/chef/kot/:orderId/start", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findByIdAndUpdate.mockResolvedValue(null);
+    Kot.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/start`)
@@ -307,7 +328,8 @@ describe("PUT /api/v1/chef/kot/:orderId/ready", () => {
 
   it("200 — chef can mark order as ready", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findByIdAndUpdate.mockResolvedValue(mockKotDoc({ status: "ready" }));
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(mockKotDoc({ status: "ready" }));
 
     const res = await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/ready`)
@@ -321,7 +343,8 @@ describe("PUT /api/v1/chef/kot/:orderId/ready", () => {
   it("200 — calls notify.kotUpdated after marking ready", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
     const order = mockKotDoc({ status: "ready" });
-    Kot.findByIdAndUpdate.mockResolvedValue(order);
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(order);
 
     await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/ready`)
@@ -332,7 +355,7 @@ describe("PUT /api/v1/chef/kot/:orderId/ready", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findByIdAndUpdate.mockResolvedValue(null);
+    Kot.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/ready`)
@@ -368,7 +391,8 @@ describe("PUT /api/v1/chef/kot/:orderId/cancel", () => {
 
   it("200 — chef can cancel an order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findByIdAndUpdate.mockResolvedValue(
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(
       mockKotDoc({ status: "cancelled" }),
     );
 
@@ -384,7 +408,8 @@ describe("PUT /api/v1/chef/kot/:orderId/cancel", () => {
   it("200 — calls notify.kotUpdated after cancelling", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
     const order = mockKotDoc({ status: "cancelled" });
-    Kot.findByIdAndUpdate.mockResolvedValue(order);
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(order);
 
     await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/cancel`)
@@ -395,7 +420,8 @@ describe("PUT /api/v1/chef/kot/:orderId/cancel", () => {
 
   it("200 — admin can cancel an order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Kot.findByIdAndUpdate.mockResolvedValue(
+    Kot.findOne.mockResolvedValue(mockKotDoc());
+    Kot.findOneAndUpdate.mockResolvedValue(
       mockKotDoc({ status: "cancelled" }),
     );
 
@@ -408,7 +434,7 @@ describe("PUT /api/v1/chef/kot/:orderId/cancel", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
-    Kot.findByIdAndUpdate.mockResolvedValue(null);
+    Kot.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/chef/kot/${VALID_ORDER_ID}/cancel`)

@@ -47,7 +47,12 @@ function makeToken(role = "admin") {
 }
 
 function mockUserDoc(role = "admin") {
-  return { _id: "user_id_123", username: "testuser", role };
+  return {
+    _id: "user_id_123",
+    username: "testuser",
+    role,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+  };
 }
 
 function mockSettingsDoc(overrides = {}) {
@@ -100,7 +105,7 @@ describe("GET /api/v1/admin/settings", () => {
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
-    expect(Settings.create).toHaveBeenCalledWith({});
+    expect(Settings.create).toHaveBeenCalledWith({ branchId: null });
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -169,7 +174,10 @@ describe("PUT /api/v1/admin/settings", () => {
       .send(validPayload);
 
     expect(res.status).toBe(200);
-    expect(Settings.create).toHaveBeenCalledWith(validPayload);
+    expect(Settings.create).toHaveBeenCalledWith({
+      ...validPayload,
+      branchId: null,
+    });
   });
 
   it("401 — rejects unauthenticated request", async () => {

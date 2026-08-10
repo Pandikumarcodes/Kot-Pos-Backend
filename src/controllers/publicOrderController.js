@@ -10,7 +10,9 @@ const getQrMenu = async (req, res, next) => {
 };
 const placeOrder = async (req, res, next) => {
   try {
-    const result = await service.placePublicOrder(req.params.tableId, req.body);
+    const result = await service.placePublicOrder(req.params.tableId, req.body, {
+      io: req.app.get("io"),
+    });
     res
       .status(201)
       .json({ message: "Order placed! Kitchen has been notified.", ...result });

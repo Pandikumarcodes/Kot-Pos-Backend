@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const tableSchema = new mongoose.Schema(
   {
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: true,
+    },
     currentCustomer: {
       name: String,
       phone: String,
@@ -9,7 +14,6 @@ const tableSchema = new mongoose.Schema(
     tableNumber: {
       type: Number,
       required: false,
-      unique: true,
     },
     capacity: {
       type: Number,
@@ -17,7 +21,7 @@ const tableSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["available", "occupied", "reserved"],
+      enum: ["available", "occupied", "reserved", "billing"],
       default: "available",
     },
     assignedWaiter: {
@@ -28,6 +32,8 @@ const tableSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+tableSchema.index({ branchId: 1, tableNumber: 1 }, { unique: true });
 
 const Table = mongoose.model("Table", tableSchema);
 

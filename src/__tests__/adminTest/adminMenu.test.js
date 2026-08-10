@@ -38,16 +38,24 @@ app.use("/api/v1/admin", adminMenuRouter);
 // Helpers
 // ─────────────────────────────────────────────────────────────
 
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
 function makeToken(role = "admin") {
+  const branchId = role === "admin" ? null : VALID_BRANCH_ID;
   return jwt.sign(
-    { _id: "user_id_123", username: "testuser", role },
+    { _id: "user_id_123", username: "testuser", role, branchId },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
 }
 
 function mockUserDoc(role = "admin") {
-  return { _id: "user_id_123", username: "testuser", role };
+  return {
+    _id: "user_id_123",
+    username: "testuser",
+    role,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+  };
 }
 
 const VALID_ITEM_ID = new mongoose.Types.ObjectId().toString();

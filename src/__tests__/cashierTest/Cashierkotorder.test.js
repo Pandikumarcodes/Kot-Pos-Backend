@@ -26,8 +26,13 @@ jest.mock("../../config/logger", () => ({
 }));
 
 // ── Mock inventory controller ─────────────────────────────────
-jest.mock("../../controllers/inventoryController", () => ({
+jest.mock("../../services/inventoryService", () => ({
   deductStockForKot: jest.fn().mockResolvedValue(true),
+}));
+jest.mock("../../modules/orders/OrderAuditLogger", () => ({
+  createContext: jest.fn((values = {}) => ({ correlationId: "test-correlation", ...values })),
+  sentToKitchen: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
 }));
 
 // ── Mock notification service ─────────────────────────────────
@@ -324,7 +329,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/received", () => {
 
   it("200 — marks order as received", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findByIdAndUpdate.mockResolvedValue(
+    TakeAway.findOneAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "received" }),
     );
 
@@ -338,7 +343,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/received", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findByIdAndUpdate.mockResolvedValue(null);
+    TakeAway.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/received`)
@@ -364,7 +369,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/cancel", () => {
 
   it("200 — cashier can cancel a takeaway order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findByIdAndUpdate.mockResolvedValue(
+    TakeAway.findOneAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "cancelled" }),
     );
 
@@ -378,7 +383,7 @@ describe("PUT /api/v1/cashier/takeaway/:orderId/cancel", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    TakeAway.findByIdAndUpdate.mockResolvedValue(null);
+    TakeAway.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/cashier/takeaway/${VALID_ORDER_ID}/cancel`)

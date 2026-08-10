@@ -18,8 +18,8 @@ jest.mock("../../repositories/OrderRepository", () => ({
   updateManyStatus: jest.fn(),
 }));
 jest.mock("../../repositories/TableRepository", () => ({
-  findById: jest.fn(),
-  updateState: jest.fn(),
+  findByIdAndBranch: jest.fn(),
+  updateByIdAndBranch: jest.fn(),
 }));
 jest.mock("../../repositories/MenuRepository", () => ({}));
 jest.mock("../../repositories/KitchenRepository", () => ({}));
@@ -27,6 +27,7 @@ jest.mock("../../services/inventoryService", () => ({}));
 jest.mock("../../services/notificationservices", () => ({
   notify: {
     billingUpdated: jest.fn(),
+    tableUpdated: jest.fn(),
   },
 }));
 jest.mock("../../modules/billing/BillingAuditLogger", () => ({
@@ -79,6 +80,7 @@ const initialState = () => ({
   tables: {
     [tableId]: {
       _id: tableId,
+      branchId: "branch-1",
       status: "occupied",
       currentCustomer: { name: "Ravi", phone: "9876543210" },
     },
@@ -163,7 +165,10 @@ beforeEach(() => {
     }
   });
 
-  tableRepository.findById.mockImplementation(async (id) => state.tables[id]);
+  tableRepository.findByIdAndBranch.mockImplementation(async (id, branchId) => {
+    const table = state.tables[id];
+    return table?.branchId === branchId ? table : null;
+  });
   orderRepository.findMany.mockImplementation(async () => state.orders);
   billingRepository.findScoped.mockImplementation(async (filter) => {
     if (filter._id) {
@@ -198,7 +203,8 @@ beforeEach(() => {
     if (failure.billUpdate) throw failure.billUpdate;
     return bill;
   });
-  tableRepository.updateState.mockImplementation(async (id, update) => {
+  tableRepository.updateByIdAndBranch.mockImplementation(async (id, branchId, update) => {
+    if (state.tables[id]?.branchId !== branchId) return null;
     state.tables[id] = { ...state.tables[id], ...clone(update) };
     if (failure.tableUpdate) throw failure.tableUpdate;
     return state.tables[id];
@@ -208,6 +214,11 @@ beforeEach(() => {
       throw new Error("Notification emitted before transaction commit");
     }
     if (failure.notification) throw failure.notification;
+  });
+  notify.tableUpdated.mockImplementation(() => {
+    if (transactionPhase !== "committed") {
+      throw new Error("Table notification emitted before transaction commit");
+    }
   });
 });
 
@@ -245,9 +256,9 @@ describe("Send Table to Cashier transaction", () => {
     ]);
     expect(notify.billingUpdated).toHaveBeenCalledTimes(1);
     expect(transactionPhase).toBe("committed");
-    expect(tableRepository.findById).toHaveBeenCalledWith(
+    expect(tableRepository.findByIdAndBranch).toHaveBeenCalledWith(
       tableId,
-      undefined,
+      "branch-1",
       { session },
     );
     expect(billingRepository.createBill).toHaveBeenCalledWith(
@@ -259,10 +270,15 @@ describe("Send Table to Cashier transaction", () => {
       "served",
       { session },
     );
-    expect(tableRepository.updateState).toHaveBeenCalledWith(
+    expect(tableRepository.updateByIdAndBranch).toHaveBeenCalledWith(
       tableId,
+      "branch-1",
       { status: "billing" },
-      { session },
+      { session, new: true },
+    );
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      transactionContext.io,
+      state.tables[tableId],
     );
   });
 
@@ -291,6 +307,23 @@ describe("Send Table to Cashier transaction", () => {
     ]);
     expect(transactionPhase).toBe("rolled_back");
     expect(notify.billingUpdated).not.toHaveBeenCalled();
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
+  });
+
+  test("rejects a foreign table and emits no post-commit event", async () => {
+    state.tables[tableId].branchId = "branch-2";
+    const before = clone(state);
+
+    await expect(
+      waiterOrderService.sendToCashier(tableId, input, transactionContext),
+    ).rejects.toMatchObject({ message: "Table not found", statusCode: 404 });
+
+    expect(state.bills).toEqual(before.bills);
+    expect(state.orders).toEqual(before.orders);
+    expect(state.tables).toEqual(before.tables);
+    expect(transactionPhase).toBe("rolled_back");
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
+    expect(notify.billingUpdated).not.toHaveBeenCalled();
   });
 
   test("rolls back business writes and the success audit when audit persistence fails", async () => {
@@ -313,6 +346,7 @@ describe("Send Table to Cashier transaction", () => {
         errorCode: "AUDIT_WRITE_ERROR",
       }),
     ]);
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
   });
 
   test("does not write a failure audit for a post-commit notification error", async () => {
@@ -382,10 +416,15 @@ describe("Pay Bill transaction", () => {
       expect.any(Object),
       { session },
     );
-    expect(tableRepository.updateState).toHaveBeenCalledWith(
+    expect(tableRepository.updateByIdAndBranch).toHaveBeenCalledWith(
       tableId,
+      "branch-1",
       { status: "available", currentCustomer: null },
-      { session },
+      { session, new: true },
+    );
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      transactionContext.io,
+      state.tables[tableId],
     );
     expect(notify.billingUpdated).toHaveBeenCalledTimes(1);
     expect(transactionPhase).toBe("committed");
@@ -418,6 +457,26 @@ describe("Pay Bill transaction", () => {
     ]);
     expect(transactionPhase).toBe("rolled_back");
     expect(notify.billingUpdated).not.toHaveBeenCalled();
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
+  });
+
+  test("cannot pay a cross-linked bill or release its foreign table", async () => {
+    state.tables[tableId].branchId = "branch-2";
+    const before = clone(state);
+
+    await expect(
+      billingService.payBill(billId, "cash", {
+        scopeToBranchMembers,
+        branchId: "branch-1",
+        io: transactionContext.io,
+      }),
+    ).rejects.toMatchObject({ message: "Table not found", statusCode: 404 });
+
+    expect(state.bills).toEqual(before.bills);
+    expect(state.tables).toEqual(before.tables);
+    expect(transactionPhase).toBe("rolled_back");
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
+    expect(notify.billingUpdated).not.toHaveBeenCalled();
   });
 
   test("generates failure audit outside a rolled-back payment transaction", async () => {
@@ -448,6 +507,7 @@ describe("Pay Bill transaction", () => {
         errorCode: "AUDIT_WRITE_ERROR",
       }),
     ]);
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
   });
 
   test("does not misclassify a post-commit payment notification error", async () => {

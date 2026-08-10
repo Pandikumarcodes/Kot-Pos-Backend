@@ -22,6 +22,7 @@ waiterOrderRouter.use(
 waiterOrderRouter.get("/menu", validateMenuQuery, controller.getMenu);
 waiterOrderRouter.get(
   "/orders/table/:tableId",
+  requireBranch,
   validateTableId,
   controller.getTableOrders,
 );

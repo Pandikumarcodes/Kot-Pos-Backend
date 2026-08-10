@@ -5,68 +5,140 @@ const Table = require("./tables");
 const MenuItem = require("./menuItems");
 const Branch = require("./Branch");
 
-async function ensureIndexes() {
+const REQUIRED_TABLE_INDEX = Object.freeze({ branchId: 1, tableNumber: 1 });
+
+const hasExactKey = (index, expectedKey) => {
+  const actualEntries = Object.entries(index?.key || {});
+  const expectedEntries = Object.entries(expectedKey);
+  return (
+    actualEntries.length === expectedEntries.length &&
+    expectedEntries.every(
+      ([field, direction], position) =>
+        actualEntries[position]?.[0] === field &&
+        actualEntries[position]?.[1] === direction,
+    )
+  );
+};
+
+const isRequiredTableIndex = (index) =>
+  index?.unique === true &&
+  index?.sparse !== true &&
+  !index?.partialFilterExpression &&
+  hasExactKey(index, REQUIRED_TABLE_INDEX);
+
+const isObsoleteGlobalTableNumberIndex = (index) =>
+  index?.unique === true && hasExactKey(index, { tableNumber: 1 });
+
+const listTableIndexes = async (collection) => {
   try {
-    // ── Kot ──────────────────────────────────────────────────
-    // Most queried collection — kitchen dashboard + reports + orders page
-    await Kot.collection.createIndex({ branchId: 1, status: 1 }); // kitchen filter
-    await Kot.collection.createIndex({ branchId: 1, createdAt: -1 }); // reports + orders list
-    await Kot.collection.createIndex({
-      branchId: 1,
-      orderType: 1,
-      createdAt: -1,
-    }); // dine-in vs takeaway stats
-    await Kot.collection.createIndex({ createdBy: 1, createdAt: -1 }); // waiter's own orders
-    await Kot.collection.createIndex({ tableId: 1, status: 1 }); // orders for a specific table
-    await Kot.collection.createIndex({
-      // text search
-      customerName: "text",
-      customerPhone: "text",
-    });
-
-    // ── Billing ───────────────────────────────────────────────
-    // Cashier bills list + reports revenue aggregations
-    await Billing.collection.createIndex({ branchId: 1, createdAt: -1 }); // bills list
-    await Billing.collection.createIndex({
-      branchId: 1,
-      paymentStatus: 1,
-      createdAt: -1,
-    }); // paid/unpaid filter
-    await Billing.collection.createIndex({ branchId: 1, paymentMethod: 1 }); // payment breakdown chart
-    await Billing.collection.createIndex({ createdBy: 1, createdAt: -1 }); // cashier's own bills
-    await Billing.collection.createIndex({ billNumber: 1 }, { unique: true }); // unique bill lookup
-    await Billing.collection.createIndex({
-      // text search
-      customerName: "text",
-      customerPhone: "text",
-      billNumber: "text",
-    });
-
-    // ── User ──────────────────────────────────────────────────
-    await User.collection.createIndex({ branchId: 1, role: 1 }); // staff list per branch
-    await User.collection.createIndex({ username: 1 }, { unique: true }); // login lookup (likely exists)
-    await User.collection.createIndex({ role: 1, status: 1 }); // active staff by role
-
-    // ── Table ─────────────────────────────────────────────────
-    await Table.collection.createIndex({ branchId: 1, status: 1 }); // floor view filter
-    await Table.collection.createIndex(
-      { branchId: 1, tableNumber: 1 },
-      { unique: true },
-    ); // table lookup
-
-    // ── MenuItem ──────────────────────────────────────────────
-    await MenuItem.collection.createIndex({ category: 1, available: 1 }); // menu by category
-    await MenuItem.collection.createIndex({ ItemName: "text" }); // menu search
-    await MenuItem.collection.createIndex({ available: 1 }); // filter available only
-
-    // ── Branch ────────────────────────────────────────────────
-    await Branch.collection.createIndex({ isActive: 1 }); // active branches list
-
-    console.log("✅ All DB indexes ensured");
+    return await collection.indexes();
   } catch (err) {
-    // Non-fatal — app still works without indexes, just slower
-    console.error("⚠️  Index creation warning:", err.message);
+    if (err?.code === 26 || err?.codeName === "NamespaceNotFound") return [];
+    throw err;
+  }
+};
+
+async function ensureRequiredTableIndexes(collection = Table.collection) {
+  let indexes = await listTableIndexes(collection);
+
+  if (!indexes.some(isRequiredTableIndex)) {
+    await collection.createIndex(REQUIRED_TABLE_INDEX, { unique: true });
+    indexes = await listTableIndexes(collection);
+  }
+
+  if (!indexes.some(isRequiredTableIndex)) {
+    throw new Error(
+      "Required Table index { branchId: 1, tableNumber: 1 } unique was not established",
+    );
+  }
+
+  for (const index of indexes.filter(isObsoleteGlobalTableNumberIndex)) {
+    await collection.dropIndex(index.name);
+  }
+
+  const finalIndexes = await listTableIndexes(collection);
+  if (!finalIndexes.some(isRequiredTableIndex)) {
+    throw new Error(
+      "Required Table index { branchId: 1, tableNumber: 1 } unique is missing after reconciliation",
+    );
+  }
+  if (finalIndexes.some(isObsoleteGlobalTableNumberIndex)) {
+    throw new Error(
+      "Obsolete global Table tableNumber unique index remains after reconciliation",
+    );
   }
 }
 
-module.exports = { ensureIndexes };
+async function ensureOptionalIndexes() {
+  await Kot.collection.createIndex({ branchId: 1, status: 1 });
+  await Kot.collection.createIndex({ branchId: 1, createdAt: -1 });
+  await Kot.collection.createIndex({
+    branchId: 1,
+    orderType: 1,
+    createdAt: -1,
+  });
+  await Kot.collection.createIndex({ createdBy: 1, createdAt: -1 });
+  await Kot.collection.createIndex({ tableId: 1, status: 1 });
+  await Kot.collection.createIndex({
+    customerName: "text",
+    customerPhone: "text",
+  });
+
+  await Billing.collection.createIndex({ branchId: 1, createdAt: -1 });
+  await Billing.collection.createIndex({
+    branchId: 1,
+    paymentStatus: 1,
+    createdAt: -1,
+  });
+  await Billing.collection.createIndex({ branchId: 1, paymentMethod: 1 });
+  await Billing.collection.createIndex({ createdBy: 1, createdAt: -1 });
+  await Billing.collection.createIndex({ billNumber: 1 }, { unique: true });
+  await Billing.collection.createIndex({
+    customerName: "text",
+    customerPhone: "text",
+    billNumber: "text",
+  });
+
+  await User.collection.createIndex({ branchId: 1, role: 1 });
+  await User.collection.createIndex({ username: 1 }, { unique: true });
+  await User.collection.createIndex({ role: 1, status: 1 });
+
+  // Performance-only floor-view index. Ownership uniqueness is required above.
+  await Table.collection.createIndex({ branchId: 1, status: 1 });
+
+  await MenuItem.collection.createIndex({ category: 1, available: 1 });
+  await MenuItem.collection.createIndex({ ItemName: "text" });
+  await MenuItem.collection.createIndex({ available: 1 });
+  await Branch.collection.createIndex({ isActive: 1 });
+}
+
+async function ensureIndexes({
+  tableCollection = Table.collection,
+  optionalInitializer = ensureOptionalIndexes,
+} = {}) {
+  try {
+    await ensureRequiredTableIndexes(tableCollection);
+  } catch (err) {
+    err.code = err.code || "REQUIRED_TABLE_INDEX_INITIALIZATION_FAILED";
+    console.error("Required Table index initialization failed:", err.message);
+    throw err;
+  }
+
+  try {
+    await optionalInitializer();
+    console.log("All DB indexes ensured");
+  } catch (err) {
+    console.error("Optional index creation warning:", err.message);
+  }
+}
+
+module.exports = {
+  REQUIRED_TABLE_INDEX,
+  ensureIndexes,
+  ensureOptionalIndexes,
+  ensureRequiredTableIndexes,
+  hasExactKey,
+  isObsoleteGlobalTableNumberIndex,
+  isRequiredTableIndex,
+  listTableIndexes,
+};

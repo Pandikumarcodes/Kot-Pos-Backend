@@ -29,6 +29,7 @@ jest.mock("../../config/logger", () => ({
 jest.mock("../../services/notificationservices", () => ({
   notify: {
     billingUpdated: jest.fn(),
+    tableUpdated: jest.fn(),
   },
 }));
 jest.mock("../../modules/billing/BillingAuditLogger", () => ({
@@ -116,6 +117,7 @@ function mockBillDoc(overrides = {}) {
     totalAmount: 560,
     paymentStatus: "unpaid",
     paymentMethod: "cash",
+    paidAt: null,
     tableId: null,
     save: jest.fn().mockResolvedValue(true),
     ...overrides,
@@ -140,8 +142,8 @@ describe("POST /api/v1/cashier/billing", () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
     Billing.countDocuments.mockResolvedValue(0);
     MenuItem.findById.mockResolvedValue(mockMenuItemDoc());
-    const savedBill = mockBillDoc();
-    Billing.mockImplementation(() => savedBill);
+    Billing.mockImplementation((data) => mockBillDoc(data));
+    const beforeCreate = Date.now();
 
     const res = await request(app)
       .post("/api/v1/cashier/billing")
@@ -150,7 +152,65 @@ describe("POST /api/v1/cashier/billing", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Bill generated successfully");
+    expect(res.body.bill.paymentStatus).toBe("paid");
+    expect(Number.isNaN(Date.parse(res.body.bill.paidAt))).toBe(false);
+    expect(Date.parse(res.body.bill.paidAt)).toBeGreaterThanOrEqual(beforeCreate);
+    expect(Date.parse(res.body.bill.paidAt)).toBeLessThanOrEqual(Date.now());
+    expect(Billing).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billNumber: expect.stringMatching(/^BILL-\d{8}-001$/),
+        paymentStatus: "paid",
+        paidAt: expect.any(Date),
+        createdBy: "user_id_123",
+      }),
+    );
+    expect(Billing.countDocuments).toHaveBeenCalledTimes(1);
     expect(notify.billingUpdated).toHaveBeenCalled();
+  });
+
+  it("201 - leaves paidAt null when creating an unpaid bill", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("cashier"));
+    Billing.countDocuments.mockResolvedValue(4);
+    MenuItem.findById.mockResolvedValue(mockMenuItemDoc());
+    Billing.mockImplementation((data) => mockBillDoc(data));
+
+    const res = await request(app)
+      .post("/api/v1/cashier/billing")
+      .set("Cookie", `token=${makeToken("cashier")}`)
+      .send({
+        ...validPayload,
+        paymentStatus: "unpaid",
+        paymentMethod: "none",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.bill.paymentStatus).toBe("unpaid");
+    expect(res.body.bill.paidAt).toBeNull();
+    expect(Billing).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billNumber: expect.stringMatching(/^BILL-\d{8}-005$/),
+        paidAt: null,
+        createdBy: "user_id_123",
+      }),
+    );
+  });
+
+  it("201 - ignores a client-provided paidAt override", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("cashier"));
+    Billing.countDocuments.mockResolvedValue(0);
+    MenuItem.findById.mockResolvedValue(mockMenuItemDoc());
+    Billing.mockImplementation((data) => mockBillDoc(data));
+
+    const res = await request(app)
+      .post("/api/v1/cashier/billing")
+      .set("Cookie", `token=${makeToken("cashier")}`)
+      .send({ ...validPayload, paidAt: "2000-01-01T00:00:00.000Z" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.bill.paidAt).not.toBe("2000-01-01T00:00:00.000Z");
+    expect(Billing).toHaveBeenCalledWith(
+      expect.objectContaining({ paidAt: expect.any(Date) }),
+    );
   });
 
   it("201 — admin can create a bill", async () => {
@@ -286,8 +346,12 @@ describe("GET /api/v1/cashier/bills", () => {
       .set("Cookie", `token=${makeToken("cashier")}`);
 
     expect(res.status).toBe(200);
-    expect(Billing.find).toHaveBeenCalledWith(
-      expect.objectContaining({ paymentStatus: "paid" }),
+    const [filter] = Billing.find.mock.calls[0];
+    expect(filter.$and).toEqual(
+      expect.arrayContaining([
+        { createdBy: { $in: ["user_id_123"] } },
+        { paymentStatus: "paid" },
+      ]),
     );
   });
 
@@ -304,8 +368,12 @@ describe("GET /api/v1/cashier/bills", () => {
       .set("Cookie", `token=${makeToken("cashier")}`);
 
     expect(res.status).toBe(200);
-    expect(Billing.find).toHaveBeenCalledWith(
-      expect.objectContaining({ $or: expect.any(Array) }),
+    const [filter] = Billing.find.mock.calls[0];
+    expect(filter.$and).toEqual(
+      expect.arrayContaining([
+        { createdBy: { $in: ["user_id_123"] } },
+        expect.objectContaining({ $or: expect.any(Array) }),
+      ]),
     );
   });
 
@@ -417,7 +485,8 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
 
   it("200 — cashier can mark a bill as paid", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findOne.mockResolvedValue(mockBillDoc());
+    const bill = mockBillDoc();
+    Billing.findOne.mockResolvedValue(bill);
 
     const res = await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)
@@ -426,6 +495,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Bill marked as paid successfully");
+    expect(bill.paidAt).toEqual(expect.any(Date));
     expect(notify.billingUpdated).toHaveBeenCalled();
   });
 
@@ -433,20 +503,28 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
     const TABLE_ID = new mongoose.Types.ObjectId().toString();
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
     Billing.findOne.mockResolvedValue(mockBillDoc({ tableId: TABLE_ID }));
-    Table.findByIdAndUpdate.mockResolvedValue({});
+    Table.findOneAndUpdate.mockResolvedValue({
+      _id: TABLE_ID,
+      branchId: VALID_BRANCH_ID,
+      status: "available",
+    });
 
     await request(app)
       .put(`/api/v1/cashier/bills/${VALID_BILL_ID}/pay`)
       .set("Cookie", `token=${makeToken("cashier")}`)
       .send({ paymentMethod: "cash" });
 
-    expect(Table.findByIdAndUpdate).toHaveBeenCalledWith(
-      TABLE_ID,
+    expect(Table.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: TABLE_ID, branchId: VALID_BRANCH_ID },
       {
         status: "available",
         currentCustomer: null,
       },
-      { session: { id: "billing-test-session" } },
+      {
+        session: { id: "billing-test-session" },
+        new: true,
+        runValidators: true,
+      },
     );
   });
 
@@ -459,7 +537,7 @@ describe("PUT /api/v1/cashier/bills/:billId/pay", () => {
       .set("Cookie", `token=${makeToken("cashier")}`)
       .send({ paymentMethod: "cash" });
 
-    expect(Table.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(Table.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it("200 — updates paymentMethod when provided", async () => {
@@ -529,7 +607,7 @@ describe("DELETE /api/v1/cashier/bills/:billId", () => {
 
   it("200 — cashier can delete a bill", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findByIdAndDelete.mockResolvedValue(mockBillDoc());
+    Billing.findOneAndDelete.mockResolvedValue(mockBillDoc());
 
     const res = await request(app)
       .delete(`/api/v1/cashier/bills/${VALID_BILL_ID}`)
@@ -553,7 +631,7 @@ describe("DELETE /api/v1/cashier/bills/:billId", () => {
 
   it("404 — returns 404 when bill not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
-    Billing.findByIdAndDelete.mockResolvedValue(null);
+    Billing.findOneAndDelete.mockResolvedValue(null);
 
     const res = await request(app)
       .delete(`/api/v1/cashier/bills/${VALID_BILL_ID}`)

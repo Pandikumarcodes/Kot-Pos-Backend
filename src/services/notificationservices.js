@@ -77,10 +77,18 @@ const kotUpdated = (io, kot) => {
 // Emits to:    admin + waiters
 // ─────────────────────────────────────────────────────────────
 const tableUpdated = (io, table, branchId = table?.branchId) => {
-  if (!io || !table || !branchId) return;
+  const persistedBranchId = table?.branchId?.toString();
+  const explicitBranchId = branchId?.toString();
+  if (
+    persistedBranchId &&
+    explicitBranchId &&
+    persistedBranchId !== explicitBranchId
+  ) return;
+  const routingBranchId = persistedBranchId || explicitBranchId;
+  if (!io || !table || !routingBranchId) return;
   emitToRoles(
     io,
-    branchId,
+    routingBranchId,
     ["admin", "manager", "waiter"],
     EVENTS.TABLE_UPDATED,
     table,

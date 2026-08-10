@@ -17,6 +17,7 @@ const getTableOrders = async (req, res, next) => {
       .json(
         await service.getTableOrders(
           req.params.tableId,
+          req.branchId,
           req.scopeToBranchMembers,
         ),
       );
@@ -77,6 +78,8 @@ const sendToKitchen = async (req, res, next) => {
     const order = await service.sendToKitchen(req.params.orderId, {
       scopeToBranchMembers: req.scopeToBranchMembers,
       branchId: req.branchId,
+      userId: req.user._id,
+      actorRole: req.user.role,
       io: req.app.get("io"),
     });
     res.status(200).json({ message: "Order sent to kitchen (KOT)", order });

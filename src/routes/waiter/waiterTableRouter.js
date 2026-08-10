@@ -1,6 +1,7 @@
 const express = require("express");
 const { userAuth, allowRoles } = require("../../middlewares/auth");
 const branchScope = require("../../middlewares/branchScope");
+const { requireBranch } = branchScope;
 const controller = require("../../controllers/waiterTableController");
 const { handleControllerError } = require("../../controllers/controllerUtils");
 const {
@@ -16,11 +17,13 @@ waiterTableRouter.use(
 );
 waiterTableRouter.post(
   "/allocate/:tableId",
+  requireBranch,
   validateTableAllocate,
   controller.allocateTable,
 );
 waiterTableRouter.put(
   "/free/:tableId",
+  requireBranch,
   validateWaiterTableId,
   controller.freeTable,
 );

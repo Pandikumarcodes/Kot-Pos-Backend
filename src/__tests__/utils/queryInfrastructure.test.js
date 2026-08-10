@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
@@ -302,6 +303,73 @@ describe("QueryBuilder", () => {
 
     expect(plan.filter.$and).toContainEqual({ status: "trusted-status" });
     expect(plan.filter.$and).toContainEqual({ status: "active" });
+  });
+
+  test("preserves a real ObjectId in a direct branch constraint", () => {
+    const branchId = new mongoose.Types.ObjectId();
+    const plan = QueryBuilder.build({ policy, trustedConstraints: { branchId } });
+
+    expect(mongoose.Types.ObjectId.isValid(plan.filter.$and[0].branchId)).toBe(true);
+    expect(plan.filter.$and[0].branchId).toBeInstanceOf(mongoose.Types.ObjectId);
+    expect(plan.filter.$and[0].branchId).toBe(branchId);
+  });
+
+  test("preserves real ObjectIds nested in an $in array", () => {
+    const memberIds = [
+      new mongoose.Types.ObjectId(),
+      new mongoose.Types.ObjectId(),
+    ];
+    const plan = QueryBuilder.build({
+      policy,
+      trustedConstraints: { createdBy: { $in: memberIds } },
+    });
+    const resultIds = plan.filter.$and[0].createdBy.$in;
+
+    expect(resultIds).not.toBe(memberIds);
+    expect(resultIds).toHaveLength(2);
+    resultIds.forEach((id, index) => {
+      expect(mongoose.Types.ObjectId.isValid(id)).toBe(true);
+      expect(id).toBeInstanceOf(mongoose.Types.ObjectId);
+      expect(id).toBe(memberIds[index]);
+    });
+  });
+
+  test("preserves Date, Buffer and RegExp values", () => {
+    const createdAt = new Date("2026-08-01T00:00:00.000Z");
+    const digest = Buffer.from("query-builder");
+    const name = /^coffee/i;
+    const plan = QueryBuilder.build({
+      policy,
+      trustedConstraints: {
+        createdAt: { $gte: createdAt },
+        digest,
+        name,
+      },
+    });
+    const constraint = plan.filter.$and[0];
+
+    expect(constraint.createdAt.$gte).toBeInstanceOf(Date);
+    expect(constraint.createdAt.$gte).toBe(createdAt);
+    expect(Buffer.isBuffer(constraint.digest)).toBe(true);
+    expect(constraint.digest).toBe(digest);
+    expect(constraint.name).toBeInstanceOf(RegExp);
+    expect(constraint.name).toBe(name);
+  });
+
+  test("recursively copies plain containers without mutating caller constraints", () => {
+    const memberId = new mongoose.Types.ObjectId();
+    const trusted = { createdBy: { $in: [memberId] } };
+    const plan = QueryBuilder.build({ policy, trustedConstraints: trusted });
+    const result = plan.filter.$and[0];
+
+    expect(result).not.toBe(trusted);
+    expect(result.createdBy).not.toBe(trusted.createdBy);
+    expect(result.createdBy.$in).not.toBe(trusted.createdBy.$in);
+    expect(result.createdBy.$in[0]).toBe(memberId);
+    expect(Object.isFrozen(trusted)).toBe(false);
+    expect(Object.isFrozen(trusted.createdBy)).toBe(false);
+    expect(Object.isFrozen(trusted.createdBy.$in)).toBe(false);
+    expect(Object.isFrozen(memberId)).toBe(false);
   });
 
   test("returns a deeply immutable plan without freezing caller input", () => {

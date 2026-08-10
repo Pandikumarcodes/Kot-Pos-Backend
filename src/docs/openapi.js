@@ -130,6 +130,7 @@ add("get", "/api/v1/cashier/income", "Reports", "Get cashier income", ["cashier"
 
 add("get", "/api/v1/admin/settings", "Settings", "Get branch settings", ["admin", "manager"], { branch: true });
 add("put", "/api/v1/admin/settings", "Settings", "Save branch settings", ["admin"], { branch: true, requestBody: jsonBody(ref("Settings"), examples.settings) });
+add("get", "/api/v1/settings", "Settings", "Get receipt settings", ["admin", "manager", "cashier"], { branch: true });
 
 add("post", "/api/v1/cashier/billing", "Billing", "Create bill", ["cashier", "admin", "manager"], { branch: true, status: 201, requestBody: jsonBody(ref("Bill"), { customerName: "Asha Rao", customerPhone: "9876543210", items: examples.order.items, paymentStatus: "unpaid", paymentMethod: "none" }) });
 add("get", "/api/v1/cashier/bills", "Billing", "List bills", ["cashier", "admin", "manager"], { branch: true, parameters: [q("status", { type: "string", enum: ["unpaid", "paid"] }, "Payment status."), q("search", { type: "string", maxLength: 100 }, "Search term.")] });

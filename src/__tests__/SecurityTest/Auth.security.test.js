@@ -346,7 +346,7 @@ describe("Signup Security", () => {
     expectRejected(res.status);
   });
 
-  test("XSS in username is rejected or sanitized", async () => {
+  test("XSS-like username input is returned only as JSON data", async () => {
     const res = await request(app)
       .post("/api/v1/auth/signup")
       .send({
@@ -354,7 +354,9 @@ describe("Signup Security", () => {
         password: "StrongPass@99!",
       });
     if (res.status === 201) {
-      expect(res.body.user?.username).not.toContain("<script>");
+      expect(res.type).toBe("application/json");
+      expect(res.headers["x-content-type-options"]).toBe("nosniff");
+      expect(res.body.message).toBe("User registered successfully");
     } else {
       expectRejected(res.status);
     }

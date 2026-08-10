@@ -28,6 +28,7 @@ cashierbillingRouter.get("/bills", validateBillsQuery, controller.getBills);
 cashierbillingRouter.get("/bills/:billId", validateBillId, controller.getBill);
 cashierbillingRouter.put(
   "/bills/:billId/pay",
+  requireBranch,
   validateBillPayment,
   controller.payBill,
 );

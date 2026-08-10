@@ -148,6 +148,7 @@ app.use(["/waiter", "/api/v1/waiter"], apiLimiter);
 app.use(["/cashier/billing", "/api/v1/cashier/billing"], orderLimiter);
 app.use(["/cashier", "/api/v1/cashier"], apiLimiter);
 app.use(["/chef", "/api/v1/chef"], apiLimiter);
+app.use("/api/v1/settings", apiLimiter);
 
 // ── Import Routers ────────────────────────────────────────────
 const { authRouter } = require("./routes/auth.js");
@@ -172,6 +173,7 @@ const { waiterOrderRouter } = require("./routes/waiter/waiterOrderRouter.js");
 const { waiterTableRouter } = require("./routes/waiter/waiterTableRouter.js");
 const { chefRouter } = require("./routes/chef/chefRouter.js");
 const aiRouter = require("./routes/aiRouter");
+const { settingsRouter } = require("./routes/settingsRouter");
 
 // ── Version info endpoint ─────────────────────────────────────
 mountSwagger(app);
@@ -188,6 +190,7 @@ app.get("/api/version", (req, res) => {
 app.use("/api/v1/auth", authRouter);
 // mountTestRoutes(app);
 app.use("/api/v1/public", publicLimiter, qrMenuRouter);
+app.use("/api/v1/settings", settingsRouter);
 
 app.use("/api/v1/admin", adminMenuRouter);
 app.use("/api/v1/admin", adminTableRouter);

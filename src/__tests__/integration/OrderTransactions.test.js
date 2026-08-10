@@ -12,7 +12,7 @@ jest.mock("../../repositories/TakeawayOrderRepository", () => ({
   updateStatus: jest.fn(),
 }));
 jest.mock("../../repositories/TableRepository", () => ({
-  findById: jest.fn(),
+  findByIdAndBranch: jest.fn(),
 }));
 jest.mock("../../repositories/KitchenRepository", () => ({
   createOrder: jest.fn(),
@@ -91,7 +91,9 @@ beforeEach(() => {
   state = {
     dineInOrders: [clone(dineInOrder)],
     takeawayOrders: [clone(takeawayOrder)],
-    tables: { "table-1": { _id: "table-1", tableNumber: 7 } },
+    tables: {
+      "table-1": { _id: "table-1", branchId: "branch-1", tableNumber: 7 },
+    },
     kots: [],
     audits: [],
   };
@@ -117,7 +119,10 @@ beforeEach(() => {
   takeawayOrderRepository.findOne.mockImplementation(
     async () => state.takeawayOrders[0],
   );
-  tableRepository.findById.mockImplementation(async (id) => state.tables[id]);
+  tableRepository.findByIdAndBranch.mockImplementation(async (id, ownerBranchId) => {
+    const table = state.tables[id];
+    return table?.branchId === ownerBranchId ? table : null;
+  });
   orderRepository.updateStatus.mockImplementation(async (_filter, status) => {
     state.dineInOrders[0].status = status;
     if (failure.orderUpdate) throw failure.orderUpdate;
@@ -184,9 +189,9 @@ describe("Dine-in order to kitchen transaction", () => {
       undefined,
       { session },
     );
-    expect(tableRepository.findById).toHaveBeenCalledWith(
+    expect(tableRepository.findByIdAndBranch).toHaveBeenCalledWith(
       "table-1",
-      undefined,
+      branchId,
       { session },
     );
     expect(orderRepository.updateStatus).toHaveBeenCalledWith(
@@ -229,6 +234,20 @@ describe("Dine-in order to kitchen transaction", () => {
     expect(transactionPhase).toBe("committed");
     expect(notify.newOrder).toHaveBeenCalledTimes(1);
     expect(notify.newOrder).toHaveBeenCalledWith(io, state.kots[0]);
+  });
+
+  test("rejects a cross-linked foreign table and rolls back without an event", async () => {
+    state.tables["table-1"].branchId = "branch-2";
+    const before = clone(state);
+
+    await expect(
+      waiterOrderService.sendToKitchen(dineInOrder._id, context),
+    ).rejects.toMatchObject({ message: "Table not found", statusCode: 404 });
+
+    expect(state).toEqual(before);
+    expect(transactionPhase).toBe("rolled_back");
+    expect(kitchenRepository.createOrder).not.toHaveBeenCalled();
+    expect(notify.newOrder).not.toHaveBeenCalled();
   });
 });
 

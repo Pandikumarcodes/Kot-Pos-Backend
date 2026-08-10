@@ -10,6 +10,7 @@ const {
   getSocketRoom,
   initSocket,
 } = require("../socket");
+const { notify, EVENTS } = require("../services/notificationservices");
 
 const makeSocket = (overrides = {}) => ({
   handshake: { auth: {}, headers: {} },
@@ -89,5 +90,45 @@ describe("Socket.IO authentication", () => {
     connectionHandler(socket);
     socket.once.mock.calls[0][1]();
     expect(socket.data.user).toBeUndefined();
+  });
+});
+
+describe("table:updated invalidation", () => {
+  it("emits the existing payload in the resolved operational branch rooms", () => {
+    const io = {
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn(),
+    };
+    const table = { _id: "table_123", tableNumber: 7, status: "occupied" };
+
+    notify.tableUpdated(io, table, "branch_operational");
+
+    expect(EVENTS.TABLE_UPDATED).toBe("table:updated");
+    expect(io.to.mock.calls.map(([room]) => room)).toEqual([
+      "branch:branch_operational:role:admin",
+      "branch:branch_operational:role:manager",
+      "branch:branch_operational:role:waiter",
+      "branch:global:role:admin",
+    ]);
+    expect(io.emit).toHaveBeenCalledTimes(4);
+    expect(io.emit).toHaveBeenCalledWith(EVENTS.TABLE_UPDATED, table);
+  });
+
+  it("does not route a persisted table through a mismatched acting branch", () => {
+    const io = {
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn(),
+    };
+    const table = {
+      _id: "table_123",
+      branchId: "branch_owner",
+      tableNumber: 7,
+      status: "occupied",
+    };
+
+    notify.tableUpdated(io, table, "branch_actor");
+
+    expect(io.to).not.toHaveBeenCalled();
+    expect(io.emit).not.toHaveBeenCalled();
   });
 });

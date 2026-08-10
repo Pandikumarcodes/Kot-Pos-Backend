@@ -3,6 +3,21 @@ const { cache, cacheKeys } = require("../infrastructure/cache");
 const administrationAudit = require("../modules/administration/AdministrationAuditLogger");
 const { AUDIT_ACTIONS } = require("../infrastructure/audit");
 
+const RECEIPT_SETTINGS_FIELDS = Object.freeze([
+  "businessName",
+  "email",
+  "phone",
+  "address",
+  "gstin",
+  "fssai",
+  "hsn",
+  "currency",
+  "taxRate",
+  "serviceCharge",
+  "autoRoundOff",
+  "printReceipt",
+]);
+
 const writeFailure = async (values) => {
   try { await administrationAudit.failure(values); } catch (_auditFailure) {
     // A secondary audit outage must not replace the workflow error.
@@ -14,6 +29,14 @@ const getSettings = async (branchFilter, branchId) => {
     const settings = await settingsRepository.findScoped(branchFilter);
     return settings || settingsRepository.createSettings({ branchId });
   }, { ttlSeconds: 600 });
+};
+
+const getReceiptSettings = async (branchFilter, branchId) => {
+  const settings = await getSettings(branchFilter, branchId);
+  return RECEIPT_SETTINGS_FIELDS.reduce((projection, field) => {
+    projection[field] = settings[field];
+    return projection;
+  }, {});
 };
 
 const saveSettings = async (branchFilter, scopeToBranch, branchId, input, audit = {}) => {
@@ -44,4 +67,9 @@ const saveSettings = async (branchFilter, scopeToBranch, branchId, input, audit 
   }
 };
 
-module.exports = { getSettings, saveSettings };
+module.exports = {
+  RECEIPT_SETTINGS_FIELDS,
+  getSettings,
+  getReceiptSettings,
+  saveSettings,
+};

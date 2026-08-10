@@ -10,6 +10,9 @@ process.env.NODE_ENV = "test";
 // ── Mock models ───────────────────────────────────────────────
 jest.mock("../../models/users");
 jest.mock("../../models/tables");
+jest.mock("../../services/notificationservices", () => ({
+  notify: { tableUpdated: jest.fn() },
+}));
 
 // ── Mock logger ───────────────────────────────────────────────
 jest.mock("../../config/logger", () => ({
@@ -20,12 +23,15 @@ jest.mock("../../config/logger", () => ({
 
 const User = require("../../models/users");
 const Table = require("../../models/tables");
+const { notify } = require("../../services/notificationservices");
 const { adminTableRouter } = require("../../routes/admin/adminTable");
 
 // ── Build minimal Express app ─────────────────────────────────
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+const mockIo = { name: "io" };
+app.set("io", mockIo);
 app.use("/api/v1/admin", adminTableRouter);
 
 // ─────────────────────────────────────────────────────────────
@@ -41,10 +47,17 @@ function makeToken(role = "admin") {
 }
 
 function mockUserDoc(role = "admin") {
-  return { _id: "user_id_123", username: "testuser", role };
+  return {
+    _id: "user_id_123",
+    username: "testuser",
+    role,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+  };
 }
 
 const VALID_TABLE_ID = new mongoose.Types.ObjectId().toString();
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+const OTHER_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
 function mockTableDoc(overrides = {}) {
   return {
@@ -70,26 +83,55 @@ describe("POST /api/v1/admin/tables", () => {
     Table.mockImplementation(() => saved);
 
     const res = await request(app)
-      .post("/api/v1/admin/tables")
+      .post(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ tableNumber: 1, capacity: 4 });
 
     expect(res.status).toBe(201);
     expect(res.body.message).toBe("Table created");
     expect(res.body.table).toMatchObject({ tableNumber: 1, capacity: 4 });
+    expect(Table.findOne).toHaveBeenCalledWith({
+      branchId: VALID_BRANCH_ID,
+      tableNumber: 1,
+    });
+    expect(Table).toHaveBeenCalledWith({
+      branchId: VALID_BRANCH_ID,
+      tableNumber: 1,
+      capacity: 4,
+    });
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      saved,
+    );
   });
 
-  it("201 — manager can create a table", async () => {
-    User.findById.mockResolvedValue(mockUserDoc("manager"));
+  it("201 — manager creation uses the user's branch and ignores selected/body branches", async () => {
+    User.findById.mockResolvedValue({
+      ...mockUserDoc("manager"),
+      branchId: VALID_BRANCH_ID,
+    });
     Table.findOne.mockResolvedValue(null);
     Table.mockImplementation(() => mockTableDoc());
 
     const res = await request(app)
-      .post("/api/v1/admin/tables")
+      .post(`/api/v1/admin/tables?branchId=${OTHER_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("manager")}`)
-      .send({ tableNumber: 2, capacity: 2 });
+      .send({ tableNumber: 2, capacity: 2, branchId: OTHER_BRANCH_ID });
 
     expect(res.status).toBe(201);
+    expect(Table.findOne).toHaveBeenCalledWith({
+      branchId: VALID_BRANCH_ID,
+      tableNumber: 2,
+    });
+    expect(Table).toHaveBeenCalledWith({
+      branchId: VALID_BRANCH_ID,
+      tableNumber: 2,
+      capacity: 2,
+    });
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      expect.objectContaining({ tableNumber: 1 }),
+    );
   });
 
   it("400 — rejects duplicate table number", async () => {
@@ -97,17 +139,62 @@ describe("POST /api/v1/admin/tables", () => {
     Table.findOne.mockResolvedValue(mockTableDoc()); // already exists
 
     const res = await request(app)
-      .post("/api/v1/admin/tables")
+      .post(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ tableNumber: 1, capacity: 4 });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("Table number already exists");
+    expect(Table.findOne).toHaveBeenCalledWith({
+      branchId: VALID_BRANCH_ID,
+      tableNumber: 1,
+    });
+  });
+
+  it("201 — allows the same table number to be checked in two branches", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("admin"));
+    Table.findOne.mockResolvedValue(null);
+    Table.mockImplementation((data) => mockTableDoc(data));
+
+    const first = await request(app)
+      .post(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ tableNumber: 9, capacity: 4 });
+    const second = await request(app)
+      .post(`/api/v1/admin/tables?branchId=${OTHER_BRANCH_ID}`)
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ tableNumber: 9, capacity: 4 });
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(Table.findOne).toHaveBeenNthCalledWith(1, {
+      branchId: VALID_BRANCH_ID,
+      tableNumber: 9,
+    });
+    expect(Table.findOne).toHaveBeenNthCalledWith(2, {
+      branchId: OTHER_BRANCH_ID,
+      tableNumber: 9,
+    });
+  });
+
+  it("400 — global admin must select an operational branch", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("admin"));
+
+    const res = await request(app)
+      .post("/api/v1/admin/tables")
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ tableNumber: 1, capacity: 4 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe(
+      "A valid branchId query parameter is required",
+    );
+    expect(Table.findOne).not.toHaveBeenCalled();
   });
 
   it("401 — rejects unauthenticated request", async () => {
     const res = await request(app)
-      .post("/api/v1/admin/tables")
+      .post(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .send({ tableNumber: 1, capacity: 4 });
 
     expect(res.status).toBe(401);
@@ -156,7 +243,7 @@ describe("POST /api/v1/admin/tables", () => {
     }));
 
     const res = await request(app)
-      .post("/api/v1/admin/tables")
+      .post(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ tableNumber: 1, capacity: 4 });
 
@@ -175,12 +262,25 @@ describe("GET /api/v1/admin/tables", () => {
     Table.find.mockResolvedValue([mockTableDoc()]);
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
     expect(res.body.tables).toHaveLength(1);
     expect(res.body.tables[0].tableNumber).toBe(1);
+    expect(Table.find).toHaveBeenCalledWith({ branchId: VALID_BRANCH_ID });
+  });
+
+  it("scopes a global admin list to the selected branch", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("admin"));
+    Table.find.mockResolvedValue([mockTableDoc({ branchId: OTHER_BRANCH_ID })]);
+
+    const res = await request(app)
+      .get(`/api/v1/admin/tables?branchId=${OTHER_BRANCH_ID}`)
+      .set("Cookie", `token=${makeToken("admin")}`);
+
+    expect(res.status).toBe(200);
+    expect(Table.find).toHaveBeenCalledWith({ branchId: OTHER_BRANCH_ID });
   });
 
   it("200 — manager can fetch all tables", async () => {
@@ -188,10 +288,11 @@ describe("GET /api/v1/admin/tables", () => {
     Table.find.mockResolvedValue([mockTableDoc()]);
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${OTHER_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("manager")}`);
 
     expect(res.status).toBe(200);
+    expect(Table.find).toHaveBeenCalledWith({ branchId: VALID_BRANCH_ID });
   });
 
   it("200 — waiter can fetch all tables", async () => {
@@ -199,7 +300,7 @@ describe("GET /api/v1/admin/tables", () => {
     Table.find.mockResolvedValue([mockTableDoc()]);
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`);
 
     expect(res.status).toBe(200);
@@ -210,7 +311,7 @@ describe("GET /api/v1/admin/tables", () => {
     Table.find.mockResolvedValue([mockTableDoc()]);
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("cashier")}`);
 
     expect(res.status).toBe(200);
@@ -221,7 +322,7 @@ describe("GET /api/v1/admin/tables", () => {
     Table.find.mockResolvedValue([]);
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
@@ -229,7 +330,9 @@ describe("GET /api/v1/admin/tables", () => {
   });
 
   it("401 — rejects unauthenticated request", async () => {
-    const res = await request(app).get("/api/v1/admin/tables");
+    const res = await request(app).get(
+      `/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`,
+    );
     expect(res.status).toBe(401);
   });
 
@@ -237,7 +340,7 @@ describe("GET /api/v1/admin/tables", () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("chef")}`);
 
     expect(res.status).toBe(403);
@@ -248,7 +351,7 @@ describe("GET /api/v1/admin/tables", () => {
     Table.find.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
-      .get("/api/v1/admin/tables")
+      .get(`/api/v1/admin/tables?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(500);
@@ -263,10 +366,10 @@ describe("GET /api/v1/admin/tables/:id", () => {
 
   it("200 — admin can fetch a single table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findById.mockResolvedValue(mockTableDoc());
+    Table.findOne.mockResolvedValue(mockTableDoc({ branchId: VALID_BRANCH_ID }));
 
     const res = await request(app)
-      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
@@ -275,10 +378,10 @@ describe("GET /api/v1/admin/tables/:id", () => {
 
   it("200 — waiter can fetch a single table (needed for order page)", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(mockTableDoc());
+    Table.findOne.mockResolvedValue(mockTableDoc({ branchId: VALID_BRANCH_ID }));
 
     const res = await request(app)
-      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`);
 
     expect(res.status).toBe(200);
@@ -286,14 +389,18 @@ describe("GET /api/v1/admin/tables/:id", () => {
 
   it("404 — returns 404 when table does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findById.mockResolvedValue(null);
+    Table.findOne.mockResolvedValue(null);
 
     const res = await request(app)
-      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Table not found");
+    expect(Table.findOne).toHaveBeenCalledWith({
+      _id: VALID_TABLE_ID,
+      branchId: VALID_BRANCH_ID,
+    });
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -307,7 +414,7 @@ describe("GET /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
 
     const res = await request(app)
-      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .get(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("chef")}`);
 
     expect(res.status).toBe(403);
@@ -322,12 +429,12 @@ describe("PUT /api/v1/admin/tables/:id", () => {
 
   it("200 — admin can update a table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findByIdAndUpdate.mockResolvedValue(
+    Table.findOneAndUpdate.mockResolvedValue(
       mockTableDoc({ capacity: 6, status: "occupied" }),
     );
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ capacity: 6, status: "occupied" });
 
@@ -338,33 +445,63 @@ describe("PUT /api/v1/admin/tables/:id", () => {
   });
 
   it("200 — manager can update a table", async () => {
-    User.findById.mockResolvedValue(mockUserDoc("manager"));
-    Table.findByIdAndUpdate.mockResolvedValue(mockTableDoc({ capacity: 8 }));
+    User.findById.mockResolvedValue({
+      ...mockUserDoc("manager"),
+      branchId: VALID_BRANCH_ID,
+    });
+    const updatedTable = mockTableDoc({ capacity: 8, status: "reserved" });
+    Table.findOneAndUpdate.mockResolvedValue(updatedTable);
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${OTHER_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("manager")}`)
-      .send({ capacity: 8 });
+      .send({ capacity: 8, status: "reserved" });
 
     expect(res.status).toBe(200);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      updatedTable,
+    );
+    expect(Table.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: VALID_TABLE_ID, branchId: VALID_BRANCH_ID },
+      { capacity: 8, status: "reserved" },
+      { new: true, runValidators: true },
+    );
+  });
+
+  it("400 — does not expose billing as a manual admin status", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("admin"));
+
+    const res = await request(app)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ status: "billing" });
+
+    expect(res.status).toBe(400);
+    expect(Table.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it("404 — returns 404 when table does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findByIdAndUpdate.mockResolvedValue(null);
+    Table.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ capacity: 6 });
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Table not found");
+    expect(Table.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: VALID_TABLE_ID, branchId: VALID_BRANCH_ID },
+      { capacity: 6, status: undefined },
+      { new: true, runValidators: true },
+    );
   });
 
   it("401 — rejects unauthenticated request", async () => {
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .send({ capacity: 6 });
 
     expect(res.status).toBe(401);
@@ -374,7 +511,7 @@ describe("PUT /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`)
       .send({ capacity: 6 });
 
@@ -386,7 +523,7 @@ describe("PUT /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("cashier")}`)
       .send({ capacity: 6 });
 
@@ -397,7 +534,7 @@ describe("PUT /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("chef")}`)
       .send({ capacity: 6 });
 
@@ -406,10 +543,10 @@ describe("PUT /api/v1/admin/tables/:id", () => {
 
   it("500 — returns 500 when DB throws", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findByIdAndUpdate.mockRejectedValue(new Error("DB error"));
+    Table.findOneAndUpdate.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
-      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .put(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ capacity: 6 });
 
@@ -425,26 +562,37 @@ describe("DELETE /api/v1/admin/tables/:id", () => {
 
   it("200 — admin can delete a table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findByIdAndDelete.mockResolvedValue(mockTableDoc());
+    const deletedTable = mockTableDoc();
+    Table.findOneAndDelete.mockResolvedValue(deletedTable);
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(
+        `/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`,
+      )
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Table deleted");
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      deletedTable,
+    );
   });
 
   it("404 — returns 404 when table does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findByIdAndDelete.mockResolvedValue(null);
+    Table.findOneAndDelete.mockResolvedValue(null);
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Table not found");
+    expect(Table.findOneAndDelete).toHaveBeenCalledWith(
+      { _id: VALID_TABLE_ID, branchId: VALID_BRANCH_ID },
+      {},
+    );
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -458,7 +606,7 @@ describe("DELETE /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("manager"));
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("manager")}`);
 
     expect(res.status).toBe(403);
@@ -469,7 +617,7 @@ describe("DELETE /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`);
 
     expect(res.status).toBe(403);
@@ -479,7 +627,7 @@ describe("DELETE /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("chef"));
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("chef")}`);
 
     expect(res.status).toBe(403);
@@ -489,7 +637,7 @@ describe("DELETE /api/v1/admin/tables/:id", () => {
     User.findById.mockResolvedValue(mockUserDoc("cashier"));
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("cashier")}`);
 
     expect(res.status).toBe(403);
@@ -497,10 +645,10 @@ describe("DELETE /api/v1/admin/tables/:id", () => {
 
   it("500 — returns 500 when DB throws", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findByIdAndDelete.mockRejectedValue(new Error("DB error"));
+    Table.findOneAndDelete.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
-      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}`)
+      .delete(`/api/v1/admin/tables/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(500);

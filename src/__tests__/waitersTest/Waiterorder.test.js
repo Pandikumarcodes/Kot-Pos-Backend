@@ -28,7 +28,7 @@ jest.mock("../../config/logger", () => ({
 }));
 
 // ── Mock inventory controller ─────────────────────────────────
-jest.mock("../../controllers/inventoryController", () => ({
+jest.mock("../../services/inventoryService", () => ({
   deductStockForKot: jest.fn().mockResolvedValue(true),
 }));
 
@@ -51,6 +51,11 @@ jest.mock("../../modules/billing/BillingAuditLogger", () => ({
   billCreated: jest.fn().mockResolvedValue(undefined),
   failure: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("../../modules/orders/OrderAuditLogger", () => ({
+  createContext: jest.fn((values) => ({ ...values, correlationId: "test-correlation" })),
+  sentToKitchen: jest.fn().mockResolvedValue(undefined),
+  failure: jest.fn().mockResolvedValue(undefined),
+}));
 
 const User = require("../../models/users");
 const TableOrder = require("../../models/waiter");
@@ -58,6 +63,7 @@ const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Table = require("../../models/tables");
 const Billing = require("../../models/billings");
+const { notify } = require("../../services/notificationservices");
 const { waiterOrderRouter } = require("../../routes/waiter/waiterOrderRouter");
 
 // ── Mock socket.io instance ───────────────────────────────────
@@ -153,6 +159,86 @@ function mockBillDoc(overrides = {}) {
     ...overrides,
   };
 }
+
+beforeEach(() => {
+  Table.findOne.mockResolvedValue({
+    _id: VALID_TABLE_ID,
+    branchId: VALID_BRANCH_ID,
+    tableNumber: 1,
+    status: "occupied",
+  });
+  Table.findOneAndUpdate.mockResolvedValue({
+    _id: VALID_TABLE_ID,
+    branchId: VALID_BRANCH_ID,
+    tableNumber: 1,
+    status: "billing",
+  });
+});
+
+describe("strict table branch isolation", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("rejects existing-order retrieval for a foreign table", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    Table.findOne.mockResolvedValue(null);
+
+    const res = await request(app)
+      .get(`/api/v1/waiter/orders/table/${VALID_TABLE_ID}`)
+      .set("Cookie", `token=${makeToken("waiter")}`);
+
+    expect(res.status).toBe(404);
+    expect(Table.findOne).toHaveBeenCalledWith({
+      _id: VALID_TABLE_ID,
+      branchId: VALID_BRANCH_ID,
+    });
+    expect(TableOrder.find).not.toHaveBeenCalled();
+  });
+
+  it("rejects order creation for a foreign or nonexistent table", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    Table.findOne.mockResolvedValue(null);
+
+    const res = await request(app)
+      .post("/api/v1/waiter/orders")
+      .set("Cookie", `token=${makeToken("waiter")}`)
+      .send({
+        tableId: VALID_TABLE_ID,
+        tableNumber: 1,
+        items: [{ itemId: VALID_ITEM_ID, quantity: 1 }],
+      });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Table not found");
+    expect(TableOrder).not.toHaveBeenCalled();
+  });
+
+  it("rejects a kitchen handoff cross-linked to a foreign table", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    TableOrder.findOne.mockResolvedValue(mockOrderDoc({ status: "pending" }));
+    Table.findOne.mockResolvedValue(null);
+
+    const res = await request(app)
+      .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/send`)
+      .set("Cookie", `token=${makeToken("waiter")}`);
+
+    expect(res.status).toBe(404);
+    expect(Kot.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects cashier handoff for a foreign table without an event", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    Table.findOne.mockResolvedValue(null);
+
+    const res = await request(app)
+      .post(`/api/v1/waiter/orders/table/${VALID_TABLE_ID}/send-to-cashier`)
+      .set("Cookie", `token=${makeToken("waiter")}`)
+      .send({ tableNumber: 1 });
+
+    expect(res.status).toBe(404);
+    expect(Billing.create).not.toHaveBeenCalled();
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
+  });
+});
 
 // ─────────────────────────────────────────────────────────────
 // Middleware — branchScope blocking unassigned non-admin
@@ -528,7 +614,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/served", () => {
 
   it("200 — marks order as served", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findByIdAndUpdate.mockResolvedValue(
+    TableOrder.findOneAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "served" }),
     );
 
@@ -542,7 +628,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/served", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findByIdAndUpdate.mockResolvedValue(null);
+    TableOrder.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/served`)
@@ -561,7 +647,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/cancel", () => {
 
   it("200 — cancels an order", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findByIdAndUpdate.mockResolvedValue(
+    TableOrder.findOneAndUpdate.mockResolvedValue(
       mockOrderDoc({ status: "cancelled" }),
     );
 
@@ -575,7 +661,7 @@ describe("PUT /api/v1/waiter/orders/:orderId/cancel", () => {
 
   it("404 — returns 404 when order not found", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    TableOrder.findByIdAndUpdate.mockResolvedValue(null);
+    TableOrder.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/waiter/orders/${VALID_ORDER_ID}/cancel`)

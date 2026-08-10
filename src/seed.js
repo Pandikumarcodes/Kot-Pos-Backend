@@ -15,8 +15,25 @@ const Billing = require("./models/billings");
 const TableOrder = require("./models/waiter");
 const TakeAway = require("./models/takeAway");
 const StockLog = require("./models/StockLog");
+const { buildDemoTables } = require("./seedData/tables");
+const { ensureRequiredTableIndexes } = require("./models/indexes");
 
 const CLEAN = process.argv.includes("--clean");
+
+function assertDisposableDemoTarget() {
+  const databaseName = mongoose.connection.db?.databaseName;
+
+  if (process.env.NODE_ENV !== "development" || databaseName !== "Kot-Pos") {
+    throw new Error(
+      `Refusing destructive seed clean: expected development/Kot-Pos, got ${process.env.NODE_ENV || "unset"}/${databaseName || "unknown"}`,
+    );
+  }
+}
+
+async function alignTableIndexes() {
+  await ensureRequiredTableIndexes(Table.collection);
+  await Table.collection.createIndex({ branchId: 1, status: 1 });
+}
 
 async function seed() {
   try {
@@ -25,6 +42,7 @@ async function seed() {
     console.log("✅ Connected!\n");
 
     if (CLEAN) {
+      assertDisposableDemoTarget();
       console.log("🧹 Cleaning existing seed data...");
       await Promise.all([
         StockLog.deleteMany({}),
@@ -40,6 +58,11 @@ async function seed() {
         User.deleteMany({ username: /_test$/ }),
         Branch.deleteMany({ name: /Test Branch/ }),
       ]);
+      const validBranchIds = await Branch.distinct("_id");
+      await User.deleteMany({
+        branchId: { $ne: null, $nin: validBranchIds },
+      });
+      await alignTableIndexes();
       console.log("✅ Clean complete!\n");
     }
 
@@ -148,30 +171,14 @@ async function seed() {
 
     // ── 4. Tables ─────────────────────────────────────────────
     console.log("\n🪑 Seeding Tables...");
-    const tablesData = [
-      { tableNumber: 1, capacity: 2, status: "available" },
-      { tableNumber: 2, capacity: 4, status: "available" },
-      { tableNumber: 3, capacity: 4, status: "available" },
-      { tableNumber: 4, capacity: 6, status: "available" },
-      { tableNumber: 5, capacity: 8, status: "available" },
-      {
-        tableNumber: 6,
-        capacity: 2,
-        status: "occupied",
-        currentCustomer: { name: "Ravi Kumar", phone: "9876543210" },
-      },
-      {
-        tableNumber: 7,
-        capacity: 4,
-        status: "occupied",
-        currentCustomer: { name: "Priya Sharma", phone: "9123456789" },
-      },
-      { tableNumber: 8, capacity: 6, status: "reserved" },
-    ];
+    const tablesData = buildDemoTables(branch._id);
 
     const createdTables = [];
     for (const t of tablesData) {
-      let table = await Table.findOne({ tableNumber: t.tableNumber });
+      let table = await Table.findOne({
+        branchId: t.branchId,
+        tableNumber: t.tableNumber,
+      });
       if (!table) {
         table = await Table.create(t);
         console.log(`  ✅ Table ${t.tableNumber} (${t.status})`);
@@ -800,9 +807,9 @@ async function seed() {
   } catch (err) {
     console.error("❌ Seed failed:", err.message);
     console.error(err.stack);
+    process.exitCode = 1;
   } finally {
     await mongoose.disconnect();
-    process.exit(0);
   }
 }
 

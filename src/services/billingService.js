@@ -92,6 +92,7 @@ const createBill = async (input, { userId, branchId, io }) => {
     ),
     paymentStatus,
     paymentMethod,
+    paidAt: paymentStatus === "paid" ? new Date() : null,
     createdBy: userId,
   });
   notify.billingUpdated(io, bill, branchId);
@@ -151,9 +152,9 @@ const payBill = async (
     correlationId,
   });
   let tableId = null;
-  let bill;
+  let result;
   try {
-    bill = await transactionManager.execute(async (session) => {
+    result = await transactionManager.execute(async (session) => {
       const billToPay = await billingRepository.findScoped(
         scopeToBranchMembers({ _id: billId }),
         { session },
@@ -178,15 +179,18 @@ const payBill = async (
       if (paymentMethod) billToPay.paymentMethod = paymentMethod;
       await billingRepository.save(billToPay, { session });
 
+      let updatedTable = null;
       if (billToPay.tableId) {
-        await tableRepository.updateState(
+        updatedTable = await tableRepository.updateByIdAndBranch(
           billToPay.tableId,
+          branchId,
           {
             status: "available",
             currentCustomer: null,
           },
-          { session },
+          { session, new: true },
         );
+        if (!updatedTable) throw new AppError("Table not found", 404);
       }
 
       await billingAudit.paymentCollected(
@@ -199,7 +203,7 @@ const payBill = async (
         { session },
       );
 
-      return billToPay;
+      return { bill: billToPay, table: updatedTable };
     });
   } catch (error) {
     try {
@@ -215,6 +219,8 @@ const payBill = async (
     }
     throw error;
   }
+  const { bill, table } = result;
+  if (table) notify.tableUpdated(io, table);
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };

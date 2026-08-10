@@ -2,13 +2,19 @@ const tableRepository = require("../repositories/TableRepository");
 const menuRepository = require("../repositories/MenuRepository");
 const kitchenRepository = require("../repositories/KitchenRepository");
 const settingsRepository = require("../repositories/SettingsRepository");
-const branchRepository = require("../repositories/BranchRepository");
 const AppError = require("../utils/AppError");
 const { cache, cacheKeys } = require("../infrastructure/cache");
+const { notify } = require("./notificationservices");
 
 const getQrMenu = async (tableId) => {
   const table = await tableRepository.findByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
+  if (!table.branchId) {
+    throw new AppError(
+      "Branch configuration missing. Please ask a staff member for help.",
+      400,
+    );
+  }
   const menuItems = await cache.getOrSet(
     cacheKeys.availableMenu({ branchId: table.branchId }),
     () => menuRepository.listAvailableLean(),
@@ -51,17 +57,11 @@ const getQrMenu = async (tableId) => {
 const placePublicOrder = async (
   tableId,
   { customerName, customerPhone, items },
+  { io } = {},
 ) => {
   const table = await tableRepository.findByIdLean(tableId);
   if (!table) throw new AppError("Table not found", 404);
-  let branchId = table.branchId ?? null;
-  if (!branchId) {
-    const branch = await branchRepository.findFirstActive();
-    if (branch) {
-      branchId = branch._id;
-      await tableRepository.updateState(table._id, { branchId: branch._id });
-    }
-  }
+  const branchId = table.branchId ?? null;
   if (!branchId) {
     throw new AppError(
       "Branch configuration missing. Please ask a staff member for help.",
@@ -102,7 +102,14 @@ const placePublicOrder = async (
     status: "pending",
   });
   if (table.status === "available") {
-    await tableRepository.updateState(table._id, { status: "occupied" });
+    const updatedTable = await tableRepository.updateByIdAndBranch(
+      table._id,
+      branchId,
+      { status: "occupied" },
+      { new: true },
+    );
+    if (!updatedTable) throw new AppError("Table not found", 404);
+    notify.tableUpdated(io, updatedTable);
   }
   return { orderId: kot._id, totalAmount };
 };

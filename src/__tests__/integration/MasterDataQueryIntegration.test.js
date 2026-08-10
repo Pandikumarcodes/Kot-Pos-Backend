@@ -2,6 +2,7 @@ const request = require("supertest");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 process.env.JWT_SECRET = "master_data_query_test_secret";
 process.env.NODE_ENV = "test";
@@ -30,6 +31,7 @@ const { adminCustomerRouter } = require("../../routes/admin/adminCustomerRouter"
 
 const BRANCH_A = "64b000000000000000000001";
 const BRANCH_B = "64b000000000000000000002";
+const BRANCH_A_OBJECT_ID = new mongoose.Types.ObjectId(BRANCH_A);
 
 const staff = [
   { _id: "1", username: "Anita", role: "manager", status: "active", branchId: BRANCH_A, createdAt: "2026-01-01" },
@@ -82,7 +84,7 @@ const staffApp = makeApp("/api/v1/admin", adminUserRouter);
 const menuApp = makeApp("/api/v1/admin", adminMenuRouter);
 const customerApp = makeApp("/api/v1/admin", adminCustomerRouter);
 const token = jwt.sign(
-  { _id: "query-admin", role: "admin", branchId: BRANCH_A },
+  { _id: "query-manager", role: "manager", branchId: BRANCH_A },
   process.env.JWT_SECRET,
   { expiresIn: "15m" },
 );
@@ -91,7 +93,7 @@ const get = (app, path) => request(app).get(path).set("Cookie", `token=${token}`
 beforeEach(() => {
   jest.clearAllMocks();
   User.findById.mockResolvedValue({
-    _id: "query-admin", role: "admin", status: "active", branchId: BRANCH_A,
+    _id: "query-manager", role: "manager", status: "active", branchId: BRANCH_A_OBJECT_ID,
   });
   userRepository.findByScope.mockImplementation(async (filter, options) =>
     sortedPage(staff, filter, options));
@@ -116,6 +118,11 @@ describe("Staff query integration", () => {
     expect(userRepository.findByScope).toHaveBeenCalledTimes(1);
     expect(userRepository.findByScope.mock.calls[0][1]).toMatchObject({ lean: true, skip: 1, limit: 1 });
     expect(userRepository.count).toHaveBeenCalledTimes(1);
+    const dataFilter = userRepository.findByScope.mock.calls[0][0];
+    const countFilter = userRepository.count.mock.calls[0][0];
+    expect(dataFilter.branchId).toBe(BRANCH_A_OBJECT_ID);
+    expect(dataFilter.branchId).toBeInstanceOf(mongoose.Types.ObjectId);
+    expect(countFilter.branchId).toBe(BRANCH_A_OBJECT_ID);
   });
 
   test("searches username and supports approved sorting and existing filters", async () => {

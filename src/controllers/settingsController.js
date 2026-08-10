@@ -12,6 +12,17 @@ const getSettings = async (req, res, next) => {
     forwardError(next, err);
   }
 };
+const getReceiptSettings = async (req, res, next) => {
+  try {
+    const settings = await settingsService.getReceiptSettings(
+      req.branchFilter,
+      req.branchId,
+    );
+    res.status(200).json({ settings });
+  } catch (err) {
+    forwardError(next, err);
+  }
+};
 const saveSettings = async (req, res, next) => {
   try {
     const settings = await settingsService.saveSettings(
@@ -25,4 +36,4 @@ const saveSettings = async (req, res, next) => {
     forwardError(next, err);
   }
 };
-module.exports = { getSettings, saveSettings };
+module.exports = { getSettings, getReceiptSettings, saveSettings };

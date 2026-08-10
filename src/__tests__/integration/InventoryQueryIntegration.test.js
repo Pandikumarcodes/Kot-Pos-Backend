@@ -2,6 +2,7 @@ const request = require("supertest");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 process.env.JWT_SECRET = "inventory_query_test_secret";
 process.env.NODE_ENV = "test";
@@ -23,6 +24,7 @@ const inventoryRouter = require("../../routes/admin/InventoryRouter");
 
 const BRANCH_A = "64b000000000000000000001";
 const BRANCH_B = "64b000000000000000000002";
+const BRANCH_A_OBJECT_ID = new mongoose.Types.ObjectId(BRANCH_A);
 
 const makeItem = (index, overrides = {}) => ({
   _id: String(index).padStart(24, "0"),
@@ -90,7 +92,7 @@ app.use(cookieParser());
 app.use("/api/v1/admin/inventory", inventoryRouter);
 
 const token = jwt.sign(
-  { _id: "inventory-query-user", role: "admin", branchId: BRANCH_A },
+  { _id: "inventory-query-user", role: "manager", branchId: BRANCH_A },
   process.env.JWT_SECRET,
   { expiresIn: "15m" },
 );
@@ -105,8 +107,8 @@ describe("Inventory query integration", () => {
     jest.clearAllMocks();
     User.findById.mockResolvedValue({
       _id: "inventory-query-user",
-      role: "admin",
-      branchId: BRANCH_A,
+      role: "manager",
+      branchId: BRANCH_A_OBJECT_ID,
       status: "active",
     });
     inventoryRepository.findActive.mockImplementation(
@@ -137,6 +139,13 @@ describe("Inventory query integration", () => {
     });
     expect(inventoryRepository.findActive).toHaveBeenCalledTimes(1);
     expect(inventoryRepository.count).toHaveBeenCalledTimes(1);
+    const dataFilter = inventoryRepository.findActive.mock.calls[0][0];
+    const countFilter = inventoryRepository.count.mock.calls[0][0];
+    const dataBranchId = dataFilter.$and.find((part) => part.branchId).branchId;
+    const countBranchId = countFilter.$and.find((part) => part.branchId).branchId;
+    expect(dataBranchId).toBe(BRANCH_A_OBJECT_ID);
+    expect(dataBranchId).toBeInstanceOf(mongoose.Types.ObjectId);
+    expect(countBranchId).toBe(BRANCH_A_OBJECT_ID);
   });
 
   test("returns the second page", async () => {

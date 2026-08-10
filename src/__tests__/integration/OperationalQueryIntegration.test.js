@@ -2,6 +2,7 @@ const request = require("supertest");
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 process.env.JWT_SECRET = "operational_query_test_secret";
 process.env.NODE_ENV = "test";
@@ -37,6 +38,10 @@ const BRANCH_A = "64b000000000000000000001";
 const BRANCH_B = "64b000000000000000000002";
 const MEMBER_A = "64c000000000000000000001";
 const MEMBER_B = "64c000000000000000000002";
+const MEMBER_A_OBJECT_ID = new mongoose.Types.ObjectId(MEMBER_A);
+const MEMBER_C_OBJECT_ID = new mongoose.Types.ObjectId(
+  "64c000000000000000000003",
+);
 
 const orders = [
   { _id: "1", createdBy: MEMBER_A, customerName: "Asha", status: "pending", createdAt: "2026-01-01" },
@@ -97,7 +102,7 @@ const billingApp = appFor("/api/v1/cashier", cashierbillingRouter);
 const kitchenApp = appFor("/api/v1/chef", chefRouter);
 const takeawayApp = appFor("/api/v1/cashier", cashierKotRouter);
 const tokenFor = (role) => jwt.sign(
-  { _id: MEMBER_A, role, branchId: BRANCH_A },
+  { _id: `${role}:${MEMBER_A}`, role, branchId: BRANCH_A },
   process.env.JWT_SECRET,
   { expiresIn: "15m" },
 );
@@ -106,10 +111,18 @@ const get = (app, path, role) => request(app).get(path)
 
 beforeEach(() => {
   jest.clearAllMocks();
-  User.findById.mockImplementation(async () => ({
-    _id: MEMBER_A, role: "admin", status: "active", branchId: BRANCH_A,
+  User.findById.mockImplementation(async (id) => ({
+    _id: id,
+    role: String(id).split(":")[0],
+    status: "active",
+    branchId: BRANCH_A,
   }));
-  User.find.mockReturnValue({ distinct: jest.fn().mockResolvedValue([MEMBER_A]) });
+  User.find.mockReturnValue({
+    distinct: jest.fn().mockResolvedValue([
+      MEMBER_A_OBJECT_ID,
+      MEMBER_C_OBJECT_ID,
+    ]),
+  });
   orderRepository.listScoped.mockImplementation(async (filter, options) => select(orders, filter, options));
   orderRepository.countScoped.mockImplementation(async (filter) => orders.filter((item) => matches(item, filter)).length);
   billingRepository.listScoped.mockImplementation(async (filter, options) => select(bills, filter, options));
@@ -152,6 +165,19 @@ describe("Billing query integration", () => {
     expect(response.body.pagination.total).toBe(1);
     expect(billingRepository.listScoped).toHaveBeenCalledTimes(1);
     expect(billingRepository.count).toHaveBeenCalledTimes(1);
+    const dataFilter = billingRepository.listScoped.mock.calls[0][0];
+    const countFilter = billingRepository.count.mock.calls[0][0];
+    const memberConstraint = dataFilter.$and.find(
+      (part) => Array.isArray(part.createdBy?.$in),
+    );
+    expect(memberConstraint.createdBy.$in).toEqual([
+      MEMBER_A_OBJECT_ID,
+      MEMBER_C_OBJECT_ID,
+    ]);
+    memberConstraint.createdBy.$in.forEach((id) => {
+      expect(id).toBeInstanceOf(mongoose.Types.ObjectId);
+    });
+    expect(countFilter).toBe(dataFilter);
   });
 
   test("escapes regex search and rejects invalid fields and filters", async () => {

@@ -7,6 +7,7 @@ const tableIdParams = Joi.object({ tableId: objectId("table ID") });
 const createTableBody = Joi.object({
   tableNumber: Joi.number().integer().positive().required(),
   capacity: Joi.number().integer().positive().required(),
+  branchId: Joi.any().strip(),
 });
 const updateTableBody = Joi.object({
   capacity: Joi.number().integer().positive().optional(),

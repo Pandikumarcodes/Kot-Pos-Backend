@@ -53,6 +53,8 @@ const payBill = async (req, res, next) => {
       {
         scopeToBranchMembers: req.scopeToBranchMembers,
         branchId: req.branchId,
+        userId: req.user._id,
+        actorRole: req.user.role,
         io: req.app.get("io"),
       },
     );

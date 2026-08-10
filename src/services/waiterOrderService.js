@@ -51,7 +51,9 @@ const ORDER_QUERY_POLICY = Object.freeze({
 
 const transactionManager = new TransactionManager();
 
-const getTableOrders = async (tableId, scopeToBranchMembers) => {
+const getTableOrders = async (tableId, branchId, scopeToBranchMembers) => {
+  const table = await tableRepository.findByIdAndBranch(tableId, branchId);
+  if (!table) throw new AppError("Table not found", 404);
   const orders = await orderRepository.listTableActive(
     scopeToBranchMembers({
       tableId,
@@ -93,10 +95,10 @@ const sendToCashier = async (tableId, input, context) => {
     correlationId,
   });
   let createdBillId = null;
-  let bill;
+  let result;
   try {
-    bill = await transactionManager.execute(async (session) => {
-    const table = await tableRepository.findById(tableId, undefined, {
+    result = await transactionManager.execute(async (session) => {
+    const table = await tableRepository.findByIdAndBranch(tableId, branchId, {
       session,
     });
     if (!table) throw new AppError("Table not found", 404);
@@ -160,11 +162,13 @@ const sendToCashier = async (tableId, input, context) => {
       "served",
       { session },
     );
-    await tableRepository.updateState(
+    const updatedTable = await tableRepository.updateByIdAndBranch(
       tableId,
+      branchId,
       { status: "billing" },
-      { session },
+      { session, new: true },
     );
+    if (!updatedTable) throw new AppError("Table not found", 404);
     await billingAudit.billCreated(
       {
         context: auditContext,
@@ -176,7 +180,7 @@ const sendToCashier = async (tableId, input, context) => {
       },
       { session },
     );
-    return createdBill;
+    return { bill: createdBill, table: updatedTable };
     });
   } catch (error) {
     try {
@@ -192,12 +196,16 @@ const sendToCashier = async (tableId, input, context) => {
     }
     throw error;
   }
+  const { bill, table } = result;
+  notify.tableUpdated(io, table);
   notify.billingUpdated(io, bill, branchId);
   return bill;
 };
 
 const createOrder = async (input, { branchId, userId }) => {
   const { tableNumber, customerName, tableId, items } = input;
+  const table = await tableRepository.findByIdAndBranch(tableId, branchId);
+  if (!table) throw new AppError("Table not found", 404);
   const menuItems = await menuRepository.findByIds(
     items.map((item) => item.itemId),
   );
@@ -303,9 +311,9 @@ const sendToKitchen = async (
       correlationId: auditContext.correlationId,
     });
 
-    const table = await tableRepository.findById(
+    const table = await tableRepository.findByIdAndBranch(
       existing.tableId,
-      undefined,
+      branchId,
       { session },
     );
     if (!table) throw new AppError("Table not found", 404);

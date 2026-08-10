@@ -10,6 +10,10 @@ jest.mock("../../models/tables");
 jest.mock("../../models/menuItems");
 jest.mock("../../models/kot");
 jest.mock("../../models/settings");
+jest.mock("../../models/Branch");
+jest.mock("../../services/notificationservices", () => ({
+  notify: { tableUpdated: jest.fn() },
+}));
 
 jest.mock("../../config/logger", () => ({
   info: jest.fn(),
@@ -21,11 +25,15 @@ const Table = require("../../models/tables");
 const MenuItem = require("../../models/menuItems");
 const Kot = require("../../models/kot");
 const Settings = require("../../models/settings");
+const Branch = require("../../models/Branch");
+const { notify } = require("../../services/notificationservices");
 
 const qrMenuRouter = require("../../routes/public/QrMenuRouter");
 
 const app = express();
 app.use(express.json());
+const mockIo = { name: "io" };
+app.set("io", mockIo);
 app.use("/api/v1/public", qrMenuRouter);
 
 // ─────────────────────────────────────────────────────────────
@@ -226,7 +234,7 @@ describe("POST /api/v1/public/order/:tableId", () => {
       ]),
     });
     Kot.create.mockResolvedValue(mockKotDoc());
-    Table.findByIdAndUpdate.mockResolvedValue({});
+    Table.findOneAndUpdate.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     const res = await request(app)
       .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
@@ -250,7 +258,7 @@ describe("POST /api/v1/public/order/:tableId", () => {
       ]),
     });
     Kot.create.mockResolvedValue(mockKotDoc());
-    Table.findByIdAndUpdate.mockResolvedValue({});
+    Table.findOneAndUpdate.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     const res = await request(app)
       .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
@@ -263,6 +271,7 @@ describe("POST /api/v1/public/order/:tableId", () => {
   });
 
   it("201 — marks table as occupied when it was available", async () => {
+    const updatedTable = mockTableDoc({ status: "occupied" });
     Table.findById.mockReturnValue({
       lean: jest.fn().mockResolvedValue(mockTableDoc({ status: "available" })),
     });
@@ -274,15 +283,21 @@ describe("POST /api/v1/public/order/:tableId", () => {
       ]),
     });
     Kot.create.mockResolvedValue(mockKotDoc());
-    Table.findByIdAndUpdate.mockResolvedValue({});
+    Table.findOneAndUpdate.mockResolvedValue(updatedTable);
 
     await request(app)
       .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
       .send(validPayload);
 
-    expect(Table.findByIdAndUpdate).toHaveBeenCalledWith(VALID_TABLE_ID, {
-      status: "occupied",
-    });
+    expect(Table.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: VALID_TABLE_ID, branchId: VALID_BRANCH_ID },
+      { status: "occupied" },
+      { new: true, runValidators: true },
+    );
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      updatedTable,
+    );
   });
 
   it("201 — does not update table when already occupied", async () => {
@@ -302,7 +317,8 @@ describe("POST /api/v1/public/order/:tableId", () => {
       .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
       .send(validPayload);
 
-    expect(Table.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(Table.findOneAndUpdate).not.toHaveBeenCalled();
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
   });
 
   it("201 — KOT is created with createdBy null for self-orders", async () => {
@@ -317,7 +333,7 @@ describe("POST /api/v1/public/order/:tableId", () => {
       ]),
     });
     Kot.create.mockResolvedValue(mockKotDoc());
-    Table.findByIdAndUpdate.mockResolvedValue({});
+    Table.findOneAndUpdate.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     await request(app)
       .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
@@ -383,7 +399,7 @@ describe("POST /api/v1/public/order/:tableId", () => {
       ]),
     });
     Kot.create.mockResolvedValue(mockKotDoc());
-    Table.findByIdAndUpdate.mockResolvedValue({});
+    Table.findOneAndUpdate.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     // No Authorization header — should still work
     const res = await request(app)
@@ -397,6 +413,55 @@ describe("POST /api/v1/public/order/:tableId", () => {
 // ─────────────────────────────────────────────────────────────
 // GET /api/v1/public/order/:orderId/status
 // ─────────────────────────────────────────────────────────────
+describe("public QR table ownership", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("fails safely when a QR table has no persisted branch", async () => {
+    Table.findById.mockReturnValue({
+      lean: jest.fn().mockResolvedValue(mockTableDoc({ branchId: null })),
+    });
+
+    const menuResponse = await request(app).get(
+      `/api/v1/public/menu/${VALID_TABLE_ID}`,
+    );
+    const orderResponse = await request(app)
+      .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
+      .send({ items: [{ itemId: VALID_ITEM_ID_1, quantity: 1 }] });
+
+    expect(menuResponse.status).toBe(400);
+    expect(orderResponse.status).toBe(400);
+    expect(Branch.findOne).not.toHaveBeenCalled();
+    expect(Table.findOneAndUpdate).not.toHaveBeenCalled();
+    expect(Kot.create).not.toHaveBeenCalled();
+  });
+
+  it("uses only the Table branch when a public client supplies another branch", async () => {
+    Table.findById.mockReturnValue({
+      lean: jest.fn().mockResolvedValue(mockTableDoc({ status: "occupied" })),
+    });
+    MenuItem.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([mockMenuItemDoc()]),
+    });
+    Kot.create.mockResolvedValue(mockKotDoc());
+
+    const res = await request(app)
+      .post(`/api/v1/public/order/${VALID_TABLE_ID}`)
+      .send({
+        branchId: new mongoose.Types.ObjectId().toString(),
+        items: [{ itemId: VALID_ITEM_ID_1, quantity: 1 }],
+      });
+
+    if (res.status === 201) {
+      expect(Kot.create).toHaveBeenCalledWith(
+        expect.objectContaining({ branchId: VALID_BRANCH_ID }),
+      );
+    } else {
+      expect(res.status).toBe(400);
+      expect(Kot.create).not.toHaveBeenCalled();
+    }
+  });
+});
+
 describe("GET /api/v1/public/order/:orderId/status", () => {
   beforeEach(() => jest.clearAllMocks());
 

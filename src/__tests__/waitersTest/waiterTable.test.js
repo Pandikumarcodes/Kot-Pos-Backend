@@ -48,6 +48,7 @@ app.use("/api/v1/waiter", waiterTableRouter);
 // ─────────────────────────────────────────────────────────────
 
 const VALID_TABLE_ID = new mongoose.Types.ObjectId().toString();
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
 function makeToken(role = "waiter") {
   return jwt.sign(
@@ -58,7 +59,12 @@ function makeToken(role = "waiter") {
 }
 
 function mockUserDoc(role = "waiter") {
-  return { _id: "user_id_123", username: "testuser", role };
+  return {
+    _id: "user_id_123",
+    username: "testuser",
+    role,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+  };
 }
 
 function mockTableDoc(overrides = {}) {
@@ -67,6 +73,7 @@ function mockTableDoc(overrides = {}) {
     tableNumber: 1,
     capacity: 4,
     status: "available",
+    branchId: VALID_BRANCH_ID,
     currentCustomer: null,
     save: jest.fn().mockResolvedValue(true),
     ...overrides,
@@ -81,7 +88,7 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
 
   it("200 — waiter can allocate an available table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(mockTableDoc());
+    Table.findOne.mockResolvedValue(mockTableDoc());
 
     const res = await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
@@ -94,7 +101,7 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
 
   it("200 — manager can allocate a table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("manager"));
-    Table.findById.mockResolvedValue(mockTableDoc());
+    Table.findOne.mockResolvedValue(mockTableDoc());
 
     const res = await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
@@ -106,10 +113,10 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
 
   it("200 — admin can allocate a table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("admin"));
-    Table.findById.mockResolvedValue(mockTableDoc());
+    Table.findOne.mockResolvedValue(mockTableDoc());
 
     const res = await request(app)
-      .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
+      .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ name: "Arjun", phone: "9876543210" });
 
@@ -119,7 +126,7 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
   it("200 — sets table status to occupied and saves customer", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     const table = mockTableDoc();
-    Table.findById.mockResolvedValue(table);
+    Table.findOne.mockResolvedValue(table);
 
     await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
@@ -137,19 +144,61 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
   it("200 — calls notify.tableUpdated with io and table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     const table = mockTableDoc();
-    Table.findById.mockResolvedValue(table);
+    Table.findOne.mockResolvedValue(table);
 
     await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`)
       .send({ name: "Ravi", phone: "9876543210" });
 
-    expect(notify.tableUpdated).toHaveBeenCalledWith(mockIo, table, undefined);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      table,
+    );
+  });
+
+  it("200 — Global Admin uses the resolved operational branch", async () => {
+    User.findById.mockResolvedValue(mockUserDoc("admin"));
+    const table = mockTableDoc();
+    Table.findOne.mockResolvedValue(table);
+
+    const res = await request(app)
+      .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}?branchId=${VALID_BRANCH_ID}`)
+      .set("Cookie", `token=${makeToken("admin")}`)
+      .send({ name: "Arjun", phone: "9876543210" });
+
+    expect(res.status).toBe(200);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      table,
+    );
+  });
+
+  it("200 — branch-assigned waiter ignores a selected branch", async () => {
+    const selectedBranchId = new mongoose.Types.ObjectId().toString();
+    User.findById.mockResolvedValue(mockUserDoc("waiter"));
+    const table = mockTableDoc();
+    Table.findOne.mockResolvedValue(table);
+
+    const res = await request(app)
+      .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}?branchId=${selectedBranchId}`)
+      .set("Cookie", `token=${makeToken("waiter")}`)
+      .send({ name: "Ravi", phone: "9876543210" });
+
+    expect(res.status).toBe(200);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      table,
+    );
+    expect(Table.findOne).toHaveBeenCalledWith({
+      _id: VALID_TABLE_ID,
+      branchId: VALID_BRANCH_ID,
+    });
   });
 
   it("400 — rejects allocation of an already occupied table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(mockTableDoc({ status: "occupied" }));
+    Table.findOne.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     const res = await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
@@ -162,7 +211,7 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
 
   it("404 — returns 404 when table does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(null);
+    Table.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .post(`/api/v1/waiter/allocate/${VALID_TABLE_ID}`)
@@ -171,6 +220,11 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Table not found");
+    expect(Table.findOne).toHaveBeenCalledWith({
+      _id: VALID_TABLE_ID,
+      branchId: VALID_BRANCH_ID,
+    });
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -206,7 +260,7 @@ describe("POST /api/v1/waiter/allocate/:tableId", () => {
 
   it("500 — returns 500 when DB throws on save", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(
+    Table.findOne.mockResolvedValue(
       mockTableDoc({
         save: jest.fn().mockRejectedValue(new Error("DB error")),
       }),
@@ -229,7 +283,7 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
 
   it("200 — waiter can free an occupied table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(mockTableDoc({ status: "occupied" }));
+    Table.findOne.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     const res = await request(app)
       .put(`/api/v1/waiter/free/${VALID_TABLE_ID}`)
@@ -241,7 +295,7 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
 
   it("200 — manager can free a table", async () => {
     User.findById.mockResolvedValue(mockUserDoc("manager"));
-    Table.findById.mockResolvedValue(mockTableDoc({ status: "occupied" }));
+    Table.findOne.mockResolvedValue(mockTableDoc({ status: "occupied" }));
 
     const res = await request(app)
       .put(`/api/v1/waiter/free/${VALID_TABLE_ID}`)
@@ -256,7 +310,7 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
       status: "occupied",
       currentCustomer: { name: "Ravi", phone: "9876543210" },
     });
-    Table.findById.mockResolvedValue(table);
+    Table.findOne.mockResolvedValue(table);
 
     await request(app)
       .put(`/api/v1/waiter/free/${VALID_TABLE_ID}`)
@@ -270,18 +324,21 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
   it("200 — calls notify.tableUpdated after freeing", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
     const table = mockTableDoc({ status: "occupied" });
-    Table.findById.mockResolvedValue(table);
+    Table.findOne.mockResolvedValue(table);
 
     await request(app)
       .put(`/api/v1/waiter/free/${VALID_TABLE_ID}`)
       .set("Cookie", `token=${makeToken("waiter")}`);
 
-    expect(notify.tableUpdated).toHaveBeenCalledWith(mockIo, table, undefined);
+    expect(notify.tableUpdated).toHaveBeenCalledWith(
+      mockIo,
+      table,
+    );
   });
 
   it("404 — returns 404 when table does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(null);
+    Table.findOne.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/waiter/free/${VALID_TABLE_ID}`)
@@ -289,6 +346,11 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Table not found");
+    expect(Table.findOne).toHaveBeenCalledWith({
+      _id: VALID_TABLE_ID,
+      branchId: VALID_BRANCH_ID,
+    });
+    expect(notify.tableUpdated).not.toHaveBeenCalled();
   });
 
   it("401 — rejects unauthenticated request", async () => {
@@ -319,7 +381,7 @@ describe("PUT /api/v1/waiter/free/:tableId", () => {
 
   it("500 — returns 500 when DB throws on save", async () => {
     User.findById.mockResolvedValue(mockUserDoc("waiter"));
-    Table.findById.mockResolvedValue(
+    Table.findOne.mockResolvedValue(
       mockTableDoc({
         status: "occupied",
         save: jest.fn().mockRejectedValue(new Error("DB error")),

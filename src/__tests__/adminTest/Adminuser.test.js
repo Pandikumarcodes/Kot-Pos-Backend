@@ -54,18 +54,20 @@ function makeToken(role = "admin") {
 }
 
 function mockUserDoc(overrides = {}) {
+  const role = overrides.role || "waiter";
   return {
     _id: new mongoose.Types.ObjectId().toString(),
     username: "testuser",
-    role: "waiter",
+    role,
     status: "active",
-    branchId: null,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
     save: jest.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
 
 const VALID_USER_ID = new mongoose.Types.ObjectId().toString();
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/v1/admin/create-user
@@ -80,7 +82,7 @@ describe("POST /api/v1/admin/create-user", () => {
     User.mockImplementation(() => newUser);
 
     const res = await request(app)
-      .post("/api/v1/admin/create-user")
+      .post(`/api/v1/admin/create-user?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ username: "newstaff", password: "Test@1234!", role: "waiter" });
 
@@ -97,7 +99,7 @@ describe("POST /api/v1/admin/create-user", () => {
     User.findOne.mockResolvedValue(mockUserDoc()); // already exists
 
     const res = await request(app)
-      .post("/api/v1/admin/create-user")
+      .post(`/api/v1/admin/create-user?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({ username: "testuser", password: "Test@1234!", role: "waiter" });
 
@@ -112,7 +114,7 @@ describe("POST /api/v1/admin/create-user", () => {
     });
 
     const res = await request(app)
-      .post("/api/v1/admin/create-user")
+      .post(`/api/v1/admin/create-user?branchId=${VALID_BRANCH_ID}`)
       .set("Cookie", `token=${makeToken("admin")}`)
       .send({});
 
@@ -273,7 +275,8 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("200 — admin can update a user role", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndUpdate.mockResolvedValue(
+    User.findOne.mockResolvedValue(mockUserDoc({ _id: VALID_USER_ID, role: "waiter" }));
+    User.findOneAndUpdate.mockResolvedValue(
       mockUserDoc({ _id: VALID_USER_ID, username: "staff1", role: "chef" }),
     );
 
@@ -289,7 +292,8 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("200 — manager can update a user role", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "manager" }));
-    User.findByIdAndUpdate.mockResolvedValue(
+    User.findOne.mockResolvedValue(mockUserDoc({ _id: VALID_USER_ID, role: "waiter" }));
+    User.findOneAndUpdate.mockResolvedValue(
       mockUserDoc({ _id: VALID_USER_ID, role: "cashier" }),
     );
 
@@ -311,7 +315,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
     expect(res.status).toBe(403);
     expect(res.body.error).toBe("Managers cannot assign admin role");
-    expect(User.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(User.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it("400 — rejects missing role field", async () => {
@@ -352,7 +356,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("404 — returns 404 when user does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndUpdate.mockResolvedValue(null);
+    User.findOneAndUpdate.mockResolvedValue(null);
 
     const res = await request(app)
       .put(`/api/v1/admin/update-role/${VALID_USER_ID}`)
@@ -395,7 +399,7 @@ describe("PUT /api/v1/admin/update-role/:userId", () => {
 
   it("500 — returns 500 when DB throws", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndUpdate.mockRejectedValue(new Error("DB error"));
+    User.findOneAndUpdate.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
       .put(`/api/v1/admin/update-role/${VALID_USER_ID}`)
@@ -415,7 +419,7 @@ describe("DELETE /api/v1/admin/deleteUser/:userId", () => {
 
   it("200 — admin can delete a user", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndDelete.mockResolvedValue(
+    User.findOneAndDelete.mockResolvedValue(
       mockUserDoc({ _id: VALID_USER_ID, username: "staff1" }),
     );
 
@@ -436,12 +440,12 @@ describe("DELETE /api/v1/admin/deleteUser/:userId", () => {
       .set("Cookie", `token=${makeToken("admin")}`);
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Invalid User Id");
+    expect(res.body.error).toBe("Invalid userId");
   });
 
   it("404 — returns 404 when user does not exist", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndDelete.mockResolvedValue(null);
+    User.findOneAndDelete.mockResolvedValue(null);
 
     const res = await request(app)
       .delete(`/api/v1/admin/deleteUser/${VALID_USER_ID}`)
@@ -501,7 +505,7 @@ describe("DELETE /api/v1/admin/deleteUser/:userId", () => {
 
   it("500 — returns 500 when DB throws", async () => {
     User.findById.mockResolvedValue(mockUserDoc({ role: "admin" }));
-    User.findByIdAndDelete.mockRejectedValue(new Error("DB error"));
+    User.findOneAndDelete.mockRejectedValue(new Error("DB error"));
 
     const res = await request(app)
       .delete(`/api/v1/admin/deleteUser/${VALID_USER_ID}`)

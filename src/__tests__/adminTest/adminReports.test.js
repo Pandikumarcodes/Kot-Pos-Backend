@@ -44,7 +44,12 @@ function makeToken(role = "admin") {
 }
 
 function mockUserDoc(role = "admin") {
-  return { _id: "user_id_123", username: "testuser", role };
+  return {
+    _id: "user_id_123",
+    username: "testuser",
+    role,
+    branchId: role === "admin" ? null : VALID_BRANCH_ID,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────

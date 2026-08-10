@@ -224,7 +224,8 @@ erDiagram
 
     TABLE {
         ObjectId id PK
-        number tableNumber UK
+        ObjectId branchId FK
+        number tableNumber
         ObjectId assignedWaiter FK
         string status
         number capacity
@@ -271,7 +272,7 @@ erDiagram
 - **MenuItem** — Menu catalog entries, categories, prices, and availability state.
 - **Inventory** — Branch-scoped stock records, linked optionally to menu items, with thresholds and supplier metadata.
 - **StockLog** — Auditable inventory movements, including restocks, adjustments, returns, and KOT-driven deductions.
-- **Table** — Dining-floor table state, capacity, current customer details, and assigned waiter.
+- **Table** — Branch-owned dining-floor state. `branchId` is required and references `Branch`; `tableNumber` is unique within that branch. The lifecycle is `available → occupied → billing → available`, with `reserved` also supported for operators. `billing` is an internal workflow state and is not manually selectable through the Admin Table status API; `cleaning` is not a supported backend status.
 - **TableOrder** — Dine-in order workflow records linked to a table and staff member.
 - **TakeAway** — Takeaway order workflow records with customer details, items, status, and creator.
 - **Customer** — Reusable customer profiles and aggregate visit/spend metrics.
@@ -292,7 +293,7 @@ erDiagram
   - `User.username`
   - `Billing.billNumber`
   - `MenuItem.ItemName`
-  - `Table.tableNumber`
+  - `Table: { branchId, tableNumber }` (unique within a branch)
   - `Customer.phone`
 
 - **Branch-scoped indexes** support tenant-aware operational queries:
@@ -321,6 +322,7 @@ Branch isolation is enforced by carrying `branchId` through authentication conte
 - Authorization should scope every branch-owned read, update, and delete query with the authenticated branch identifier.
 - KOTs, inventory records, stock logs, settings, and branch-bound users persist `branchId` directly.
 - Super-administrator users may have a `null` branch assignment and require explicit elevated authorization before accessing cross-branch data.
+- A branchless Global Admin selects an operational branch that middleware resolves into `req.branchId`; Manager, Waiter, Chef, and Cashier requests remain authoritative to persisted `user.branchId`.
 - Branch-aware compound indexes keep tenant-scoped queries efficient as the number of branches and operational records grows.
 
 > Database-level branch isolation is strongest when every branch-owned operational collection persists and queries by `branchId`. Collections that derive branch context through related records should be consistently scoped through those relationships.

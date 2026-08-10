@@ -7,6 +7,8 @@ const mongoose = require("mongoose");
 process.env.JWT_SECRET = "test_jwt_secret";
 process.env.NODE_ENV = "test";
 
+const VALID_BRANCH_ID = new mongoose.Types.ObjectId().toString();
+
 jest.mock("../../models/users");
 jest.mock("../../models/billings");
 jest.mock("../../config/logger", () => ({
@@ -39,14 +41,14 @@ afterAll(() => {
 
 function makeToken(role = "cashier") {
   return jwt.sign(
-    { _id: "user_id_123", username: "testcashier", role },
+    { _id: "user_id_123", username: "testcashier", role, branchId: VALID_BRANCH_ID },
     process.env.JWT_SECRET,
     { expiresIn: "15m" },
   );
 }
 
 function mockUserDoc(role = "cashier") {
-  return { _id: "user_id_123", username: "testcashier", role };
+  return { _id: "user_id_123", username: "testcashier", role, branchId: VALID_BRANCH_ID };
 }
 
 // ─────────────────────────────────────────────────────────────

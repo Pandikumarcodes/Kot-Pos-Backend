@@ -6,19 +6,26 @@ const { buildSearchFilter } = require("./search");
 const { buildSort } = require("./sorting");
 const { QueryValidationError, validateQuery } = require("./validation");
 
-const isPlainObject = (value) =>
-  value !== null && typeof value === "object" && !Array.isArray(value);
+const isPlainObject = (value) => {
+  if (value === null || typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
 
 const clone = (value) => {
   if (Array.isArray(value)) return value.map(clone);
   if (!isPlainObject(value)) return value;
-  return Object.fromEntries(
+  const cloned = Object.fromEntries(
     Object.entries(value).map(([key, item]) => [key, clone(item)]),
   );
+  return Object.setPrototypeOf(cloned, Object.getPrototypeOf(value));
 };
 
 const deepFreeze = (value) => {
-  if (!value || typeof value !== "object" || Object.isFrozen(value))
+  if (
+    (!Array.isArray(value) && !isPlainObject(value)) ||
+    Object.isFrozen(value)
+  )
     return value;
   Object.values(value).forEach(deepFreeze);
   return Object.freeze(value);
