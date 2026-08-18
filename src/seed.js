@@ -18,7 +18,16 @@ const { buildMenuItems, MENU_DISTRIBUTION } = require("./seedData/menuItems");
 const { buildCustomers } = require("./seedData/customers");
 const { buildInventory, BRANCH_COUNTS } = require("./seedData/inventory");
 
-const CLEAN = process.argv.includes("--clean");
+function getSeedMode(argv = process.argv) {
+  const clean = argv.includes("--clean");
+  const customersOnly = argv.includes("--customers-only");
+  if (clean && customersOnly)
+    throw new Error("Use either --customers-only or --clean, not both");
+  return customersOnly ? "customers-only" : clean ? "clean" : "full";
+}
+const SEED_MODE = getSeedMode();
+const CLEAN = SEED_MODE === "clean";
+const CUSTOMERS_ONLY = SEED_MODE === "customers-only";
 const DEMO_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "Demo@12345";
 const DAY = 24 * 60 * 60 * 1000;
 const DEMO_BRANCHES = [
@@ -195,6 +204,55 @@ async function cleanDatabase() {
     TableOrder.deleteMany({}),
     TakeAway.deleteMany({}),
   ]);
+}
+
+function snapshotIdentity(row) {
+  if (!row.customerName) return null;
+  return `${row.customerName}\u0000${row.customerPhone || ""}`;
+}
+
+function assertCustomerSnapshotsMatchFixture(rows) {
+  const fixtureByName = new Map(CUSTOMER_FIXTURE.map((customer) => [customer.name, customer]));
+  const mismatches = rows
+    .map(snapshotIdentity)
+    .filter(Boolean)
+    .filter((identity) => {
+      const [name, phone] = identity.split("\u0000");
+      const customer = fixtureByName.get(name);
+      return !customer || (phone && customer.phone !== phone);
+    });
+  if (mismatches.length)
+    throw new Error(
+      `Refusing customer-only seed: existing transaction snapshots do not match the deterministic customer fixture (${mismatches.length} mismatch(es))`,
+    );
+}
+
+async function reseedCustomersOnly(session) {
+  assertDisposableDemoTarget();
+  const [bills, kots, orders, takeaways] = await Promise.all([
+    Billing.find({}).lean().session(session),
+    Kot.find({}).lean().session(session),
+    TableOrder.find({}).lean().session(session),
+    TakeAway.find({}).lean().session(session),
+  ]);
+  assertCustomerSnapshotsMatchFixture([
+    ...bills,
+    ...kots,
+    ...orders,
+    ...takeaways,
+  ]);
+
+  await Customer.deleteMany({}, { session });
+  const customers = await Customer.insertMany(CUSTOMER_FIXTURE, {
+    session,
+    ordered: true,
+  });
+  await updateCustomerMetrics(customers, bills, orders, takeaways, session);
+  const count = await Customer.countDocuments({}).session(session);
+  const phones = await Customer.distinct("phone", {}, { session });
+  if (count !== 120 || phones.length !== 120)
+    throw new Error("Customer-only seed verification failed");
+  return { count, phones: phones.length };
 }
 
 function buildHistoricalStories(branches, tables, users, menu, customers) {
@@ -727,7 +785,26 @@ async function verifySeed(branches) {
   };
 }
 
+async function customerOnlySeed() {
+  await mongoose.connect(process.env.MONGO_URI);
+  assertDisposableDemoTarget();
+  const session = await mongoose.startSession();
+  try {
+    let summary;
+    await session.withTransaction(async () => {
+      summary = await reseedCustomersOnly(session);
+    });
+    console.log(
+      `Customer-only seed complete: ${summary.count} customers, ${summary.phones} unique phones; historical transactions unchanged.`,
+    );
+  } finally {
+    await session.endSession();
+    await mongoose.disconnect();
+  }
+}
+
 async function seed() {
+  if (CUSTOMERS_ONLY) return customerOnlySeed();
   await mongoose.connect(process.env.MONGO_URI);
   assertDisposableDemoTarget();
   const session = await mongoose.startSession();
@@ -869,6 +946,10 @@ module.exports = {
   buildDemoTables,
   branchDocument,
   assertDisposableDemoTarget,
+  assertCustomerSnapshotsMatchFixture,
+  reseedCustomersOnly,
+  customerOnlySeed,
+  getSeedMode,
   buildMenuItems,
   buildCustomers,
   buildInventory,
