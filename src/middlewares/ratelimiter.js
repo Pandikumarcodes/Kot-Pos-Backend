@@ -14,6 +14,32 @@ const configuredWindow = (fallback) =>
 const configuredMax = (fallback) =>
   Math.floor(toPositiveNumber(process.env.RATE_LIMIT_MAX, fallback));
 
+const withTimeout = (promise, timeoutMs) => new Promise((resolve, reject) => {
+  const timer = setTimeout(
+    () => reject(new Error("Redis rate limit timed out")),
+    timeoutMs,
+  );
+  Promise.resolve(promise).then(
+    (value) => {
+      clearTimeout(timer);
+      resolve(value);
+    },
+    (error) => {
+      clearTimeout(timer);
+      reject(error);
+    },
+  );
+});
+
+const DECREMENT_WITH_FLOOR_SCRIPT = `
+  local current = tonumber(redis.call("GET", KEYS[1]))
+  if not current or current <= 1 then
+    redis.call("DEL", KEYS[1])
+    return 0
+  end
+  return redis.call("DECR", KEYS[1])
+`;
+
 /**
  * Small express-rate-limit store backed by the already configured node-redis
  * client. Redis failures fail open so an optional cache outage cannot turn
@@ -25,36 +51,51 @@ class RedisRateLimitStore {
     this.windowMs = 60000;
   }
 
-  init(options) { this.windowMs = options.windowMs; }
+  init(options) {
+    this.windowMs = Math.ceil(toPositiveNumber(options.windowMs, this.windowMs));
+  }
 
   async increment(identifier) {
-    const resetTime = new Date(Date.now() + this.windowMs);
     const client = getRedisClient();
     if (!client?.isReady || !redisStatus().configured) {
-      return { totalHits: 0, resetTime };
+      throw new Error("Redis rate limiter is unavailable");
     }
 
     const key = `${this.prefix}:${identifier}`;
     try {
-      const totalHits = await Promise.race([
+      const redisHits = await withTimeout(
         client.incr(key),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis rate limit timed out")), toPositiveNumber(process.env.REDIS_TIMEOUT || process.env.REDIS_OPERATION_TIMEOUT_MS, 500))),
-      ]);
+        toPositiveNumber(process.env.REDIS_TIMEOUT || process.env.REDIS_OPERATION_TIMEOUT_MS, 500),
+      );
+      const totalHits = Number(redisHits);
+      if (!Number.isSafeInteger(totalHits) || totalHits < 1) {
+        throw new TypeError(`Redis INCR returned an invalid hit count: ${redisHits}`);
+      }
       if (totalHits === 1) await client.pExpire(key, this.windowMs);
-      const remainingTtl = await client.pTTL(key);
+      const remainingTtl = Number(await client.pTTL(key));
       return {
         totalHits,
-        resetTime: new Date(Date.now() + (remainingTtl > 0 ? remainingTtl : this.windowMs)),
+        resetTime: new Date(
+          Date.now() + (Number.isFinite(remainingTtl) && remainingTtl > 0 ? remainingTtl : this.windowMs),
+        ),
       };
     } catch (error) {
       logger.warn("Redis rate limiter unavailable; request allowed", { error: error.message });
-      return { totalHits: 0, resetTime };
+      throw error;
     }
   }
 
   async decrement(identifier) {
     const client = getRedisClient();
-    if (client?.isReady) await client.decr(`${this.prefix}:${identifier}`);
+    if (!client?.isReady) return;
+    try {
+      await client.eval(DECREMENT_WITH_FLOOR_SCRIPT, {
+        keys: [`${this.prefix}:${identifier}`],
+        arguments: [],
+      });
+    } catch (error) {
+      logger.warn("Redis rate limiter decrement failed", { error: error.message });
+    }
   }
 
   async resetKey(identifier) {
@@ -87,10 +128,14 @@ const createRateLimiter = (config) => {
     return (req, res, next) => next(); // No-op middleware
   }
 
-  // Redis is shared across application instances when configured. The store
-  // remains fail-open if Redis is unavailable, preserving existing behavior.
+  // Redis is shared across application instances when configured. Store errors
+  // are handed to express-rate-limit's supported fail-open path.
   const { prefix, ...options } = config;
-  return rateLimit({ ...options, store: new RedisRateLimitStore({ prefix }) });
+  return rateLimit({
+    ...options,
+    passOnStoreError: true,
+    store: new RedisRateLimitStore({ prefix }),
+  });
 };
 
 // ── Auth — strict (login/signup brute-force protection) ───────
