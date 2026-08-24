@@ -2,6 +2,10 @@ const id = { type: "string", pattern: "^[a-fA-F0-9]{24}$", example: "507f1f77bcf
 
 const ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 const jsonBody = (schema, example) => ({ required: true, content: { "application/json": { schema, example } } });
+const jsonResponse = (description, schema, example) => ({
+  description,
+  content: { "application/json": { schema, ...(example ? { example } : {}) } },
+});
 const parameter = (name, inValue, schema, description, required = false, example) => ({
   name,
   in: inValue,
@@ -12,7 +16,7 @@ const parameter = (name, inValue, schema, description, required = false, example
 });
 
 const examples = {
-  credentials: { username: "manager@example.com", password: "StrongPassword123" },
+  credentials: { username: "manager@example.com" },
   branch: { name: "Downtown Branch", address: "12 Market Street", phone: "9876543210", email: "downtown@example.com", gstin: "29ABCDE1234F1Z5" },
   customer: { name: "Asha Rao", phone: "9876543210", email: "asha@example.com", address: "Bengaluru" },
   menu: { ItemName: "Paneer Tikka", category: "starter", price: 249, available: true },
@@ -25,7 +29,7 @@ const examples = {
 
 const schemas = {
   User: { type: "object", description: "User record returned by the current API.", properties: { _id: id, username: { type: "string", example: "manager@example.com" }, role: { type: "string", enum: ["admin", "manager", "waiter", "chef", "cashier"] }, status: { type: "string", enum: ["active", "locked"] }, branchId: { oneOf: [id, { type: "null" }] } }, additionalProperties: true },
-  Branch: { type: "object", properties: { _id: id, name: { type: "string", example: "Downtown Branch" }, address: { type: "string" }, phone: { type: "string" }, email: { type: "string", format: "email" }, gstin: { type: "string" }, isActive: { type: "boolean", example: true } }, additionalProperties: true },
+  Branch: { type: "object", properties: { _id: id, name: { type: "string", example: "Downtown Branch" }, address: { type: "string" }, phone: { type: "string" }, email: { type: "string", format: "email" }, gstin: { type: "string" }, isActive: { type: "boolean", example: true }, adminUser: { oneOf: [id, { type: "null" }] } }, additionalProperties: true },
   Staff: { allOf: [ref("User"), { description: "User assigned to a branch." }] },
   Customer: { type: "object", properties: { _id: id, name: { type: "string" }, phone: { type: "string" }, email: { type: "string", format: "email" }, address: { type: "string" }, branchId: id }, additionalProperties: true },
   Menu: { type: "object", properties: { _id: id, ItemName: { type: "string", example: "Paneer Tikka" }, category: { type: "string", example: "starter" }, price: { type: "number", example: 249 }, available: { type: "boolean", example: true }, branchId: id }, additionalProperties: true },
@@ -39,6 +43,10 @@ const schemas = {
   Pagination: { type: "object", properties: { page: { type: "integer", example: 1 }, limit: { type: "integer", example: 20 }, total: { type: "integer", example: 42 }, pages: { type: "integer", example: 3 } }, additionalProperties: true },
   StandardSuccessResponse: { type: "object", required: ["success", "message"], properties: { success: { type: "boolean", example: true }, message: { type: "string", example: "Success" }, data: { nullable: true } }, additionalProperties: true },
   ErrorResponse: { type: "object", required: ["success", "message"], properties: { success: { type: "boolean", example: false }, message: { type: "string", example: "Not authenticated" }, error: { type: "string", example: "Not authenticated" }, validationErrors: { type: "array", items: { type: "object", properties: { field: { type: "string" }, location: { type: "string", enum: ["body", "params", "query"] }, message: { type: "string" }, type: { type: "string" } } } }, stack: { type: "string", description: "Development-only field." } }, additionalProperties: true },
+  BranchAdminLifecycleResponse: { type: "object", required: ["message", "branch", "user", "previousAdmin"], properties: { message: { type: "string", enum: ["Branch admin assigned", "Branch admin created", "Branch admin replaced"] }, branch: ref("Branch"), user: ref("User"), previousAdmin: { oneOf: [ref("User"), { type: "null" }] } } },
+  AiChatResponse: { type: "object", required: ["reply"], properties: { reply: { type: "string", description: "Plain-text Gemini response or the service's safe connection/quota fallback message." } } },
+  AiInventoryAlertsResponse: { type: "object", required: ["alerts", "counts"], properties: { alerts: { type: "array", items: { type: "object", required: ["_id", "name", "currentStock", "unit", "reorderLevel", "avgDailyUsage", "daysUntilStockout", "level", "emoji", "message"], properties: { _id: id, name: { type: "string" }, currentStock: { type: "number" }, unit: { type: "string" }, reorderLevel: { type: "number" }, avgDailyUsage: { type: "number" }, daysUntilStockout: { type: "integer", nullable: true }, level: { type: "string", enum: ["critical", "warning", "info", "ok"] }, emoji: { type: "string" }, message: { type: "string" } }, additionalProperties: false } }, counts: { type: "object", required: ["critical", "warning", "info", "ok"], properties: { critical: { type: "integer" }, warning: { type: "integer" }, info: { type: "integer" }, ok: { type: "integer" } } }, message: { type: "string", description: "Present when no inventory items are found." } } },
+  AiDailySummaryResponse: { type: "object", required: ["data", "aiSummary"], properties: { data: { type: "object", required: ["date", "totalRevenue", "totalOrders", "orderChange", "orderTrend", "topItems", "peakHour", "paymentBreakdown", "dineIn", "takeaway", "avgOrderValue", "criticalStockItems"], properties: { date: { type: "string" }, totalRevenue: { type: "string" }, totalOrders: { type: "integer" }, orderChange: { type: "string" }, orderTrend: { type: "string", enum: ["up", "down", "neutral"] }, topItems: { type: "array", items: { type: "object", required: ["name", "qty"], properties: { name: { type: "string" }, qty: { type: "number" } } } }, peakHour: { type: "string" }, paymentBreakdown: { type: "object", additionalProperties: { type: "integer" } }, dineIn: { type: "integer" }, takeaway: { type: "integer" }, avgOrderValue: { type: "string" }, criticalStockItems: { type: "array", items: { type: "string" } } } }, aiSummary: { type: "string", description: "Gemini-generated plain text when configured and available; otherwise a deterministic local fallback." } } },
 };
 
 const responses = {
@@ -52,16 +60,22 @@ const responses = {
   422: { description: "Validation failed where a service emits semantic validation status.", content: { "application/json": { schema: ref("ErrorResponse"), example: examples.error } } },
   429: { description: "Rate limit exceeded.", content: { "application/json": { schema: ref("ErrorResponse"), example: { success: false, message: "Too many requests", error: "Too many requests" } } } },
   500: { description: "Unexpected server error.", content: { "application/json": { schema: ref("ErrorResponse") } } },
+  503: { description: "AI service is not configured or is temporarily unavailable.", content: { "application/json": { schema: ref("ErrorResponse") } } },
 };
 
 const paths = {};
 const add = (method, path, tag, summary, roles, options = {}) => {
   const authenticated = options.authenticated !== false;
+  const successStatus = options.status === 201 ? 201 : options.status === 204 ? 204 : 200;
+  const errorStatuses = options.errorStatuses || [400, 401, 403, 404, 409, 422, 429, 500];
   const operation = {
     tags: [tag], summary, description: `${options.description || summary}. ${authenticated ? `Requires Bearer access token (or the existing auth cookie). Allowed roles: ${roles?.length ? roles.join(", ") : "authenticated user"}.` : "Public endpoint."} ${options.branch ? "Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it." : "No branch scope is applied by this route."}`,
     operationId: options.operationId || `${method}${path.replace(/[^a-zA-Z0-9]+/g, "-")}`,
     parameters: [...(options.parameters || []), ...(authenticated ? authHeaders : [])],
-    responses: { ...(options.status === 201 ? { 201: responses[201] } : { 200: responses[200] }), ...(options.status === 204 ? { 204: { description: "No content." } } : {}), 400: responses[400], 401: responses[401], 403: responses[403], 404: responses[404], 409: responses[409], 422: responses[422], 429: responses[429], 500: responses[500] },
+    responses: {
+      [successStatus]: options.successResponse || (successStatus === 204 ? { description: "No content." } : responses[successStatus]),
+      ...Object.fromEntries(errorStatuses.map((status) => [status, responses[status]])),
+    },
     ...(authenticated ? { security: [{ bearerAuth: [] }] } : {}),
     ...(options.requestBody ? { requestBody: options.requestBody } : {}),
     ...(options.headers ? { parameters: [...(options.parameters || []), ...options.headers] } : {}),
@@ -87,6 +101,8 @@ add("post", "/api/v1/admin/branches", "Branches", "Create branch", ["super-admin
 add("put", "/api/v1/admin/branches/{id}", "Branches", "Update branch", ["super-admin"], { parameters: [p("id", "Branch ID.", "507f1f77bcf86cd799439011")], requestBody: jsonBody(ref("Branch"), examples.branch) });
 add("delete", "/api/v1/admin/branches/{id}", "Branches", "Deactivate branch", ["super-admin"], { parameters: [p("id", "Branch ID.", "507f1f77bcf86cd799439011")] });
 add("post", "/api/v1/admin/branches/{id}/assign-staff", "Staff", "Assign staff to branch", ["super-admin"], { parameters: [p("id", "Branch ID.", "507f1f77bcf86cd799439011")], requestBody: jsonBody({ type: "object", required: ["userId"], properties: { userId: id } }, { userId: "507f1f77bcf86cd799439012" }) });
+add("post", "/api/v1/admin/branches/{id}/assign-admin", "Branches", "Assign or replace a branch admin", ["superadmin"], { description: "Assigns an eligible existing user as the branch admin. A current admin is demoted to manager and affected refresh tokens are cleared transactionally", parameters: [p("id", "Branch ID; must be a 24-character MongoDB ObjectId.", "507f1f77bcf86cd799439011")], requestBody: jsonBody({ type: "object", required: ["userId"], properties: { userId: { ...id, description: "Eligible existing user ID. The user must be active, cannot be a superadmin, and cannot belong to another branch." } } }, { userId: "507f1f77bcf86cd799439012" }), successResponse: jsonResponse("Branch admin assigned or replaced.", ref("BranchAdminLifecycleResponse"), { message: "Branch admin assigned", branch: { _id: "507f1f77bcf86cd799439011", name: "Downtown Branch", adminUser: "507f1f77bcf86cd799439012" }, user: { _id: "507f1f77bcf86cd799439012", username: "branch.admin@example.com", role: "admin", status: "active", branchId: "507f1f77bcf86cd799439011" }, previousAdmin: null }), errorStatuses: [400, 401, 403, 404, 409, 429, 500] });
+add("post", "/api/v1/admin/branches/{id}/admin", "Branches", "Create and assign a branch admin", ["superadmin"], { description: "Creates a new branch admin and assigns that user to the branch atomically. A current admin is demoted to manager and affected refresh tokens are cleared", status: 201, parameters: [p("id", "Branch ID; must be a 24-character MongoDB ObjectId.", "507f1f77bcf86cd799439011")], requestBody: jsonBody({ type: "object", required: ["username", "password"], properties: { username: { type: "string", minLength: 1, maxLength: 254 }, password: { type: "string", format: "password", minLength: 5, maxLength: 72, description: "Must pass the backend strong-password validator. Never log or return this value." }, status: { type: "string", enum: ["active", "locked"], default: "active" } } }), successResponse: jsonResponse("Branch admin created and assigned or an existing branch admin replaced.", ref("BranchAdminLifecycleResponse"), { message: "Branch admin created", branch: { _id: "507f1f77bcf86cd799439011", name: "Downtown Branch", adminUser: "507f1f77bcf86cd799439013" }, user: { _id: "507f1f77bcf86cd799439013", username: "new.branch.admin@example.com", role: "admin", status: "active", branchId: "507f1f77bcf86cd799439011" }, previousAdmin: null }), errorStatuses: [400, 401, 403, 404, 409, 429, 500] });
 add("post", "/api/v1/admin/branches/{id}/remove-staff", "Staff", "Remove staff from branch", ["super-admin"], { parameters: [p("id", "Branch ID.", "507f1f77bcf86cd799439011")], requestBody: jsonBody({ type: "object", required: ["userId"], properties: { userId: id } }, { userId: "507f1f77bcf86cd799439012" }) });
 add("get", "/api/v1/admin/branches/{id}/staff", "Staff", "List branch staff", ["super-admin"], { parameters: [p("id", "Branch ID.", "507f1f77bcf86cd799439011")] });
 add("get", "/api/v1/admin/branches/unassigned-staff", "Staff", "List unassigned staff", ["super-admin"]);
@@ -167,16 +183,16 @@ add("get", "/api/v1/public/menu/{tableId}", "Menu", "Get QR menu", [], { authent
 add("post", "/api/v1/public/order/{tableId}", "Orders", "Place public table order", [], { authenticated: false, status: 201, parameters: [p("tableId", "Table ID.", "507f1f77bcf86cd799439011")], requestBody: jsonBody(ref("Order"), { customerName: "Asha Rao", customerPhone: "9876543210", items: examples.order.items }) });
 add("get", "/api/v1/public/order/{orderId}/status", "Orders", "Get public order status", [], { authenticated: false, parameters: [p("orderId", "Order ID.", "507f1f77bcf86cd799439011")] });
 
-add("post", "/api/v1/ai/chat", "AI", "Chat with the branch AI assistant", ["admin", "manager"], { branch: true, requestBody: jsonBody({ type: "object", required: ["message"], properties: { message: { type: "string", minLength: 1, maxLength: 2000 }, context: { type: "object" } } }, { message: "Which items are low in stock?", context: {} }) });
-add("get", "/api/v1/ai/inventory-alerts", "AI", "Get AI inventory alerts", ["admin", "manager"], { branch: true });
-add("get", "/api/v1/ai/daily-summary", "AI", "Get AI daily summary", ["admin", "manager"], { branch: true });
+add("post", "/api/v1/ai/chat", "AI", "Chat with the branch AI assistant", ["admin", "manager"], { branch: true, description: "KOT POS sends a sanitized subset of the optional client-supplied restaurant context to Google Gemini and returns plain text. The Gemini credential remains server-side", requestBody: jsonBody({ type: "object", required: ["message"], properties: { message: { type: "string", minLength: 1, maxLength: 2000 }, context: { type: "object", description: "Optional dashboard context. The service allowlists known summary fields and at most five topItems before prompting Gemini." } } }, { message: "Which items are low in stock?", context: { criticalStockItems: ["Paneer"] } }), successResponse: jsonResponse("Gemini-backed assistant response or a safe provider fallback message.", ref("AiChatResponse"), { reply: "Paneer is currently the critical stock item in the supplied context." }), errorStatuses: [400, 401, 403, 429, 500, 503] });
+add("get", "/api/v1/ai/inventory-alerts", "AI", "Get inventory alerts", ["admin", "manager"], { branch: true, description: "Calculates branch-scoped inventory alert levels locally from inventory and recent deduction logs; this route does not call Gemini", successResponse: jsonResponse("Branch inventory alerts and counts.", ref("AiInventoryAlertsResponse")), errorStatuses: [400, 401, 403, 429, 500] });
+add("get", "/api/v1/ai/daily-summary", "AI", "Get daily business summary", ["admin", "manager"], { branch: true, description: "Builds yesterday's branch-scoped operational summary, caches it for 600 seconds, and asks Google Gemini for concise summary text when configured. Missing or failed Gemini access falls back to deterministic local text", successResponse: jsonResponse("Structured daily metrics plus summary text.", ref("AiDailySummaryResponse")), errorStatuses: [400, 401, 403, 429, 500] });
 add("get", "/api/version", "Health", "Get API version information", [], { authenticated: false });
 add("get", "/health", "Health", "Liveness health check", [], { authenticated: false });
 add("get", "/ready", "Health", "Readiness health check", [], { authenticated: false });
 
 const openapi = {
   openapi: "3.0.3",
-  info: { title: "KOT POS Backend API", version: "1.0.0", description: "Production API documentation for the current KOT POS backend. The route contract remains /api/v1; this documentation sprint adds no business or route changes." },
+  info: { title: "KOT POS Backend API", version: "1.0.0", description: "Production API documentation for the current KOT POS backend. AI requests use KOT POS REST endpoints and are processed server-side through Google Gemini where noted. The route contract remains /api/v1; this documentation sprint adds no business or route changes." },
   servers: [{ url: "http://localhost:3000", description: "Local development" }, { url: "https://api.example.com", description: "Production placeholder; set the actual backend URL in deployment tooling." }],
   tags: ["Authentication", "Users", "Branches", "Staff", "Customers", "Inventory", "Categories", "Menu", "Tables", "Orders", "Kitchen", "Billing", "Payments", "Reports", "Settings", "AI", "Health"].map((name) => ({ name, description: name === "Categories" ? "No category-specific route is currently mounted; menu and inventory category filters are documented on their owning endpoints." : `${name} endpoints.` })),
   paths,

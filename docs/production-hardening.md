@@ -10,6 +10,8 @@ If the application is later deployed behind multiple active Node.js instances, a
 
 Existing defaults remain in effect when these are absent:
 
-`CACHE_TTL`, `QUEUE_CONCURRENCY`, `QUEUE_RETRY_ATTEMPTS`, `RATE_LIMIT_WINDOW` (milliseconds), `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX`, `SLOW_REQUEST_MS`, `REDIS_TIMEOUT`, `REDIS_OPERATION_TIMEOUT_MS`, `MONGO_TIMEOUT`, and `MONGO_TIMEOUT_MS`.
+`CACHE_TTL`, `QUEUE_CONCURRENCY`, `QUEUE_RETRY_ATTEMPTS`, `RATE_LIMIT_WINDOW` (milliseconds), `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX`, `REDIS_TIMEOUT`, `REDIS_OPERATION_TIMEOUT_MS`, `MONGO_TIMEOUT`, and `MONGO_TIMEOUT_MS`.
+
+`SLOW_REQUEST_MS` is accepted by startup validation but is not consumed by current request logging, so setting it has no runtime effect.
 
 `REDIS_URL` enables shared Redis rate-limit counters and the existing cache/queue integrations. Redis rate limiting fails open during a Redis outage so optional infrastructure does not turn requests into application errors.

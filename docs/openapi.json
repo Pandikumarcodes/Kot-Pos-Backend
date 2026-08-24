@@ -3,7 +3,7 @@
   "info": {
     "title": "KOT POS Backend API",
     "version": "1.0.0",
-    "description": "Production API documentation for the current KOT POS backend. The route contract remains /api/v1; this documentation sprint adds no business or route changes."
+    "description": "Production API documentation for the current KOT POS backend. AI requests use KOT POS REST endpoints and are processed server-side through Google Gemini where noted. The route contract remains /api/v1; this documentation sprint adds no business or route changes."
   },
   "servers": [
     {
@@ -258,8 +258,7 @@
                 }
               },
               "example": {
-                "username": "manager@example.com",
-                "password": "StrongPassword123"
+                "username": "manager@example.com"
               }
             }
           }
@@ -431,8 +430,7 @@
                 }
               },
               "example": {
-                "username": "manager@example.com",
-                "password": "StrongPassword123"
+                "username": "manager@example.com"
               }
             }
           }
@@ -1806,6 +1804,402 @@
         ]
       }
     },
+    "/api/v1/admin/branches/{id}/assign-admin": {
+      "post": {
+        "tags": [
+          "Branches"
+        ],
+        "summary": "Assign or replace a branch admin",
+        "description": "Assigns an eligible existing user as the branch admin. A current admin is demoted to manager and affected refresh tokens are cleared transactionally. Requires Bearer access token (or the existing auth cookie). Allowed roles: superadmin. No branch scope is applied by this route.",
+        "operationId": "post-api-v1-admin-branches-id-assign-admin",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Branch ID; must be a 24-character MongoDB ObjectId.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "example": "507f1f77bcf86cd799439011"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "Bearer access token. Cookie authentication remains supported by the implementation.",
+            "schema": {
+              "type": "string",
+              "example": "Bearer eyJhbGciOiJIUzI1NiIs..."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branch admin assigned or replaced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchAdminLifecycleResponse"
+                },
+                "example": {
+                  "message": "Branch admin assigned",
+                  "branch": {
+                    "_id": "507f1f77bcf86cd799439011",
+                    "name": "Downtown Branch",
+                    "adminUser": "507f1f77bcf86cd799439012"
+                  },
+                  "user": {
+                    "_id": "507f1f77bcf86cd799439012",
+                    "username": "branch.admin@example.com",
+                    "role": "admin",
+                    "status": "active",
+                    "branchId": "507f1f77bcf86cd799439011"
+                  },
+                  "previousAdmin": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request or validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Validation failed",
+                  "error": "Validation failed",
+                  "validationErrors": [
+                    {
+                      "field": "body.items",
+                      "location": "body",
+                      "message": "Items are required",
+                      "type": "any.required"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired access token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Not authenticated",
+                  "error": "Not authenticated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated user lacks the required role or branch access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Forbidden - insufficient role",
+                  "error": "Forbidden - insufficient role"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Requested resource or route was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current resource state or uniqueness constraints.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too many requests",
+                  "error": "Too many requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "pattern": "^[a-fA-F0-9]{24}$",
+                    "example": "507f1f77bcf86cd799439011",
+                    "description": "Eligible existing user ID. The user must be active, cannot be a superadmin, and cannot belong to another branch."
+                  }
+                }
+              },
+              "example": {
+                "userId": "507f1f77bcf86cd799439012"
+              }
+            }
+          }
+        },
+        "x-required-roles": [
+          "superadmin"
+        ]
+      }
+    },
+    "/api/v1/admin/branches/{id}/admin": {
+      "post": {
+        "tags": [
+          "Branches"
+        ],
+        "summary": "Create and assign a branch admin",
+        "description": "Creates a new branch admin and assigns that user to the branch atomically. A current admin is demoted to manager and affected refresh tokens are cleared. Requires Bearer access token (or the existing auth cookie). Allowed roles: superadmin. No branch scope is applied by this route.",
+        "operationId": "post-api-v1-admin-branches-id-admin",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Branch ID; must be a 24-character MongoDB ObjectId.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "example": "507f1f77bcf86cd799439011"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "Bearer access token. Cookie authentication remains supported by the implementation.",
+            "schema": {
+              "type": "string",
+              "example": "Bearer eyJhbGciOiJIUzI1NiIs..."
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Branch admin created and assigned or an existing branch admin replaced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchAdminLifecycleResponse"
+                },
+                "example": {
+                  "message": "Branch admin created",
+                  "branch": {
+                    "_id": "507f1f77bcf86cd799439011",
+                    "name": "Downtown Branch",
+                    "adminUser": "507f1f77bcf86cd799439013"
+                  },
+                  "user": {
+                    "_id": "507f1f77bcf86cd799439013",
+                    "username": "new.branch.admin@example.com",
+                    "role": "admin",
+                    "status": "active",
+                    "branchId": "507f1f77bcf86cd799439011"
+                  },
+                  "previousAdmin": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request or validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Validation failed",
+                  "error": "Validation failed",
+                  "validationErrors": [
+                    {
+                      "field": "body.items",
+                      "location": "body",
+                      "message": "Items are required",
+                      "type": "any.required"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired access token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Not authenticated",
+                  "error": "Not authenticated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated user lacks the required role or branch access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Forbidden - insufficient role",
+                  "error": "Forbidden - insufficient role"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Requested resource or route was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current resource state or uniqueness constraints.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too many requests",
+                  "error": "Too many requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 5,
+                    "maxLength": 72,
+                    "description": "Must pass the backend strong-password validator. Never log or return this value."
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "locked"
+                    ],
+                    "default": "active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-required-roles": [
+          "superadmin"
+        ]
+      }
+    },
     "/api/v1/admin/branches/{id}/remove-staff": {
       "post": {
         "tags": [
@@ -2698,8 +3092,7 @@
                 ]
               },
               "example": {
-                "username": "manager@example.com",
-                "password": "StrongPassword123"
+                "username": "manager@example.com"
               }
             }
           }
@@ -8514,6 +8907,173 @@
         ]
       }
     },
+    "/api/v1/settings": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Get receipt settings",
+        "description": "Get receipt settings. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager, cashier. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+        "operationId": "get-api-v1-settings",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "Bearer access token. Cookie authentication remains supported by the implementation.",
+            "schema": {
+              "type": "string",
+              "example": "Bearer eyJhbGciOiJIUzI1NiIs..."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. The exact legacy JSON envelope is endpoint-specific.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request or validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Validation failed",
+                  "error": "Validation failed",
+                  "validationErrors": [
+                    {
+                      "field": "body.items",
+                      "location": "body",
+                      "message": "Items are required",
+                      "type": "any.required"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired access token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Not authenticated",
+                  "error": "Not authenticated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated user lacks the required role or branch access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Forbidden - insufficient role",
+                  "error": "Forbidden - insufficient role"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Requested resource or route was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current resource state or uniqueness constraints.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed where a service emits semantic validation status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Validation failed",
+                  "error": "Validation failed",
+                  "validationErrors": [
+                    {
+                      "field": "body.items",
+                      "location": "body",
+                      "message": "Items are required",
+                      "type": "any.required"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "message": "Too many requests",
+                  "error": "Too many requests"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-branch-scope": true,
+        "x-required-roles": [
+          "admin",
+          "manager",
+          "cashier"
+        ]
+      }
+    },
     "/api/v1/cashier/billing": {
       "post": {
         "tags": [
@@ -13957,7 +14517,7 @@
           "AI"
         ],
         "summary": "Chat with the branch AI assistant",
-        "description": "Chat with the branch AI assistant. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+        "description": "KOT POS sends a sanitized subset of the optional client-supplied restaurant context to Google Gemini and returns plain text. The Gemini credential remains server-side. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
         "operationId": "post-api-v1-ai-chat",
         "parameters": [
           {
@@ -13973,12 +14533,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response. The exact legacy JSON envelope is endpoint-specific.",
+            "description": "Gemini-backed assistant response or a safe provider fallback message.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/AiChatResponse"
+                },
+                "example": {
+                  "reply": "Paneer is currently the critical stock item in the supplied context."
                 }
               }
             }
@@ -14036,49 +14598,6 @@
               }
             }
           },
-          "404": {
-            "description": "Requested resource or route was not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict with current resource state or uniqueness constraints.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation failed where a service emits semantic validation status.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "message": "Validation failed",
-                  "error": "Validation failed",
-                  "validationErrors": [
-                    {
-                      "field": "body.items",
-                      "location": "body",
-                      "message": "Items are required",
-                      "type": "any.required"
-                    }
-                  ]
-                }
-              }
-            }
-          },
           "429": {
             "description": "Rate limit exceeded.",
             "content": {
@@ -14096,6 +14615,16 @@
           },
           "500": {
             "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI service is not configured or is temporarily unavailable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -14126,13 +14655,18 @@
                     "maxLength": 2000
                   },
                   "context": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Optional dashboard context. The service allowlists known summary fields and at most five topItems before prompting Gemini."
                   }
                 }
               },
               "example": {
                 "message": "Which items are low in stock?",
-                "context": {}
+                "context": {
+                  "criticalStockItems": [
+                    "Paneer"
+                  ]
+                }
               }
             }
           }
@@ -14149,8 +14683,8 @@
         "tags": [
           "AI"
         ],
-        "summary": "Get AI inventory alerts",
-        "description": "Get AI inventory alerts. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+        "summary": "Get inventory alerts",
+        "description": "Calculates branch-scoped inventory alert levels locally from inventory and recent deduction logs; this route does not call Gemini. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
         "operationId": "get-api-v1-ai-inventory-alerts",
         "parameters": [
           {
@@ -14166,12 +14700,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response. The exact legacy JSON envelope is endpoint-specific.",
+            "description": "Branch inventory alerts and counts.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/AiInventoryAlertsResponse"
                 }
               }
             }
@@ -14225,49 +14758,6 @@
                   "success": false,
                   "message": "Forbidden - insufficient role",
                   "error": "Forbidden - insufficient role"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Requested resource or route was not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict with current resource state or uniqueness constraints.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation failed where a service emits semantic validation status.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "message": "Validation failed",
-                  "error": "Validation failed",
-                  "validationErrors": [
-                    {
-                      "field": "body.items",
-                      "location": "body",
-                      "message": "Items are required",
-                      "type": "any.required"
-                    }
-                  ]
                 }
               }
             }
@@ -14315,8 +14805,8 @@
         "tags": [
           "AI"
         ],
-        "summary": "Get AI daily summary",
-        "description": "Get AI daily summary. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+        "summary": "Get daily business summary",
+        "description": "Builds yesterday's branch-scoped operational summary, caches it for 600 seconds, and asks Google Gemini for concise summary text when configured. Missing or failed Gemini access falls back to deterministic local text. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
         "operationId": "get-api-v1-ai-daily-summary",
         "parameters": [
           {
@@ -14332,12 +14822,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response. The exact legacy JSON envelope is endpoint-specific.",
+            "description": "Structured daily metrics plus summary text.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/AiDailySummaryResponse"
                 }
               }
             }
@@ -14391,49 +14880,6 @@
                   "success": false,
                   "message": "Forbidden - insufficient role",
                   "error": "Forbidden - insufficient role"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Requested resource or route was not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict with current resource state or uniqueness constraints.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation failed where a service emits semantic validation status.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "message": "Validation failed",
-                  "error": "Validation failed",
-                  "validationErrors": [
-                    {
-                      "field": "body.items",
-                      "location": "body",
-                      "message": "Items are required",
-                      "type": "any.required"
-                    }
-                  ]
                 }
               }
             }
@@ -14995,6 +15441,18 @@
           "isActive": {
             "type": "boolean",
             "example": true
+          },
+          "adminUser": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{24}$",
+                "example": "507f1f77bcf86cd799439011"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": true
@@ -15390,6 +15848,243 @@
           }
         },
         "additionalProperties": true
+      },
+      "BranchAdminLifecycleResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "branch",
+          "user",
+          "previousAdmin"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "enum": [
+              "Branch admin assigned",
+              "Branch admin created",
+              "Branch admin replaced"
+            ]
+          },
+          "branch": {
+            "$ref": "#/components/schemas/Branch"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "previousAdmin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "AiChatResponse": {
+        "type": "object",
+        "required": [
+          "reply"
+        ],
+        "properties": {
+          "reply": {
+            "type": "string",
+            "description": "Plain-text Gemini response or the service's safe connection/quota fallback message."
+          }
+        }
+      },
+      "AiInventoryAlertsResponse": {
+        "type": "object",
+        "required": [
+          "alerts",
+          "counts"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "_id",
+                "name",
+                "currentStock",
+                "unit",
+                "reorderLevel",
+                "avgDailyUsage",
+                "daysUntilStockout",
+                "level",
+                "emoji",
+                "message"
+              ],
+              "properties": {
+                "_id": {
+                  "type": "string",
+                  "pattern": "^[a-fA-F0-9]{24}$",
+                  "example": "507f1f77bcf86cd799439011"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "currentStock": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "reorderLevel": {
+                  "type": "number"
+                },
+                "avgDailyUsage": {
+                  "type": "number"
+                },
+                "daysUntilStockout": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "critical",
+                    "warning",
+                    "info",
+                    "ok"
+                  ]
+                },
+                "emoji": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "counts": {
+            "type": "object",
+            "required": [
+              "critical",
+              "warning",
+              "info",
+              "ok"
+            ],
+            "properties": {
+              "critical": {
+                "type": "integer"
+              },
+              "warning": {
+                "type": "integer"
+              },
+              "info": {
+                "type": "integer"
+              },
+              "ok": {
+                "type": "integer"
+              }
+            }
+          },
+          "message": {
+            "type": "string",
+            "description": "Present when no inventory items are found."
+          }
+        }
+      },
+      "AiDailySummaryResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "aiSummary"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "date",
+              "totalRevenue",
+              "totalOrders",
+              "orderChange",
+              "orderTrend",
+              "topItems",
+              "peakHour",
+              "paymentBreakdown",
+              "dineIn",
+              "takeaway",
+              "avgOrderValue",
+              "criticalStockItems"
+            ],
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "totalRevenue": {
+                "type": "string"
+              },
+              "totalOrders": {
+                "type": "integer"
+              },
+              "orderChange": {
+                "type": "string"
+              },
+              "orderTrend": {
+                "type": "string",
+                "enum": [
+                  "up",
+                  "down",
+                  "neutral"
+                ]
+              },
+              "topItems": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "qty"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "qty": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "peakHour": {
+                "type": "string"
+              },
+              "paymentBreakdown": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              },
+              "dineIn": {
+                "type": "integer"
+              },
+              "takeaway": {
+                "type": "integer"
+              },
+              "avgOrderValue": {
+                "type": "string"
+              },
+              "criticalStockItems": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "aiSummary": {
+            "type": "string",
+            "description": "Gemini-generated plain text when configured and available; otherwise a deterministic local fallback."
+          }
+        }
       }
     },
     "responses": {
@@ -15528,6 +16223,16 @@
       },
       "500": {
         "description": "Unexpected server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "AI service is not configured or is temporarily unavailable.",
         "content": {
           "application/json": {
             "schema": {

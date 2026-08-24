@@ -1,812 +1,326 @@
 # KOT POS Backend
 
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Express.js](https://img.shields.io/badge/Express.js-Backend-000000?logo=express&logoColor=white)](https://expressjs.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Socket.IO](https://img.shields.io/badge/Socket.IO-Real--Time-010101?logo=socketdotio&logoColor=white)](https://socket.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+KOT POS Backend is a multi-branch restaurant operations API built with Node.js, Express, MongoDB, Redis, BullMQ, and Socket.IO. It coordinates dine-in and takeaway ordering, kitchen tickets, billing, tables, inventory, branch staff, reports, settings, public QR orders, and real-time updates from one backend.
 
-Production-focused backend for a multi-branch restaurant Point of Sale and Kitchen Order Ticket (KOT) platform.
+The implementation is designed around a branchless global superadmin, one designated admin per branch, branch-scoped operational staff, repository-backed persistence, and MongoDB transactions for critical multi-document workflows.
 
----
+> Documentation status: this README and the linked documents describe the current implementation. Known gaps are stated explicitly; planned behavior is not presented as implemented.
 
-## Table of Contents
+## Problem solved
 
-- [Project Overview](#-project-overview)
-- [Backend Engineering Highlights](#-backend-engineering-highlights)
-- [Tech Stack](#-tech-stack)
-- [Folder Structure](#-folder-structure)
-- [Environment Variables](#-environment-variables)
-- [Installation & Setup](#-installation--setup)
-- [API Endpoints](#-api-endpoints)
+Restaurant operations often split orders, kitchen state, payments, tables, and inventory across disconnected tools. KOT POS provides a single API that:
 
----
+- Converts waiter, cashier, and public QR orders into kitchen workflows.
+- Keeps operational access aligned with staff roles and branch assignment.
+- Moves dine-in tables from service to billing and release.
+- Records stock movements and changes menu availability when linked stock reaches zero.
+- Pushes branch-local operational updates to connected clients.
+- Supports centralized branch administration without giving the superadmin implicit operational access.
 
-## Project Overview
+## Capabilities
 
-KOT POS Backend is a RESTful, real-time backend designed to coordinate restaurant operations across branches—from order placement and kitchen workflows to billing, inventory, and reporting.
+- JWT authentication with access and rotating refresh tokens.
+- HTTP-only cookie and Bearer-token support.
+- Six roles: `superadmin`, `admin`, `manager`, `waiter`, `chef`, and `cashier`.
+- Superadmin branch and branch-admin lifecycle management.
+- Dine-in, takeaway, kitchen, billing, table, customer, inventory, report, settings, public QR, and AI APIs.
+- MongoDB transactions for payments, order-to-KOT transitions, inventory stock changes, and branch-admin replacement.
+- Optional Redis caching and Redis-backed rate limiting.
+- Optional BullMQ queues and workers.
+- Authenticated Socket.IO rooms segmented by branch and role.
+- Append-only MongoDB audit events for selected security, financial, and operational workflows.
+- OpenAPI/Swagger UI, generated Postman artifacts, health checks, startup validation, and graceful shutdown.
+- A deterministic three-branch demo seed.
 
-The API uses JWT-based authentication delivered through HTTP-only cookies, role-based authorization, and Socket.IO events to support secure, responsive workflows for administrators, cashiers, waiters, and kitchen staff.
+## Architecture
 
-## Backend Engineering Highlights
+The dominant request path is:
 
-- **JWT Authentication** — Stateless session authentication with signed JWTs.
-- **HTTP-only Cookies** — Reduces client-side token exposure and XSS risk.
-- **Role-Based Access Control** — Enforces distinct Admin, Cashier, Waiter, and Chef permissions.
-- **Socket.IO Real-Time Events** — Supports live KOT status updates and role-aware operational workflows.
-- **Multi-Branch Architecture** — Scopes users, orders, inventory, and operational data by restaurant branch.
-- **Inventory Management** — Tracks stock-related workflows alongside menu and order operations.
-- **Billing & Payments** — Converts completed KOTs into billing records and payment flows.
-- **Operational Reports** — Provides daily sales, revenue summaries, and business reporting endpoints.
-- **Security Hardening** — Protects privileged registration paths, production-only routes, authentication boundaries, and role trust.
-
----
-
-## System Architecture
-
-```mermaid
-flowchart TD
-    Client[Client Applications<br/>Web / POS / Kitchen Display]
-    API[Express API]
-    AuthN[Authentication Middleware<br/>JWT from HTTP-only Cookie]
-    AuthZ[Authorization Middleware<br/>Role and Branch Access]
-    Controllers[Controllers<br/>Request / Response Handling]
-    Services[Services<br/>Business Logic]
-    Database[(MongoDB<br/>Mongoose Models)]
-    Socket[Socket.IO<br/>Real-Time Events]
-
-    Client -->|HTTPS Request| API
-    API --> AuthN
-    AuthN --> AuthZ
-    AuthZ --> Controllers
-    Controllers --> Services
-    Services --> Database
-    Services --> Socket
-    Socket -->|Real-Time Updates| Client
+```text
+Route -> middleware -> controller -> service -> repository -> Mongoose -> MongoDB
 ```
 
-### Components
+Middleware handles authentication, role authorization, branch context, active-branch enforcement, validation, sanitization, logging, and rate limiting. Services own business rules, transaction boundaries, audit writes, cache invalidation, and real-time notifications.
 
-- **Client** — Web, POS, and kitchen-display clients consume REST APIs and receive real-time updates.
-- **Express API** — Defines HTTP endpoints, applies global middleware, and routes requests.
-- **Authentication Middleware** — Validates JWTs supplied through HTTP-only cookies and establishes the authenticated user context.
-- **Authorization Middleware** — Enforces role-based and branch-scoped access before protected operations execute.
-- **Controllers** — Translate validated HTTP requests into application operations and return consistent responses.
-- **Services** — Encapsulate business rules for orders, inventory, billing, reports, and branch operations.
-- **MongoDB** — Persists operational data through Mongoose schemas and models.
-- **Socket.IO** — Emits authenticated, branch-aware events for KOT status and operational updates.
+Redis is optional for caching and rate limiting. BullMQ is optional and enabled separately. Socket.IO shares the HTTP server and sends events to branch-and-role rooms.
 
-### Request Lifecycle
+See [Architecture](docs/ARCHITECTURE.md) for the component diagram and request lifecycle.
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant E as Express API
-    participant A as Authentication Middleware
-    participant R as Authorization Middleware
-    participant CT as Controller
-    participant S as Service
-    participant DB as MongoDB
-    participant IO as Socket.IO
+## Tech stack
 
-    C->>E: HTTP request
-    E->>A: Validate JWT cookie
-    A->>R: Attach authenticated user
-    R->>R: Verify role and branch access
-    R->>CT: Forward authorized request
-    CT->>S: Execute business operation
-    S->>DB: Read or write data
-    DB-->>S: Return persisted data
-    S->>IO: Emit real-time event when applicable
-    S-->>CT: Return result
-    CT-->>C: HTTP response
-    IO-->>C: Real-time update
+- Node.js and CommonJS
+- Express 5
+- MongoDB and Mongoose
+- JWT and bcrypt
+- Joi
+- Redis (`redis`) and BullMQ (`ioredis`)
+- Socket.IO
+- Helmet, CORS, and `express-rate-limit`
+- Winston with daily rotating logs
+- OpenAPI 3.0 and Swagger UI
+- Jest and Supertest
+- Google Gemini through `@google/genai`
+
+## Role hierarchy
+
+```text
+Superadmin
+  -> Branch
+      -> Branch Admin
+          -> Manager / Waiter / Chef / Cashier
 ```
 
-### Authentication Flow
+- The `superadmin` must remain branchless and manages the global branch lifecycle.
+- Every active branch must have one designated `admin` through `Branch.adminUser`.
+- Branch staff authority is derived from the current database user and assigned branch.
+- Superadmin is not included in operational role allowlists.
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant E as Express API
-    participant DB as MongoDB
-    participant A as Authentication Middleware
+See [Authentication and RBAC](docs/AUTH-RBAC.md) for the permission matrix.
 
-    C->>E: POST /auth/login with credentials
-    E->>DB: Find user and verify password hash
-    DB-->>E: User record
-    E->>E: Sign JWT with user identity and claims
-    E-->>C: Set HTTP-only JWT cookie
+## Main restaurant workflow
 
-    C->>E: Protected API request
-    E->>A: Read JWT from HTTP-only cookie
-    A->>A: Verify token signature and expiration
-    A->>DB: Load authenticated user context
-    DB-->>A: User and branch context
-    A-->>E: Continue request with authenticated user
-    E-->>C: Authorized response
+```text
+Table allocation
+  -> waiter order
+  -> send to kitchen
+  -> KOT pending/preparing/ready
+  -> send table orders to cashier
+  -> unpaid bill + table billing state
+  -> payment
+  -> table available
 ```
 
----
+Takeaway orders use a separate cashier workflow and can also generate KOTs. Public QR orders create branch-scoped KOTs directly.
 
-## Database Design
+The code does not yet enforce every table/order state transition as a formal state machine. See [Transactions](docs/TRANSACTIONS.md) for atomic boundaries and current workflow caveats.
 
-```mermaid
-erDiagram
-    BRANCH ||--o{ USER : contains
-    BRANCH ||--o{ KOT : owns
-    BRANCH ||--o{ INVENTORY : owns
-    BRANCH ||--o{ STOCK_LOG : records
-    BRANCH ||--o{ SETTINGS : configures
+## Branch isolation
 
-    USER ||--o{ KOT : creates
-    USER ||--o{ BILLING : creates
-    USER ||--o{ TAKE_AWAY : creates
-    USER ||--o{ TABLE_ORDER : creates
-    USER ||--o{ STOCK_LOG : performs
-    USER o|--o{ TABLE : assigned_to
+`branchScope` loads branch context from the authenticated user, not from client-controlled input. Non-superadmin requests are rejected when the assigned branch is missing or inactive.
 
-    TABLE ||--o{ KOT : serves
-    TABLE ||--o{ BILLING : billed_at
-    TABLE ||--o{ TABLE_ORDER : receives
+Direct `branchId` isolation currently applies to branches, tables, inventory, stock logs, KOTs, and settings. Billing, waiter orders, and takeaway orders are scoped indirectly through their creator's current branch membership. Menu and customer collections are currently global. These distinctions are documented in [Database](docs/DATABASE.md).
 
-    MENU_ITEM ||--o{ KOT : included_in
-    MENU_ITEM ||--o{ BILLING : included_in
-    MENU_ITEM ||--o{ TAKE_AWAY : included_in
-    MENU_ITEM ||--o{ TABLE_ORDER : included_in
-    MENU_ITEM o|--o{ INVENTORY : tracked_by
+## API overview
 
-    INVENTORY ||--o{ STOCK_LOG : audited_by
-    KOT o|--o{ STOCK_LOG : may_deduct
+The versioned API is mounted under `/api/v1`:
 
-    BRANCH {
-        ObjectId id PK
-        string name
-        ObjectId adminUser FK
-        boolean isActive
-    }
+| Area | Base path |
+|---|---|
+| Authentication | `/api/v1/auth` |
+| Public QR | `/api/v1/public` |
+| Admin and superadmin | `/api/v1/admin` |
+| Inventory | `/api/v1/admin/inventory` |
+| Waiter | `/api/v1/waiter` |
+| Kitchen | `/api/v1/chef` |
+| Cashier | `/api/v1/cashier` |
+| Receipt settings | `/api/v1/settings` |
+| AI | `/api/v1/ai` |
 
-    USER {
-        ObjectId id PK
-        string username UK
-        string password
-        string role
-        ObjectId branchId FK
-        string status
-    }
+Supporting endpoints are `/api/version`, `/health`, `/ready`, `/api/docs`, and `/api/docs.json`.
 
-    KOT {
-        ObjectId id PK
-        ObjectId branchId FK
-        ObjectId tableId FK
-        ObjectId createdBy FK
-        string orderType
-        string status
-        number totalAmount
-    }
+See [API reference](docs/API.md). The generated OpenAPI and Postman artifacts are synchronized with the documented mounted routes.
 
-    BILLING {
-        ObjectId id PK
-        string billNumber UK
-        ObjectId tableId FK
-        ObjectId createdBy FK
-        string paymentStatus
-        string paymentMethod
-        number totalAmount
-    }
+## AI integration
 
-    MENU_ITEM {
-        ObjectId id PK
-        string ItemName UK
-        string category
-        number price
-        boolean available
-    }
+- Provider: Google Gemini, called server-side through `@google/genai`.
+- Backend credential: `GEMINI_API_KEY`; it is optional at startup and never returned to the browser.
+- Models, tried in order: `gemini-3.1-flash-lite-preview`, `gemini-3.1-flash-preview`, then `gemini-3-flash-preview`.
+- REST abstraction: the frontend calls `/api/v1/ai/*`; it does not call Gemini directly.
+- Access: authenticated `admin` and `manager` users assigned to an active branch.
+- Protection: the AI router has a default limit of 30 requests per 60 seconds. Global rate-limit environment overrides also apply to it.
+- Features: Gemini-backed assistant chat, locally calculated inventory alerts, and a cached daily business summary whose narrative uses Gemini when available.
+- Resilience: chat returns safe quota/connection text after provider-call failures; daily summaries use deterministic local text when Gemini is missing or fails. Chat itself returns `503` when no key was configured.
 
-    INVENTORY {
-        ObjectId id PK
-        ObjectId branchId FK
-        ObjectId menuItemId FK
-        string name
-        number currentStock
-        number lowStockThreshold
-    }
+The server allowlists known dashboard context fields before sending a chat prompt to Gemini. Daily-summary data and generated summary text are cached for 600 seconds through the optional cache layer. No fine-tuning, vector database, RAG, embeddings, agents, or function calling is implemented.
 
-    STOCK_LOG {
-        ObjectId id PK
-        ObjectId branchId FK
-        ObjectId inventoryId FK
-        ObjectId kotId FK
-        ObjectId doneBy FK
-        string type
-        number quantity
-    }
-
-    TABLE {
-        ObjectId id PK
-        ObjectId branchId FK
-        number tableNumber
-        ObjectId assignedWaiter FK
-        string status
-        number capacity
-    }
-
-    TABLE_ORDER {
-        ObjectId id PK
-        ObjectId tableId FK
-        ObjectId createdBy FK
-        string status
-        number totalAmount
-    }
-
-    TAKE_AWAY {
-        ObjectId id PK
-        ObjectId createdBy FK
-        string customerPhone
-        string status
-    }
-
-    CUSTOMER {
-        ObjectId id PK
-        string phone UK
-        string name
-        number totalOrders
-        number totalSpent
-    }
-
-    SETTINGS {
-        ObjectId id PK
-        ObjectId branchId FK
-        string businessName
-        number taxRate
-        string currency
-    }
+```text
+React client -> KOT POS AI API -> AI service -> Google Gemini API -> structured KOT POS response
 ```
 
-### Collections
+## Real-time updates
 
-- **Branch** — Restaurant location metadata, activation state, and assigned administrative owner.
-- **User** — Authenticated staff identities, password hashes, roles, statuses, and optional branch membership.
-- **KOT** — Kitchen Order Tickets containing order type, table context, item snapshots, status, total, creator, and branch ownership.
-- **Billing** — Billing records with bill numbers, payment state, payment method, item snapshots, and cashier ownership.
-- **MenuItem** — Menu catalog entries, categories, prices, and availability state.
-- **Inventory** — Branch-scoped stock records, linked optionally to menu items, with thresholds and supplier metadata.
-- **StockLog** — Auditable inventory movements, including restocks, adjustments, returns, and KOT-driven deductions.
-- **Table** — Branch-owned dining-floor state. `branchId` is required and references `Branch`; `tableNumber` is unique within that branch. The lifecycle is `available → occupied → billing → available`, with `reserved` also supported for operators. `billing` is an internal workflow state and is not manually selectable through the Admin Table status API; `cleaning` is not a supported backend status.
-- **TableOrder** — Dine-in order workflow records linked to a table and staff member.
-- **TakeAway** — Takeaway order workflow records with customer details, items, status, and creator.
-- **Customer** — Reusable customer profiles and aggregate visit/spend metrics.
-- **Settings** — Restaurant and branch-level business, billing, operational, and notification configuration.
+Socket.IO authenticates the current user and joins a server-derived room:
 
-### Relationships
-
-- A **Branch** owns branch-scoped users, KOTs, inventory, stock logs, and settings.
-- A **User** creates operational records such as KOTs, bills, takeaway orders, table orders, and stock adjustments.
-- A **Table** can have multiple KOTs, bills, and table orders over time.
-- KOTs, bills, takeaway orders, and table orders embed item snapshots while retaining references to their source **MenuItem** records.
-- **Inventory** may reference a menu item; every inventory movement is recorded in **StockLog**.
-- A stock log may reference the KOT that caused its deduction, preserving traceability from order to inventory movement.
-
-### Indexing Strategy
-
-- **Unique indexes** protect global identifiers and login lookups:
-  - `User.username`
-  - `Billing.billNumber`
-  - `MenuItem.ItemName`
-  - `Table: { branchId, tableNumber }` (unique within a branch)
-  - `Customer.phone`
-
-- **Branch-scoped indexes** support tenant-aware operational queries:
-  - `Kot: { branchId, status }` for kitchen queues.
-  - `Kot: { branchId, createdAt }` for recent orders and reporting.
-  - `Inventory: { branchId, isActive }` for active stock listings.
-  - `Inventory: { branchId, currentStock }` for low-stock workflows.
-  - `User: { branchId, role }` for branch staff management.
-
-- **Workflow indexes** optimize frequent lookups:
-  - `StockLog: { inventoryId, createdAt }` for inventory audit history.
-  - `Kot: { createdBy, createdAt }` for waiter-specific order history.
-  - `Kot: { tableId, status }` for active table orders.
-  - `MenuItem: { category, available }` for menu browsing and availability filtering.
-
-- **Text indexes** support customer, bill, and menu search where enabled:
-  - KOT customer name and phone.
-  - Billing customer name, phone, and bill number.
-  - Menu item name.
-
-### Branch Isolation
-
-Branch isolation is enforced by carrying `branchId` through authentication context, authorization middleware, and branch-owned operational collections.
-
-- JWT claims include the authenticated user’s `branchId`.
-- Authorization should scope every branch-owned read, update, and delete query with the authenticated branch identifier.
-- KOTs, inventory records, stock logs, settings, and branch-bound users persist `branchId` directly.
-- Super-administrator users may have a `null` branch assignment and require explicit elevated authorization before accessing cross-branch data.
-- A branchless Global Admin selects an operational branch that middleware resolves into `req.branchId`; Manager, Waiter, Chef, and Cashier requests remain authoritative to persisted `user.branchId`.
-- Branch-aware compound indexes keep tenant-scoped queries efficient as the number of branches and operational records grows.
-
-> Database-level branch isolation is strongest when every branch-owned operational collection persists and queries by `branchId`. Collections that derive branch context through related records should be consistently scoped through those relationships.
-
----
-
-## Security
-
-Security is designed as a cross-cutting concern across HTTP APIs, real-time events, authentication, authorization, and production deployment.
-
-### JWT Authentication
-
-- Authentication uses signed JSON Web Tokens (JWTs) to establish user identity.
-- Access tokens carry the authenticated user context, including role and branch scope.
-- Tokens are validated before protected HTTP routes and Socket.IO connections are allowed to proceed.
-- Expiration limits reduce the impact of a compromised token.
-
-### HTTP-only Cookies
-
-- JWTs are delivered through **HTTP-only cookies** rather than browser-accessible storage.
-- `httpOnly` prevents JavaScript from reading authentication cookies, reducing token exposure through XSS.
-- Production cookie settings should use `secure`, appropriate `sameSite` values, and a restricted domain/path scope.
-
-### Role-Based Authorization
-
-- Authorization is enforced after authentication through role-aware middleware.
-- Privileged operations are limited to approved roles such as Admin, Cashier, Waiter, Chef, and Manager.
-- Public registration defaults to a safe, least-privileged role.
-- Administrative roles cannot be self-assigned through public registration.
-
-### Socket.IO Authentication
-
-- Socket.IO connections are authenticated during the handshake using the verified user identity.
-- Client-supplied role values are not trusted.
-- Socket rooms are assigned from authenticated role and branch claims.
-- Branch-aware room membership prevents users from subscribing to unauthorized operational updates.
-
-### Input Validation
-
-- Request payloads should be validated before reaching business logic or persistence layers.
-- Mongoose schemas enforce required fields, enumerations, numeric boundaries, and reference constraints.
-- Sensitive identifiers, status transitions, prices, quantities, and user-controlled role values require server-side validation.
-
-### Rate Limiting
-
-- Rate limiting should protect public and authentication-sensitive endpoints from brute-force attempts, credential stuffing, and abusive traffic.
-- Apply stricter limits to login, registration, password recovery, and token-refresh endpoints.
-- Use IP-aware limits with trusted-proxy configuration when deployed behind a reverse proxy.
-
-### CORS
-
-- Cross-Origin Resource Sharing (CORS) should allow only approved frontend origins in production.
-- Credentialed requests must use explicit origins rather than wildcard configuration.
-- Cookie-based authentication requires `credentials: true` on both the client and server configuration.
-
-### Helmet
-
-- Helmet should be enabled to apply secure HTTP response headers.
-- Recommended protections include content security policy, clickjacking protection, MIME-type sniffing prevention, and referrer-policy controls.
-- Security headers should be verified in the production deployment environment.
-
-### Security Hardening Completed
-
-- Removed public administrator registration and enforced a safe default role for public sign-up.
-- Removed production exposure of development-only test routes.
-- Removed hard-coded IDs and data-writing test endpoints.
-- Added environment-aware validation that development test routes are unavailable in production.
-- Secured Socket.IO handshakes and removed trust in client-provided authorization claims.
-- Scoped real-time rooms by authenticated role and branch context.
-
-### Production Best Practices
-
-- Store secrets only in environment variables or a managed secrets service; never commit `.env` files.
-- Use strong, rotated JWT secrets and separate access-token and refresh-token secrets.
-- Enforce HTTPS and secure cookies in production.
-- Log authentication failures and authorization denials without recording passwords, tokens, or sensitive personal data.
-- Monitor dependency vulnerabilities and keep runtime dependencies updated.
-- Apply database least privilege, backups, encryption at rest, and network access restrictions.
-- Add centralized error handling that returns safe client responses while retaining actionable server-side logs.
-- Run automated tests, linting, security scans, and database-index checks in CI before deployment.
-
----
-
-## Deployment
-
-### Docker
-
-Build and run the API as a container:
-
-```bash
-docker build -t kot-pos-backend .
-docker run --env-file .env -p 3000:3000 kot-pos-backend
+```text
+branch:<branchId>:role:<role>
 ```
 
-Recommended production Docker practices:
+Events cover new KOTs, KOT updates, table changes, and billing changes. Events remain branch-local. See [Real-time API](docs/REALTIME.md).
 
-- Use a multi-stage build to keep the runtime image small.
-- Run the application as a non-root user.
-- Exclude `.env`, `node_modules`, logs, and local artifacts with `.dockerignore`.
-- Inject secrets at runtime; never bake them into the image.
-- Set `NODE_ENV=production`.
+## Redis and BullMQ
 
-### Docker Compose
+- Redis cache failures are non-fatal and requests bypass the cache.
+- The Redis-backed rate limiter is deliberately fail-open when its store is unavailable.
+- BullMQ starts only when `ENABLE_BACKGROUND_JOBS=true` and a Redis URL is configured.
+- Scheduled jobs currently include a daily sales report and queue cleanup.
 
-Use Docker Compose to run the API and MongoDB locally or in a self-managed environment:
+See [Redis and BullMQ](docs/REDIS-BULLMQ.md).
 
-```yaml
-services:
-  api:
-    build: .
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    depends_on:
-      mongo:
-        condition: service_healthy
-    restart: unless-stopped
+## Transactions
 
-  mongo:
-    image: mongo:7
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+Critical workflows use MongoDB sessions with snapshot reads, majority writes, and transient-error retries. This requires a MongoDB replica set or sharded cluster.
 
-volumes:
-  mongo-data:
+Transactional workflows include branch-admin replacement, inventory create/restock/adjust, order-to-KOT transitions, table-to-bill creation, payment/table release, and demo seeding.
+
+See [Transactions](docs/TRANSACTIONS.md).
+
+## Testing
+
+The repository contains 56 Jest files covering routes, RBAC, security, Socket.IO authentication, query infrastructure, models/indexes, transactions, audit behavior, cache, queues, health, graceful shutdown, and seed fixtures.
+
+```powershell
+npm run test:backend
+npm run test:backend:watch
+npm run test:backend:coverage
+npm run test:backend:ci
 ```
 
-Start the stack:
+See [Testing](docs/TESTING.md).
 
-```bash
-docker compose up --build -d
+## Demo seed
+
+The deterministic development seed creates one superadmin, three branches, one admin per branch, branch staff, 36 tables, 80 menu items, 45 inventory records, 120 customers, and expanded order, billing, KOT, and stock history.
+
+```powershell
+npm run seed
+npm run seed -- --clean
+npm run seed -- --customers-only
 ```
 
-### MongoDB Atlas
+All seed modes require `NODE_ENV=development` and a database named exactly `Kot-Pos`. See [Seeding](docs/SEEDING.md) before running destructive modes.
 
-For managed MongoDB:
-
-1. Create a MongoDB Atlas project and cluster.
-2. Create a least-privileged database user for the application.
-3. Add production server IP addresses to the Atlas network access list.
-4. Copy the Atlas connection string.
-5. Set it as `MONGO_URI` in the deployment environment.
-6. Enable backups, monitoring, alerts, and encryption features appropriate to the environment.
-
-Example:
-
-```env
-MONGO_URI=mongodb+srv://<username>:<password>@<cluster>/<database>?retryWrites=true&w=majority
-```
-
-### Environment Variables
-
-Configure secrets through the deployment platform’s environment-variable or secrets-management system.
-
-```env
-NODE_ENV=production
-PORT=3000
-
-MONGO_URI=mongodb+srv://<username>:<password>@<cluster>/<database>
-JWT_SECRET=<strong-random-secret>
-REFRESH_TOKEN_SECRET=<strong-random-secret>
-JWT_EXPIRES_IN=15m
-COOKIE_EXPIRES_IN=7
-
-CLIENT_URL=https://your-frontend.example.com
-```
-
-Required production practices:
-
-- Use long, cryptographically random JWT secrets.
-- Keep access-token and refresh-token secrets separate.
-- Never commit `.env` files or expose secrets in logs.
-- Rotate secrets when credentials are suspected to be compromised.
-- Configure the production frontend origin explicitly for CORS.
-
-### Health Check Endpoint
-
-Expose a lightweight, unauthenticated health endpoint for load balancers and deployment platforms:
-
-```http
-GET /health
-```
-
-A healthy response should return:
-
-```json
-{
-  "status": "ok"
-}
-```
-
-The endpoint should verify that the process is responsive and, when appropriate, report database readiness without exposing internal infrastructure details.
-
-Example Docker health check:
-
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
-```
-
-### CI/CD
-
-A production CI/CD pipeline should run on every pull request and protected-branch deployment.
-
-Recommended pipeline stages:
-
-1. Install dependencies with `npm ci`.
-2. Run linting and formatting checks.
-3. Run unit, integration, authentication, authorization, and Socket.IO tests.
-4. Run dependency and security scans.
-5. Build the Docker image.
-6. Publish a versioned image to a container registry.
-7. Deploy to staging.
-8. Run smoke tests, including the health check.
-9. Promote the verified image to production.
-10. Monitor error rate, latency, logs, and database health after release.
-
-Example GitHub Actions test step:
-
-```yaml
-- name: Install dependencies
-  run: npm ci
-
-- name: Run tests
-  run: npm test
-```
-
-### Production Deployment Steps
-
-1. Provision the production runtime environment, such as a container platform, virtual machine, or Kubernetes cluster.
-2. Configure MongoDB Atlas or a secured managed MongoDB deployment.
-3. Add production environment variables and secrets through the hosting provider.
-4. Configure HTTPS termination and force secure traffic.
-5. Set cookie security flags for production: `httpOnly`, `secure`, and an appropriate `sameSite` policy.
-6. Restrict CORS to approved frontend origins.
-7. Deploy the versioned Docker image.
-8. Confirm `GET /health` returns a successful response.
-9. Verify login, role-based routes, branch-scoped access, and Socket.IO authentication.
-10. Enable centralized logs, alerts, metrics, backups, and rollback procedures.
-
----
-
-## 🛠 Tech Stack
-
-| Layer         | Technology                  |
-| ------------- | --------------------------- |
-| Runtime       | Node.js                     |
-| Framework     | Express.js                  |
-| Database      | MongoDB                     |
-| ODM           | Mongoose                    |
-| Auth          | JWT (via HTTP-only Cookies) |
-| Body Parsing  | express.json, body-parser   |
-| Cookie Parser | cookie-parser               |
-
----
-
-## 📁 Folder Structure
-
-```
-kot/
-├── config/
-│   └── Database.js           # MongoDB connection
-├── routes/
-│   ├── auth.js               # Auth routes
-│   ├── testRouter.js         # Dev/test routes
-│   ├── admin/
-│   │   ├── adminUser.js      # Admin user management
-│   │   ├── adminMenu.js      # Menu management
-│   │   └── adminTable.js     # Table management
-│   ├── cashier/
-│   │   ├── cashierBilling.js # Billing
-│   │   ├── cashierKotOrder.js# KOT orders
-│   │   └── cashierReports.js # Reports
-│   ├── waiter/
-│   │   ├── waiterOrderRouter.js  # Order placement
-│   │   └── waiterTableRouter.js  # Table status
-│   └── chef/
-│       └── chefRouter.js     # KOT queue
-├── .env
-├── package.json
-└── server.js                 # Entry point
-```
-
----
-
-## 🔐 Environment Variables
-
-Create a `.env` file in the root of the project:
-
-```env
-PORT=3000
-MONGO_URI=mongodb://localhost:27017/kot
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=7d
-COOKIE_EXPIRES_IN=7
-NODE_ENV=development
-```
-
-| Variable            | Description                       |
-| ------------------- | --------------------------------- |
-| `PORT`              | Server port (default: 3000)       |
-| `MONGO_URI`         | MongoDB connection string         |
-| `JWT_SECRET`        | Secret key for signing JWT tokens |
-| `JWT_EXPIRES_IN`    | JWT expiry duration (e.g. `7d`)   |
-| `COOKIE_EXPIRES_IN` | Cookie expiry in days             |
-| `NODE_ENV`          | `development` or `production`     |
-
----
-
-## 🚀 Installation & Setup
+## Local setup
 
 ### Prerequisites
 
-- Node.js `v18+`
-- MongoDB running locally or a MongoDB Atlas URI
+- Node.js and npm
+- MongoDB replica set or MongoDB Atlas deployment for transaction-backed workflows
+- Redis only when caching, shared rate limiting, or background jobs are required
 
-### Steps
+### Install and run
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/Pandikumarcodes/Kot-Pos-Backend.git
-cd kot
-
-# 2. Install dependencies
-npm install
-
-# 3. Create environment file
-cp .env.example .env
-# Then edit .env with your values
-
-# 4. Start the server
-node server.js
-
-# Or with nodemon for development
-npx nodemon server.js
+```text
+git clone <backend-repository-url>
+cd kot-pos-backend
+npm ci
+# Copy .env.example to .env, then replace placeholders.
+npm run dev
 ```
 
-Server will start at: `http://localhost:3000`
+Use your operating system's normal copy command or file manager to copy `.env.example` to `.env`. Do not commit `.env`.
 
----
+## Environment variables
 
-## 📡 API Endpoints
+Required at startup:
 
-All routes use `http://localhost:3000` as the base URL.  
-Protected routes require a valid JWT stored in an HTTP-only cookie (set on login).
+```text
+MONGO_URI
+JWT_SECRET
+REFRESH_TOKEN_SECRET
+PORT
+NODE_ENV
+```
 
----
+Optional or feature-specific:
 
-### 🔐 Auth — `/auth`
+```text
+BACKEND_URL
+CACHE_TTL
+DAILY_REPORT_RECIPIENTS
+DOCS_PASSWORD
+DOCS_USERNAME
+E2E_TESTING
+EMAIL_WEBHOOK_URL
+ENABLE_BACKGROUND_JOBS
+FRONTEND_URL
+GEMINI_API_KEY
+LOG_LEVEL
+MONGO_TIMEOUT
+MONGO_TIMEOUT_MS
+QUEUE_COMPLETED_RETENTION_SECONDS
+QUEUE_CONCURRENCY
+QUEUE_RETRY_ATTEMPTS
+QUEUE_RETRY_DELAY_MS
+RATE_LIMIT_MAX
+RATE_LIMIT_WINDOW
+RATE_LIMIT_WINDOW_MS
+REDIS_CONNECT_TIMEOUT_MS
+REDIS_OPERATION_TIMEOUT_MS
+REDIS_TIMEOUT
+REDIS_URL
+SEED_ADMIN_PASSWORD
+SHUTDOWN_TIMEOUT_MS
+SLOW_REQUEST_MS
+```
 
-| Method | Endpoint         | Description                   | Access  |
-| ------ | ---------------- | ----------------------------- | ------- |
-| POST   | `/auth/register` | Register a new user           | Public  |
-| POST   | `/auth/login`    | Login and receive auth cookie | Public  |
-| POST   | `/auth/logout`   | Logout and clear cookie       | Private |
-| GET    | `/auth/profile`  | Get current user's profile    | Private |
+`SLOW_REQUEST_MS` is accepted by startup validation but is not otherwise used. `CSRF_SECRET` is not included in `.env.example` because it appears only in inactive commented configuration.
 
----
+See [Deployment](docs/DEPLOYMENT.md) for configuration behavior without exposing values.
 
-### 👤 Admin — Users `/admin`
+## Run commands
 
-| Method | Endpoint           | Description              | Access |
-| ------ | ------------------ | ------------------------ | ------ |
-| GET    | `/admin/users`     | List all users           | Admin  |
-| POST   | `/admin/users`     | Create a new staff user  | Admin  |
-| GET    | `/admin/users/:id` | Get a user by ID         | Admin  |
-| PUT    | `/admin/users/:id` | Update user details/role | Admin  |
-| DELETE | `/admin/users/:id` | Delete a user            | Admin  |
+```powershell
+npm start
+npm run dev
+npm run seed
+npm run docs:generate
+npm run test:backend
+```
 
----
+There are currently no lint, format, build, migration, or dedicated worker scripts.
 
-### 🍽️ Admin — Menu `/admin`
+## API documentation
 
-| Method | Endpoint          | Description           | Access |
-| ------ | ----------------- | --------------------- | ------ |
-| GET    | `/admin/menu`     | Get all menu items    | Admin  |
-| POST   | `/admin/menu`     | Add a new menu item   | Admin  |
-| GET    | `/admin/menu/:id` | Get a menu item by ID | Admin  |
-| PUT    | `/admin/menu/:id` | Update a menu item    | Admin  |
-| DELETE | `/admin/menu/:id` | Delete a menu item    | Admin  |
+When the server is running:
 
----
+- Swagger UI: `/api/docs`
+- OpenAPI JSON: `/api/docs.json`
+- Version metadata: `/api/version`
 
-### 🪑 Admin — Tables `/admin`
+Generated artifacts are stored in `docs/openapi.json` and `docs/postman/`. See [API reference](docs/API.md) for the known generation drift.
 
-| Method | Endpoint            | Description          | Access |
-| ------ | ------------------- | -------------------- | ------ |
-| GET    | `/admin/tables`     | List all tables      | Admin  |
-| POST   | `/admin/tables`     | Add a new table      | Admin  |
-| GET    | `/admin/tables/:id` | Get a table by ID    | Admin  |
-| PUT    | `/admin/tables/:id` | Update table details | Admin  |
-| DELETE | `/admin/tables/:id` | Remove a table       | Admin  |
+## Deployment
 
----
+The repository currently deploys as a direct Node.js process with `npm start`. It includes startup validation, health/readiness endpoints, required-index reconciliation, structured rotating logs, and graceful shutdown.
 
-### 💳 Cashier — Billing `/cashier`
+It does **not** currently contain Docker, Compose, Kubernetes, Render, Railway, Fly, Vercel, Procfile, process-manager, or CI/CD configuration. See [Deployment](docs/DEPLOYMENT.md).
 
-| Method | Endpoint                   | Description            | Access  |
-| ------ | -------------------------- | ---------------------- | ------- |
-| GET    | `/cashier/billing`         | Get all bills          | Cashier |
-| POST   | `/cashier/billing/:kotId`  | Generate bill from KOT | Cashier |
-| PATCH  | `/cashier/billing/:id/pay` | Mark a bill as paid    | Cashier |
+## Demo credentials
 
----
+Use deployment-specific or seed-generated credentials. The workspace-level [Demo Guide](../docs/DEMO-GUIDE.md) lists the deterministic seeded usernames and the recommended walkthrough. Do not commit the effective seed password or real credentials.
 
-### 🧾 Cashier — KOT Orders `/cashier`
+```text
+Superadmin username: <demo-superadmin-username>
+Branch admin username: <demo-branch-admin-username>
+Manager username: <demo-manager-username>
+Waiter username: <demo-waiter-username>
+Chef username: <demo-chef-username>
+Cashier username: <demo-cashier-username>
+Password: <provided-separately>
+```
 
-| Method | Endpoint                  | Description            | Access  |
-| ------ | ------------------------- | ---------------------- | ------- |
-| GET    | `/cashier/kot`            | Get all KOT orders     | Cashier |
-| POST   | `/cashier/kot`            | Create a new KOT order | Cashier |
-| PATCH  | `/cashier/kot/:id/cancel` | Cancel a KOT order     | Cashier |
+## Frontend repository
 
----
+Frontend: `<frontend-repository-url>`
 
-### 📊 Cashier — Reports `/cashier`
+## Documentation index
 
-| Method | Endpoint                   | Description             | Access  |
-| ------ | -------------------------- | ----------------------- | ------- |
-| GET    | `/cashier/reports/daily`   | Daily sales report      | Cashier |
-| GET    | `/cashier/reports/summary` | Revenue summary & stats | Cashier |
+- [Project system design](../docs/SYSTEM-DESIGN.md)
+- [Project data flows](../docs/DATA-FLOW.md)
+- [Project roles and permissions](../docs/ROLE-PERMISSIONS.md)
+- [Recruiter demo guide](../docs/DEMO-GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API](docs/API.md)
+- [Authentication and RBAC](docs/AUTH-RBAC.md)
+- [Database](docs/DATABASE.md)
+- [Transactions](docs/TRANSACTIONS.md)
+- [Redis and BullMQ](docs/REDIS-BULLMQ.md)
+- [Real-time](docs/REALTIME.md)
+- [Security](docs/SECURITY.md)
+- [Testing](docs/TESTING.md)
+- [Seeding](docs/SEEDING.md)
+- [Deployment](docs/DEPLOYMENT.md)
 
----
+## License
 
-### 🧑‍🍳 Waiter `/waiter`
-
-| Method | Endpoint                    | Description                     | Access |
-| ------ | --------------------------- | ------------------------------- | ------ |
-| GET    | `/waiter/orders`            | View all assigned orders        | Waiter |
-| POST   | `/waiter/orders`            | Place a new order for a table   | Waiter |
-| PATCH  | `/waiter/orders/:id`        | Update/add items to an order    | Waiter |
-| GET    | `/waiter/tables`            | Get all tables and their status | Waiter |
-| PATCH  | `/waiter/tables/:id/status` | Update table status             | Waiter |
-
----
-
-### 👨‍🍳 Chef `/chef`
-
-| Method | Endpoint              | Description                  | Access |
-| ------ | --------------------- | ---------------------------- | ------ |
-| GET    | `/chef/kot`           | View all pending KOT tickets | Chef   |
-| PATCH  | `/chef/kot/:id/start` | Mark KOT as in preparation   | Chef   |
-| PATCH  | `/chef/kot/:id/ready` | Mark KOT as ready to serve   | Chef   |
-
----
-
-### 🧪 Test `/test` _(Dev Only)_
-
-| Method | Endpoint           | Description                  | Access  |
-| ------ | ------------------ | ---------------------------- | ------- |
-| GET    | `/test/ping`       | Server health check          | Public  |
-| GET    | `/test/auth-check` | Verify cookie/JWT auth works | Private |
-
----
-
-## 📝 Notes
-
-- All private routes expect a valid JWT cookie set during `/auth/login`
-- Role-based middleware should restrict routes to their respective roles (Admin, Cashier, Waiter, Chef)
-- The `adminReportRouter` and `cashierOnlineRouter` are commented out and reserved for future use
-
----
-
-## 📄 License
-
-[MIT](LICENSE)
-
-# RBAC Phase 2 database migration requirement
-
-Global administration now requires the explicit `superadmin` role with
-`branchId: null`. Existing branchless `admin` records are deliberately not
-converted during application startup. Before deploying this phase, choose one
-intended global administrator (for example, either `admin` or `admin_test`),
-verify that its `branchId` is null, and update only that selected record's role
-to `superadmin` using an audited, operator-run database command. Do not bulk
-convert every branchless admin. Until one record is explicitly migrated, login
-and refresh remain compatible, but global branch-management routes will
-correctly reject the legacy branchless admin records.
+ISC

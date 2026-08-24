@@ -56,7 +56,7 @@
             "description": "Register a user. Public endpoint. No branch scope is applied by this route.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"manager@example.com\",\n  \"password\": \"StrongPassword123\"\n}",
+              "raw": "{\n  \"username\": \"manager@example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -94,7 +94,7 @@
             "description": "Log in. Public endpoint. No branch scope is applied by this route.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"manager@example.com\",\n  \"password\": \"StrongPassword123\"\n}",
+              "raw": "{\n  \"username\": \"manager@example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -361,6 +361,105 @@
               ]
             },
             "description": "Deactivate branch. Requires Bearer access token (or the existing auth cookie). Allowed roles: super-admin. No branch scope is applied by this route.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign or replace a branch admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/branches/{id}/assign-admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "branches",
+                "id",
+                "assign-admin"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011"
+                }
+              ]
+            },
+            "description": "Assigns an eligible existing user as the branch admin. A current admin is demoted to manager and affected refresh tokens are cleared transactionally. Requires Bearer access token (or the existing auth cookie). Allowed roles: superadmin. No branch scope is applied by this route.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"507f1f77bcf86cd799439012\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create and assign a branch admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/branches/{id}/admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "branches",
+                "id",
+                "admin"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "507f1f77bcf86cd799439011"
+                }
+              ]
+            },
+            "description": "Creates a new branch admin and assigns that user to the branch atomically. A current admin is demoted to manager and affected refresh tokens are cleared. Requires Bearer access token (or the existing auth cookie). Allowed roles: superadmin. No branch scope is applied by this route.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -656,7 +755,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"manager@example.com\",\n  \"password\": \"StrongPassword123\"\n}",
+              "raw": "{\n  \"username\": \"manager@example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2405,6 +2504,40 @@
               }
             }
           }
+        },
+        {
+          "name": "Get receipt settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "settings"
+              ]
+            },
+            "description": "Get receipt settings. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager, cashier. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -3540,7 +3673,7 @@
                 "chat"
               ]
             },
-            "description": "Chat with the branch AI assistant. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+            "description": "KOT POS sends a sanitized subset of the optional client-supplied restaurant context to Google Gemini and returns plain text. The Gemini credential remains server-side. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3553,7 +3686,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"Which items are low in stock?\",\n  \"context\": {}\n}",
+              "raw": "{\n  \"message\": \"Which items are low in stock?\",\n  \"context\": {\n    \"criticalStockItems\": [\n      \"Paneer\"\n    ]\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3563,7 +3696,7 @@
           }
         },
         {
-          "name": "Get AI inventory alerts",
+          "name": "Get inventory alerts",
           "request": {
             "method": "GET",
             "header": [
@@ -3584,7 +3717,7 @@
                 "inventory-alerts"
               ]
             },
-            "description": "Get AI inventory alerts. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+            "description": "Calculates branch-scoped inventory alert levels locally from inventory and recent deduction logs; this route does not call Gemini. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3598,7 +3731,7 @@
           }
         },
         {
-          "name": "Get AI daily summary",
+          "name": "Get daily business summary",
           "request": {
             "method": "GET",
             "header": [
@@ -3619,7 +3752,7 @@
                 "daily-summary"
               ]
             },
-            "description": "Get AI daily summary. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
+            "description": "Builds yesterday's branch-scoped operational summary, caches it for 600 seconds, and asks Google Gemini for concise summary text when configured. Missing or failed Gemini access falls back to deterministic local text. Requires Bearer access token (or the existing auth cookie). Allowed roles: admin, manager. Branch scope is applied from the authenticated user's branch; super admins may select branchId where the implementation permits it.",
             "auth": {
               "type": "bearer",
               "bearer": [
