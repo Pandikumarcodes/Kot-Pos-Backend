@@ -13,6 +13,8 @@ The guard is evaluated after connection using the actual database name. Do not w
 
 The seed uses MongoDB transactions and therefore requires a replica set or sharded cluster.
 
+Seed arguments are strictly allowlisted. An unknown argument is an error and cannot fall through to full mode. `--clean`, `--customers-only`, and `--operations-only` are mutually exclusive.
+
 ## Modes
 
 ### Full seed
@@ -54,6 +56,32 @@ This mode:
 7. Leaves historical transactions unchanged.
 
 `--clean` and `--customers-only` cannot be combined.
+
+### Operational demo reseed
+
+> **THIS COMMAND IS FOR THE DISPOSABLE DEMO DATABASE ONLY.**
+
+```powershell
+npm run seed -- --operations-only
+```
+
+All three prerequisites are mandatory:
+
+1. `NODE_ENV=development`
+2. The connected database name is exactly `Kot-Pos`
+3. `DEMO_SEED_ENABLED=true`
+
+The opt-in defaults to denied (`DEMO_SEED_ENABLED=false` in `.env.example`). Back up a hosted demo before resetting it. Never enable or run this mode against a production database or a database containing valuable data.
+
+Before deleting anything, the command verifies the deterministic foundation fingerprint: 3 canonical branches, 25 correctly assigned demo users, 80 exact menu items, 120 exact customer name/phone identities, 45 inventory records, the expected global/per-branch Settings topology, and the pristine 90-row StockLog baseline. A mismatch aborts without mutation. IDs are discovered from those records and are never hardcoded.
+
+The command preserves Branch, User, MenuItem, Customer, Inventory, StockLog, Settings, and AuditEvent documents. It deletes and recreates only Bills, KOTs, TableOrders, TakeAways, and Tables, in one MongoDB transaction. Customer documents and ObjectIds remain in place; their `totalOrders`, `totalSpent`, and `lastVisit` metrics are recalculated in that same transaction.
+
+Inventory and StockLogs are not rewritten, and no runtime order or inventory-deduction service is called. If a preserved `StockLog.kotId` references a KOT that would be deleted, the command refuses with a runtime-stock-history error. AuditEvents remain append-only and unchanged. Their operational entity IDs are logical strings, so an old AuditEvent may continue to refer to a pre-reset demo operational ID.
+
+Critical counts, distributions, relationships, totals, uniqueness, workflow consistency, customer metrics, and preserved inventory/StockLog contents are verified before commit. Any failure rolls back the entire operational reset. A lightweight count and foundation check runs again after commit.
+
+Rerunning the command against the unchanged pristine foundation replaces rather than accumulates operational records and produces the same logical demo story. MongoDB ObjectIds for Tables and other recreated operational documents change on every successful run.
 
 ## Demo hierarchy
 
@@ -152,7 +180,7 @@ Any verification failure rejects the seed run.
 
 ## Credentials
 
-All seeded accounts use `SEED_ADMIN_PASSWORD` when supplied; the implementation contains a development fallback. The script prints demo usernames and the effective demo password after success, but never prints hashes.
+All seeded accounts use `SEED_ADMIN_PASSWORD` when supplied; the implementation contains a development fallback. The script prints demo usernames after success, but never prints the effective password or password hashes.
 
 Do not copy seed output into committed documentation, logs, screenshots, issue trackers, or production configuration. Use placeholders in public materials:
 
