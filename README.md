@@ -104,17 +104,17 @@ Direct `branchId` isolation currently applies to branches, tables, inventory, st
 
 The versioned API is mounted under `/api/v1`:
 
-| Area | Base path |
-|---|---|
-| Authentication | `/api/v1/auth` |
-| Public QR | `/api/v1/public` |
-| Admin and superadmin | `/api/v1/admin` |
-| Inventory | `/api/v1/admin/inventory` |
-| Waiter | `/api/v1/waiter` |
-| Kitchen | `/api/v1/chef` |
-| Cashier | `/api/v1/cashier` |
-| Receipt settings | `/api/v1/settings` |
-| AI | `/api/v1/ai` |
+| Area                 | Base path                 |
+| -------------------- | ------------------------- |
+| Authentication       | `/api/v1/auth`            |
+| Public QR            | `/api/v1/public`          |
+| Admin and superadmin | `/api/v1/admin`           |
+| Inventory            | `/api/v1/admin/inventory` |
+| Waiter               | `/api/v1/waiter`          |
+| Kitchen              | `/api/v1/chef`            |
+| Cashier              | `/api/v1/cashier`         |
+| Receipt settings     | `/api/v1/settings`        |
+| AI                   | `/api/v1/ai`              |
 
 Supporting endpoints are `/api/version`, `/health`, `/ready`, `/api/docs`, and `/api/docs.json`.
 
@@ -200,7 +200,7 @@ All seed modes require `NODE_ENV=development` and a database named exactly `Kot-
 ### Install and run
 
 ```text
-git clone <backend-repository-url>
+git clone https://github.com/Pandikumarcodes/Kot-Pos-Backend
 cd kot-pos-backend
 npm ci
 # Copy .env.example to .env, then replace placeholders.
@@ -290,18 +290,18 @@ It does **not** currently contain Docker, Compose, Kubernetes, Render, Railway, 
 Use deployment-specific or seed-generated credentials. The workspace-level [Demo Guide](../docs/DEMO-GUIDE.md) lists the deterministic seeded usernames and the recommended walkthrough. Do not commit the effective seed password or real credentials.
 
 ```text
-Superadmin username: <demo-superadmin-username>
-Branch admin username: <demo-branch-admin-username>
-Manager username: <demo-manager-username>
-Waiter username: <demo-waiter-username>
-Chef username: <demo-chef-username>
-Cashier username: <demo-cashier-username>
-Password: <provided-separately>
+Superadmin username: superadmin
+Branch admin username: admin.indiranagar
+Manager username: manager.indiranagar.1
+Waiter username: waiter.indiranagar.1
+Chef username: chef.indiranagar.1
+Cashier username: cashier.indiranagar.1
+Password: SuperAdmin@123
 ```
 
 ## Frontend repository
 
-Frontend: `<frontend-repository-url>`
+Frontend: `https://github.com/Pandikumarcodes/Kot-pos-frontend
 
 ## Documentation index
 
@@ -320,7 +320,3 @@ Frontend: `<frontend-repository-url>`
 - [Testing](docs/TESTING.md)
 - [Seeding](docs/SEEDING.md)
 - [Deployment](docs/DEPLOYMENT.md)
-
-## License
-
-ISC
